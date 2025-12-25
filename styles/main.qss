@@ -1,0 +1,277 @@
+/* ===== MAIN WINDOW ===== */
+QMainWindow {
+    background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1,
+                                stop: 0 #1a1a2e, stop: 0.5 #16213e, stop: 1 #0f3460);
+    color: #e6e6e6;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    border: none;
+}
+
+/* ===== MENU BAR ===== */
+QMenuBar {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #2c3e50, stop: 1 #34495e);
+    color: #ecf0f1;
+    border-bottom: 2px solid #3498db;
+    padding: 4px 8px;
+    font-weight: 500;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 6px 16px;
+    border-radius: 4px;
+    margin: 0 2px;
+    color: #ecf0f1;
+}
+
+QMenuBar::item:selected {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #3498db, stop: 1 #2980b9);
+    color: white;
+    border: 1px solid #1abc9c;
+}
+
+QMenuBar::item:pressed {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #2980b9, stop: 1 #2471a3);
+}
+
+/* ===== MENU ===== */
+QMenu {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #2c3e50, stop: 1 #34495e);
+    border: 2px solid #3498db;
+    border-radius: 6px;
+    padding: 4px;
+    color: #ecf0f1;
+    font-weight: normal;
+}
+
+QMenu::item {
+    background: transparent;
+    padding: 8px 24px 8px 16px;
+    border-radius: 4px;
+    margin: 2px;
+    color: #ecf0f1;
+    font-size: 14px;
+}
+
+QMenu::item:selected {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #3498db, stop: 1 #2980b9);
+    color: white;
+}
+
+QMenu::item:disabled {
+    color: #7f8c8d;
+    background: transparent;
+}
+
+QMenu::separator {
+    background: #3498db;
+    height: 1px;
+    margin: 4px 8px;
+}
+
+/* ===== WIDGET ACTION ===== */
+QWidgetAction {
+    background: transparent;
+    padding: 4px;
+}
+
+/* ===== PUSH BUTTON ===== */
+QPushButton {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #3498db, stop: 1 #2980b9);
+    color: white;
+    border: 1px solid #2980b9;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #2980b9, stop: 1 #2471a3);
+    border: 1px solid #1abc9c;
+}
+
+QPushButton:pressed {
+    background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
+                                stop: 0 #2471a3, stop: 1 #1b4f72);
+    border: 1px solid #16a085;
+}
+
+QPushButton:disabled {
+    background: #95a5a6;
+    color: #7f8c8d;
+    border: 1px solid #7f8c8d;
+}
+
+QPushButton:focus {
+    border: 2px solid #1abc9c;
+}
+
+/* ===== LINE EDIT ===== */
+QLineEdit {
+    background: rgba(44, 62, 80, 0.8);
+    border: 2px solid #34495e;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #ecf0f1;
+    font-size: 14px;
+    selection-background-color: #3498db;
+    selection-color: white;
+    font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+QLineEdit:focus {
+    border-color: #3498db;
+    background: rgba(44, 62, 80, 0.9);
+}
+
+QLineEdit:disabled {
+    background: rgba(189, 195, 199, 0.1);
+    color: #7f8c8d;
+    border-color: #566573;
+}
+
+/* ===== TOOLTIPS ===== */
+QToolTip {
+    background-color: #2c3e50;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    color: #ecf0f1;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* ===== TEXT EDIT ===== */
+QTextEdit {
+    background: rgba(44, 62, 80, 0.9);
+    border: 2px solid #34495e;
+    border-radius: 8px;
+    padding: 8px;
+    color: #ecf0f1;
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 14px;
+    selection-background-color: #3498db;
+    selection-color: white;
+}
+
+QTextEdit:focus {
+    border-color: #3498db;
+    background: rgba(44, 62, 80, 0.95);
+}
+
+QTextEdit:disabled {
+    background: rgba(189, 195, 199, 0.2);
+    color: #7f8c8d;
+    border-color: #566573;
+}
+
+QTextEdit:read-only {
+    background: rgba(52, 73, 94, 0.7);
+    border-color: #566573;
+}
+
+/* ===== SCROLLBARS FOR TEXT EDIT ===== */
+QTextEdit QScrollBar:vertical {
+    background: rgba(52, 73, 94, 0.4);
+    width: 16px;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+QTextEdit QScrollBar::handle:vertical {
+    background: #3498db;
+    border-radius: 8px;
+    min-height: 30px;
+}
+
+QTextEdit QScrollBar::handle:vertical:hover {
+    background: #2980b9;
+}
+
+QTextEdit QScrollBar::add-line:vertical, 
+QTextEdit QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+    height: 0px;
+}
+
+QTextEdit QScrollBar:horizontal {
+    background: rgba(52, 73, 94, 0.4);
+    height: 16px;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+QTextEdit QScrollBar::handle:horizontal {
+    background: #3498db;
+    border-radius: 8px;
+    min-width: 30px;
+}
+
+QTextEdit QScrollBar::handle:horizontal:hover {
+    background: #2980b9;
+}
+
+QTextEdit QScrollBar::add-line:horizontal, 
+QTextEdit QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+}
+
+/* ===== SCROLLBARS ===== */
+QScrollBar:vertical {
+    background: rgba(52, 73, 94, 0.3);
+    width: 14px;
+    border-radius: 7px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical {
+    background: #3498db;
+    border-radius: 6px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #2980b9;
+}
+
+QScrollBar::add-line:vertical, 
+QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+    height: 0px;
+}
+
+QScrollBar:horizontal {
+    background: rgba(52, 73, 94, 0.3);
+    height: 14px;
+    border-radius: 7px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #3498db;
+    border-radius: 6px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #2980b9;
+}
+
+QScrollBar::add-line:horizontal, 
+QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+}
