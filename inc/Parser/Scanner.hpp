@@ -5,4 +5,4 @@
 class Scanner {
 private:
 public:
-}
+};

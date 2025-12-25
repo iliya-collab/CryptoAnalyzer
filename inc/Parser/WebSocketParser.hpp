@@ -83,5 +83,5 @@ protected slots:
     void onSslErrors(const QList<QSslError> &errors);
     void reconnect();
     
-    virtual void onTextMessageReceived(const QString &message);
+    virtual void onTextMessageReceived(const QString &message) = 0;
 };
