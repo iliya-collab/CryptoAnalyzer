@@ -53,12 +53,8 @@ void MainWindow::onSetupMenuActivated() {
 void MainWindow::onSaveSetupActivated() {
     if (showMessage("Confirmation", "Save changes", QMessageBox::Question))
         Settings::writeAllConfig();
-    if (showMessage("Confirmation", "Restart the progremm?", QMessageBox::Question)) {
-        // Закрываем текущее приложение
-        QApplication::quit();
-        // Запускаем новое
-        QProcess::startDetached(QApplication::applicationFilePath(), QApplication::arguments());
-    }
+    if (showMessage("Confirmation", "Restart the progremm?", QMessageBox::Question))
+        restartApplication();
 }
 
 void MainWindow::onDefaultResetActivated() {

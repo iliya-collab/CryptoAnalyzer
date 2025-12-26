@@ -164,3 +164,7 @@ bool MainWindow::showMessage(const char* title, const char* msg, QMessageBox::Ic
 
     return (result == QMessageBox::Yes) ? true : false;
 }
+
+void MainWindow::restartApplication() {
+    RestartManager::requestRestart();
+}

@@ -14,6 +14,8 @@
 #include "Parser/RegularParser.hpp"
 #include "Parser/Scanner.hpp"
 
+#include "RestartManager.hpp"
+
 #include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
 #include "CustomWindowDialogs/DialogTableCurrencyRates.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
@@ -93,6 +95,7 @@ private:
     void createUI();
 
     bool showMessage(const char* title, const char* msg, QMessageBox::Icon icon);
+    void restartApplication();
 
 private slots:
 
