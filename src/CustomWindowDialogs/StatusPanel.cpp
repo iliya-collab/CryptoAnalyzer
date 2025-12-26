@@ -73,7 +73,11 @@ void StatusPanel::show() {
     showWidget();
 }
 
-void StatusPanel::display() {
+void StatusPanel::displayMessage(const QString& msg) {
+    outputMessage->append(msg);
+}
+
+void StatusPanel::displayDynamic() {
     // Сохраняем текущее положение прокрутки
     int scrollValue = outputDynamic->verticalScrollBar()->value();
     outputDynamic->clear();

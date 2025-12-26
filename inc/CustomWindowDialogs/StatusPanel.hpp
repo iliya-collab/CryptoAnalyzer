@@ -42,9 +42,9 @@ private:
 public:
 
     void displayResults(double val);
-    // Обновляет содежимое всего вывода
-    void display();
-    // Вызывает отображение виджета
+    void displayDynamic();
+    void displayMessage(const QString& msg);
+
     void show();
 
     StatusPanel(QWidget* parent = nullptr);

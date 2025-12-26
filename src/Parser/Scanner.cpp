@@ -86,17 +86,17 @@ void Scanner::onPriceUpdated(const QString &coin, double price)
     // Вызывается мгновенно при изменении цены на Binance
     myWalletParser->updateAllAssets(coin, price);
     myWalletParser->updateWallet();
-    statPanel->display();
+    statPanel->displayDynamic();
 }
 
 void Scanner::onWebSocketConnected() {
-    //outputResult->append("Connected to Binance WebSocket");
+    statPanel->displayMessage("Connected to WebSocket");
 }
 
 void Scanner::onWebSocketDisconnected() {
-    //outputResult->append("Disconnected from Binance WebSocket");
+    statPanel->displayMessage("Disconnected from WebSocket");
 }
 
 void Scanner::onWebSocketError(const QString &error) {
-   //outputResult->append("WebSocket error: " + error);
+   statPanel->displayMessage("WebSocket error: " + error);
 }
