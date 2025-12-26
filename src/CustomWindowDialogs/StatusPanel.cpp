@@ -14,35 +14,35 @@ StatusPanel::StatusPanel(QWidget* parent) : CustomQDialog(parent) {
 
 void StatusPanel::setupUI() {
 
-    outputResults = new QTextEdit(this);
-    outputResults->setReadOnly(true);
-    outputResults->setFocusPolicy(Qt::NoFocus);
+    outputStatWallet = new QTextEdit(this);
+    outputStatWallet->setReadOnly(true);
+    outputStatWallet->setFocusPolicy(Qt::NoFocus);
 
-    outputDynamic = new QTextEdit(this);
-    outputDynamic->setReadOnly(true);
-    outputDynamic->setFocusPolicy(Qt::NoFocus);
+    outputStatAssets = new QTextEdit(this);
+    outputStatAssets->setReadOnly(true);
+    outputStatAssets->setFocusPolicy(Qt::NoFocus);
 
-    outputMessage = new QTextEdit(this);
-    outputMessage->setReadOnly(true);
-    outputMessage->setFocusPolicy(Qt::NoFocus);
+    outputMessages = new QTextEdit(this);
+    outputMessages->setReadOnly(true);
+    outputMessages->setFocusPolicy(Qt::NoFocus);
 
-    horSplitter = new QSplitter(Qt::Horizontal, this);
-    verSplitter = new QSplitter(Qt::Vertical, this);
+    QSplitter* verSplitter = new QSplitter(Qt::Vertical, this);
+    QSplitter* horSplitter = new QSplitter(Qt::Horizontal, this);
     horSplitter->setFocusPolicy(Qt::NoFocus);
     verSplitter->setFocusPolicy(Qt::NoFocus);
 
-    horSplitter->addWidget(outputDynamic);
-    horSplitter->addWidget(outputResults);
+    horSplitter->addWidget(outputStatAssets);
+    horSplitter->addWidget(outputStatWallet);
     verSplitter->addWidget(horSplitter);
-    verSplitter->addWidget(outputMessage);
+    verSplitter->addWidget(outputMessages);
 
     // позволяем разделителю управлять мышью
     horSplitter->setChildrenCollapsible(false);
     verSplitter->setChildrenCollapsible(false);
 
-    outputDynamic->setMinimumWidth(100);
-    outputResults->setMinimumWidth(100);
-    outputMessage->setMinimumHeight(50);
+    outputStatAssets->setMinimumWidth(100);
+    outputStatWallet->setMinimumWidth(100);
+    outputMessages->setMinimumHeight(50);
 
     horSplitter->setSizes({300,400});
     verSplitter->setSizes({400,200});
@@ -73,37 +73,60 @@ void StatusPanel::show() {
     showWidget();
 }
 
-void StatusPanel::displayMessage(const QString& msg) {
-    outputMessage->append(msg);
+void StatusPanel::clearDisplay(StatusPanel::Display _disp) {
+    switch (_disp)
+    {
+    case Display::StatAssets:
+        outputStatAssets->clear();
+        break;
+    case Display::StatWallet:
+        outputStatWallet->clear();
+        break;
+    case Display::Messages:
+        outputMessages->clear();
+        break;
+    }
 }
 
-void StatusPanel::displayDynamic() {
+void StatusPanel::outputStringInDisplay(StatusPanel::Display _disp, const QString& str) {
+    switch (_disp)
+    {
+    case Display::StatAssets:
+        outputStatAssets->append(str);
+        break;
+    case Display::StatWallet:
+        outputStatWallet->append(str);
+        break;
+    case Display::Messages:
+        outputMessages->append(str);
+        break;
+    }
+}
+
+void StatusPanel::displayMessages(const QString& msg) {
+    outputMessages->append(msg);
+}
+
+void StatusPanel::displayStatAssets() {
     // Сохраняем текущее положение прокрутки
-    int scrollValue = outputDynamic->verticalScrollBar()->value();
-    outputDynamic->clear();
+    int scrollValue = outputStatAssets->verticalScrollBar()->value();
 
     displayEachAsset();
-    outputDynamic->append("");
+    outputStatAssets->append("");
     displayMyWallet();
 
     // Восстанавливаем положение прокрутки
-    outputDynamic->verticalScrollBar()->setValue(scrollValue);
+    outputStatAssets->verticalScrollBar()->setValue(scrollValue);
 }
 
-void StatusPanel::displayResults(double val) {
-    static int nScan = 2;
-
-    outputResults->clear();
-
-    outputResults->append(QString("Sanning #%1\nRevenue : %2\nAll revenue : %3")
-        .arg(nScan)
-        .arg(QString::number(val, 'f', 4))
+void StatusPanel::displayStatWallet() {
+    outputStatWallet->append(QString("All revenue : %1")
         .arg(QString::number(ParserMyWallet::getAllRevenue(), 'f', 4)));
 
     auto amounts = ParserMyWallet::getCurrentAmounts();
 
     for (auto [coin, amount] : amounts.asKeyValueRange()) {
-        QTextCursor cursor = outputResults->textCursor();
+        QTextCursor cursor = outputStatWallet->textCursor();
 
         // Создаем таблицу с 1 колонкой для группировки
         QTextTableFormat mainTableFormat;
@@ -136,15 +159,13 @@ void StatusPanel::displayResults(double val) {
 
         innerTable->cellAt(0, 1).firstCursorPosition().insertText(QString::number(amounts[coin], 'f', 4), valueFormat);
     }
-    nScan++;
 }
 
 void StatusPanel::displayMyWallet() {
-
     auto statW = ParserMyWallet::getStat().statWallet;
 
-    outputDynamic->append("Total price");
-    QTextCursor cursor = outputDynamic->textCursor();
+    outputStatAssets->append("Total price");
+    QTextCursor cursor = outputStatAssets->textCursor();
 
     // Создаем таблицу с 3 колонками
     QTextTableFormat tableFormat;
@@ -180,17 +201,16 @@ void StatusPanel::displayMyWallet() {
     cellCursor = cell.firstCursorPosition();
     cellCursor.setBlockFormat(alignRight);
     cellCursor.insertText(QString::number(statW.perDifPrice, 'f', 4) + "%", perFormat);
-
 }
 
 void StatusPanel::displayEachAsset() {
     auto statA = ParserMyWallet::getStat().statEachAsset;
     auto amount = ParserMyWallet::getCurrentAmounts();
 
-    outputDynamic->append("Asset changes");
+    outputStatAssets->append("Asset changes");
 
     for (auto [coin, stat] : statA.asKeyValueRange()) {
-        QTextCursor cursor = outputDynamic->textCursor();
+        QTextCursor cursor = outputStatAssets->textCursor();
 
         // Создаем таблицу с 1 колонкой для группировки
         QTextTableFormat mainTableFormat;
@@ -240,5 +260,4 @@ void StatusPanel::displayEachAsset() {
 
         changeCursor.insertText(changeStr, valueFormat);
     }
-
 }

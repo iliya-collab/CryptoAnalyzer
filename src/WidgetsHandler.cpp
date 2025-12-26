@@ -17,27 +17,6 @@ void MainWindow::onClickedButtonClearOutput() {
     outputResult->clear();
 }
 
-/*void MainWindow::onDisconnectTimeout()
-{
-    wsParser->disconnectFromStream();
-    showMessage("Auto Disconnect", "Stream automatically disconnected after timeout", QMessageBox::Information);
-}
-
-void MainWindow::onTriggeredRuleTimer() {
-    static int nScan = 2;
-
-    if (!triggeredRuleTimer->isActive() && curScannerConfig.durations.size() >= nScan) {
-        triggeredRuleTimer->start(curScannerConfig.durations[nScan-1]);
-        nScan++;
-    }
-
-    auto exp = my_wallet->parseAllRules();
-    if (exp.has_value())
-        status_panel->displayResults(exp.value());
-    else
-        outputResult->append(QString("Error : %1").arg(exp.error()));
-}*/
-
 void MainWindow::onCurrencyRatesActivated() {
     //DTable = new DTableCurrencyRates(5, parser_cb->getCurrencyRates().size(), parser_cb->getLastDate(), parser_cb->getCurrencyRates(), this);
 }

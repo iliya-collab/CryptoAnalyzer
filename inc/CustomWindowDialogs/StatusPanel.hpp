@@ -24,15 +24,11 @@ private:
 
     void showWidget();
 
-    QTextEdit* outputDynamic;
-    QTextEdit* outputResults;
-    QTextEdit* outputMessage;
+    QTextEdit* outputStatAssets;
+    QTextEdit* outputStatWallet;
+    QTextEdit* outputMessages;
 
     QPushButton* btnOK;
-
-    QSplitter* verSplitter;
-    QSplitter* horSplitter;
-    
 
     // Обновляет содержимое монет
     void displayEachAsset();
@@ -41,9 +37,19 @@ private:
 
 public:
 
-    void displayResults(double val);
-    void displayDynamic();
-    void displayMessage(const QString& msg);
+    enum Display {
+        StatAssets,
+        StatWallet,
+        Messages
+    };
+
+    void displayStatWallet();
+    void displayStatAssets();
+    void displayMessages(const QString& msg);
+
+    void outputStringInDisplay(Display _disp, const QString& str);
+
+    void clearDisplay(Display _disp);
 
     void show();
 

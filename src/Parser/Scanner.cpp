@@ -38,22 +38,28 @@ void Scanner::initTimers() {
 void Scanner::onDisconnectTimeout()
 {
     wsParser->disconnectFromStream();
-    //showMessage("Auto Disconnect", "Stream automatically disconnected after timeout", QMessageBox::Information);
+    statPanel->displayMessages("Auto Disconnect : Stream automatically disconnected after timeout");
 }
 
 void Scanner::onTriggeredRuleTimer() {
-    static int nScan = 2;
-
-    if (!triggeredRuleTimer->isActive() && pScannerConfig.durations.size() >= nScan) {
-        triggeredRuleTimer->start(pScannerConfig.durations[nScan-1]);
-        nScan++;
-    }
+    static int nScan = 1;
 
     auto exp = myWalletParser->parseAllRules();
-    if (exp.has_value())
-        statPanel->displayResults(exp.value());
-    /*else
-        outputResult->append(QString("Error : %1").arg(exp.error()));*/
+    if (exp.has_value()) {
+        statPanel->clearDisplay(StatusPanel::Display::StatWallet);
+        statPanel->outputStringInDisplay(StatusPanel::Display::StatWallet, 
+            QString("Scan #%1\nRevenue : %2")
+            .arg(nScan)
+            .arg(QString::number(exp.value(), 'f', 4)));
+        statPanel->displayStatWallet();
+    }
+    else
+        statPanel->displayMessages(QString("Error : %1").arg(exp.error()));
+
+    nScan++;
+
+    if (!triggeredRuleTimer->isActive() && pScannerConfig.durations.size() >= nScan)
+        triggeredRuleTimer->start(pScannerConfig.durations[nScan-1]);
 }
 
 void Scanner::start() {
@@ -86,17 +92,18 @@ void Scanner::onPriceUpdated(const QString &coin, double price)
     // Вызывается мгновенно при изменении цены на Binance
     myWalletParser->updateAllAssets(coin, price);
     myWalletParser->updateWallet();
-    statPanel->displayDynamic();
+    statPanel->clearDisplay(StatusPanel::Display::StatAssets);
+    statPanel->displayStatAssets();
 }
 
 void Scanner::onWebSocketConnected() {
-    statPanel->displayMessage("Connected to WebSocket");
+    statPanel->displayMessages("Connected to WebSocket");
 }
 
 void Scanner::onWebSocketDisconnected() {
-    statPanel->displayMessage("Disconnected from WebSocket");
+    statPanel->displayMessages("Disconnected from WebSocket");
 }
 
 void Scanner::onWebSocketError(const QString &error) {
-   statPanel->displayMessage("WebSocket error: " + error);
+   statPanel->displayMessages("WebSocket error: " + error);
 }
