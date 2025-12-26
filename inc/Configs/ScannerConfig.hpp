@@ -2,7 +2,7 @@
 
 #include "Configs/ConfigObject.hpp"
 
-struct ParamsScanerConfig {
+struct ParamsScannerConfig {
 
     QList<qint64> durations;
     qint64 allDuration;
@@ -15,12 +15,12 @@ struct ParamsScanerConfig {
 };
 
 
-class ScanerConfig : public ConfigObject<ScanerConfig, ParamsScanerConfig> {
+class ScannerConfig : public ConfigObject<ScannerConfig, ParamsScannerConfig> {
 
 private:
 
-    friend class ConfigObject<ScanerConfig, ParamsScanerConfig>;
-    ScanerConfig() = default;
+    friend class ConfigObject<ScannerConfig, ParamsScannerConfig>;
+    ScannerConfig() = default;
 
 public:
 

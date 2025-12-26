@@ -71,7 +71,7 @@ private:
     // -------------------------------------------------
 
     // -------------------------------------------------
-    ParamsScanerConfig curScannerConfig;
+    ParamsScannerConfig curScannerConfig;
     ParamsMyWalletConfig curMyWalletConfig;
     // -------------------------------------------------
 

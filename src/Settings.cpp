@@ -6,7 +6,7 @@ const char* Settings::configFile = "config.json";
 
 void Settings::getDefaultConfig() {
 
-    ScanerConfig::instance().setDefaultConfig();
+    ScannerConfig::instance().setDefaultConfig();
     MyWalletConfig::instance().setDefaultConfig();
     
 }
@@ -42,7 +42,7 @@ void Settings::parseJsonDocument(const QJsonDocument& doc) {
 
     root = doc.object();
 
-    ScanerConfig::instance().fromJson(root.value(ScanerConfig::instance().getName()).toObject());
+    ScannerConfig::instance().fromJson(root.value(ScannerConfig::instance().getName()).toObject());
     MyWalletConfig::instance().fromJson(root.value(MyWalletConfig::instance().getName()).toObject());
 
 }
@@ -50,7 +50,7 @@ void Settings::parseJsonDocument(const QJsonDocument& doc) {
 
 void Settings::writeAllConfig() {
 
-    root[ScanerConfig::instance().getName()] = ScanerConfig::instance().toJson();
+    root[ScannerConfig::instance().getName()] = ScannerConfig::instance().toJson();
     root[MyWalletConfig::instance().getName()] = MyWalletConfig::instance().toJson();
     
     QJsonDocument doc(root);

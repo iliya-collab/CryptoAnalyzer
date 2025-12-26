@@ -1,7 +1,7 @@
 #pragma one
 
 #include "Configs/MyWalletConfig.hpp"
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 
 #include "LogHandler.hpp"
 
@@ -90,7 +90,7 @@ public:
         amountEachAssets = curConfig.asset;
         rulesWallet = curConfig.rules;
 
-        LogHandler::setEnable(ScanerConfig::instance().getConfig().enableLogs);
+        LogHandler::setEnable(ScannerConfig::instance().getConfig().enableLogs);
         LogHandler::clearLog();
     }
 

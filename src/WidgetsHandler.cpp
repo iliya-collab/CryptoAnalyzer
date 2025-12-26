@@ -79,7 +79,7 @@ void MainWindow::onSaveSetupActivated() {
 
 void MainWindow::onDefaultResetActivated() {
     MyWalletConfig::instance().setDefaultConfig();
-    ScanerConfig::instance().setDefaultConfig();
+    ScannerConfig::instance().setDefaultConfig();
 }
 
 

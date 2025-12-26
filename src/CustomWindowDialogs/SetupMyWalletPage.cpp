@@ -1,6 +1,6 @@
 #include "CustomWindowDialogs/SetupMyWalletPage.hpp"
 #include "Configs/MyWalletConfig.hpp"
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 
 QMap<QString, double> SetupMyWalletPage::parseAsset() {
     QMap<QString, double> _asset;
@@ -28,7 +28,7 @@ QMap<QString, QString> SetupMyWalletPage::parseRules() {
 
 void SetupMyWalletPage::createPage() {
     auto& curWalletConfig = MyWalletConfig::instance().getConfig();
-    auto curScanerConfig = ScanerConfig::instance().getConfig();
+    auto curScanerConfig = ScannerConfig::instance().getConfig();
 
     QVBoxLayout* layout = new QVBoxLayout(this);
 

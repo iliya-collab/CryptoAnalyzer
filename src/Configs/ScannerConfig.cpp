@@ -1,25 +1,25 @@
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 #include "Parser/RegularParser.hpp"
 
-QJsonObject ScanerConfig::toJson() {
-    QJsonObject scaner;
-    scaner["Logs"] = _config.enableLogs;
-    scaner["AutoDisconnect"] = _config.enableAutoDisconnect;
+QJsonObject ScannerConfig::toJson() {
+    QJsonObject scanner;
+    scanner["Logs"] = _config.enableLogs;
+    scanner["AutoDisconnect"] = _config.enableAutoDisconnect;
 
     QJsonArray arrDurations;
     for (auto i : _config.formatDurations)
         arrDurations.append(i);
-    scaner["Duration"] = arrDurations;
+    scanner["Duration"] = arrDurations;
 
     QJsonArray arrPairs;
     for (auto i : _config.pairs)
         arrPairs.append(i);
-    scaner["Pairs"] = arrPairs;
+    scanner["Pairs"] = arrPairs;
 
-    return scaner;
+    return scanner;
 }
 
-void ScanerConfig::setDefaultConfig() {
+void ScannerConfig::setDefaultConfig() {
     _config.enableLogs = false;
     _config.enableAutoDisconnect = true;
 
@@ -30,7 +30,7 @@ void ScanerConfig::setDefaultConfig() {
     _config.pairs = {};
 }
 
-void ScanerConfig::fromJson(const QJsonObject& obj) {
+void ScannerConfig::fromJson(const QJsonObject& obj) {
     _config.enableLogs = obj.value("Logs").toBool();
     _config.enableAutoDisconnect = obj.value("AutoDisconnect").toBool();
 

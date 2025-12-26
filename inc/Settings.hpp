@@ -3,7 +3,7 @@
 
 #include "JsonManager.hpp"
 
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 #include "Configs/MyWalletConfig.hpp"
 
 #ifndef OPERATION_STATUS

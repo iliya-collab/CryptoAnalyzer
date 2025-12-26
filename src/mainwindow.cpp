@@ -1,6 +1,6 @@
 #include "mainwindow.hpp"
 
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 
 #include <QWidgetAction>
 #include <QMenuBar>
@@ -31,7 +31,7 @@ MainWindow::MainWindow(QString style, QWidget *parent) : QMainWindow(parent) {
 MainWindow::~MainWindow() {}
 
 void MainWindow::getCurrentConfig() {
-    curScannerConfig = ScanerConfig::instance().getConfig();
+    curScannerConfig = ScannerConfig::instance().getConfig();
     curMyWalletConfig = MyWalletConfig::instance().getConfig();
 }
 

@@ -1,9 +1,9 @@
 #include "CustomWindowDialogs/SetupScanerPage.hpp"
-#include "Configs/ScanerConfig.hpp"
+#include "Configs/ScannerConfig.hpp"
 #include "Parser/RegularParser.hpp"
 
 void SetupScanerPage::createPage() {
-    auto& cur = ScanerConfig::instance().getConfig();
+    auto& cur = ScannerConfig::instance().getConfig();
 
     QVBoxLayout* layout = new QVBoxLayout(this);
 
@@ -37,7 +37,7 @@ void SetupScanerPage::createPage() {
 }
 
 void SetupScanerPage::readConfig() {
-    auto& cur = ScanerConfig::instance().getConfig();
+    auto& cur = ScannerConfig::instance().getConfig();
 
     cur.enableLogs = checkEnableLogs->isChecked();
     cur.enableAutoDisconnect = checkEnableAutoDisconnect->isChecked();
