@@ -11,6 +11,7 @@
 #include <QScrollBar>
 #include <QFrame>
 #include <QTextTable>
+#include <QSplitter>
 
 // Класс описывает окно, которое вызывается при начале сканирования и показавает состаяние твоего кошелька
 class StatusPanel : public CustomQDialog
@@ -25,7 +26,13 @@ private:
 
     QTextEdit* outputDynamic;
     QTextEdit* outputResults;
+    QTextEdit* outputMessage;
+
     QPushButton* btnOK;
+
+    QSplitter* verSplitter;
+    QSplitter* horSplitter;
+    
 
     // Обновляет содержимое монет
     void displayEachAsset();

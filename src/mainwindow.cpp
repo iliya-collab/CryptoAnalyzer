@@ -23,7 +23,10 @@ MainWindow::MainWindow(QString style, QWidget *parent) : QMainWindow(parent) {
     initParsers();
     setupTimers();
     connectionSignals();
-    status_panel = new StatusPanel(this);
+
+    _scanner = std::make_unique<Scanner>(this);
+    _scanner->setConfig(curScannerConfig, curMyWalletConfig);
+    _scanner->setWebSocketParser(std::move(wsParser));
 
     statusBar()->showMessage("Waitting...");
 }
@@ -36,9 +39,6 @@ void MainWindow::getCurrentConfig() {
 }
 
 void MainWindow::setupTimers() {
-    disconnectTimer = std::make_unique<QTimer>();
-    disconnectTimer->setSingleShot(true); // Таймер сработает только один раз
-
     updateProgressBarTimer = std::make_unique<QTimer>();
     qint64 duration = curScannerConfig.allDuration;
     qint64 interval = duration / 100;
@@ -48,9 +48,6 @@ void MainWindow::setupTimers() {
         qWarning() << "Incorrect timer interval, default value set to 100 ms";
     }
     updateProgressBarTimer->setInterval(interval);
-
-    triggeredRuleTimer = std::make_unique<QTimer>();
-    triggeredRuleTimer->setSingleShot(true);
 }
 
 void MainWindow::setupUI() {
@@ -62,8 +59,6 @@ void MainWindow::setupUI() {
 }
 
 void MainWindow::connectionSignals() {
-    connect(disconnectTimer.get(), &QTimer::timeout, this, &MainWindow::onDisconnectTimeout);
-    connect(triggeredRuleTimer.get(), &QTimer::timeout, this, &MainWindow::onTriggeredRuleTimer);
     connect(updateProgressBarTimer.get(), &QTimer::timeout, this, &MainWindow::onUpdateProgressBar);
 
     connect(btnConvert, &QPushButton::clicked, this, &MainWindow::onClickedButtonConvert);
@@ -72,11 +67,6 @@ void MainWindow::connectionSignals() {
     connect(btnEnd, &QPushButton::clicked, this, &MainWindow::onClickedButtonEnd);
     connect(btnEnd, &QPushButton::clicked, this, &MainWindow::resetProgress);
     connect(btnClearOutput, &QPushButton::clicked, this, &MainWindow::onClickedButtonClearOutput);
-
-    connect(wsParser.get(), &WebSocketParser::priceUpdated, this, &MainWindow::onPriceUpdated);
-    connect(wsParser.get(), &WebSocketParser::connected, this, &MainWindow::onWebSocketConnected);
-    connect(wsParser.get(), &WebSocketParser::disconnected, this, &MainWindow::onWebSocketDisconnected);
-    connect(wsParser.get(), &WebSocketParser::errorOccurred, this, &MainWindow::onWebSocketError);
 
     connect(actionTabelCurrencyRates, &QAction::triggered, this, &MainWindow::onCurrencyRatesActivated);
     connect(actionDynamicsGraph, &QAction::triggered, this, &MainWindow::onDynamicsGraphActivated);
@@ -89,7 +79,6 @@ void MainWindow::initParsers() {
 
     parser_cb = std::make_unique<ParserCB>();
     reg_parser = std::make_unique<RegularParser>();
-    my_wallet = std::make_unique<ParserMyWallet>();
     wsParser = std::make_unique<BinanceParser>();
 
     // Получаем курс валют ЦБ от текущей дате

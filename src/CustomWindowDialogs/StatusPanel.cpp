@@ -11,6 +11,7 @@ StatusPanel::StatusPanel(QWidget* parent) : CustomQDialog(parent) {
     connectionSignals();
 }
 
+
 void StatusPanel::setupUI() {
 
     outputResults = new QTextEdit(this);
@@ -20,6 +21,31 @@ void StatusPanel::setupUI() {
     outputDynamic = new QTextEdit(this);
     outputDynamic->setReadOnly(true);
     outputDynamic->setFocusPolicy(Qt::NoFocus);
+
+    outputMessage = new QTextEdit(this);
+    outputMessage->setReadOnly(true);
+    outputMessage->setFocusPolicy(Qt::NoFocus);
+
+    horSplitter = new QSplitter(Qt::Horizontal, this);
+    verSplitter = new QSplitter(Qt::Vertical, this);
+    horSplitter->setFocusPolicy(Qt::NoFocus);
+    verSplitter->setFocusPolicy(Qt::NoFocus);
+
+    horSplitter->addWidget(outputDynamic);
+    horSplitter->addWidget(outputResults);
+    verSplitter->addWidget(horSplitter);
+    verSplitter->addWidget(outputMessage);
+
+    // позволяем разделителю управлять мышью
+    horSplitter->setChildrenCollapsible(false);
+    verSplitter->setChildrenCollapsible(false);
+
+    outputDynamic->setMinimumWidth(100);
+    outputResults->setMinimumWidth(100);
+    outputMessage->setMinimumHeight(50);
+
+    horSplitter->setSizes({300,400});
+    verSplitter->setSizes({400,200});
 
     QHBoxLayout* row = new QHBoxLayout;
     btnOK = new QPushButton(this);
@@ -31,8 +57,7 @@ void StatusPanel::setupUI() {
     row->addStretch();
 
     layout = new QVBoxLayout(this);
-    layout->addWidget(outputDynamic);
-    layout->addWidget(outputResults);
+    layout->addWidget(verSplitter);
     layout->addLayout(row);
 }
 
@@ -62,7 +87,7 @@ void StatusPanel::display() {
 }
 
 void StatusPanel::displayResults(double val) {
-    static int nScan = 1;
+    static int nScan = 2;
 
     outputResults->clear();
 

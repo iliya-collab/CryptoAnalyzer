@@ -12,7 +12,7 @@
 #include "Parser/ParserCB.hpp"
 #include "Parser/BinanceParser.hpp"
 #include "Parser/RegularParser.hpp"
-#include "Parser/ParserMyWallet.hpp"
+#include "Parser/Scanner.hpp"
 
 #include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
 #include "CustomWindowDialogs/DialogTableCurrencyRates.hpp"
@@ -59,16 +59,17 @@ private:
     QAction* actionSaveSetup = nullptr;
     QAction* actionDefaultReset = nullptr;
 
-    StatusPanel* status_panel = nullptr;
+    //StatusPanel* status_panel = nullptr;
     // -------------------------------------------------
 
     // -------------------------------------------------
     // Объявление парсеров
     std::unique_ptr<ParserCB> parser_cb;
     std::unique_ptr<RegularParser> reg_parser;
-    std::unique_ptr<ParserMyWallet> my_wallet;
     std::unique_ptr<WebSocketParser> wsParser;
     // -------------------------------------------------
+
+    std::unique_ptr<Scanner> _scanner;
 
     // -------------------------------------------------
     ParamsScannerConfig curScannerConfig;
@@ -76,12 +77,8 @@ private:
     // -------------------------------------------------
 
     // -------------------------------------------------
-    // Таймер автоматического отключения сокета
-    std::unique_ptr<QTimer> disconnectTimer;
     // Таймер обновления ProgressBar
     std::unique_ptr<QTimer> updateProgressBarTimer;
-    // Таймер запуска правил
-    std::unique_ptr<QTimer> triggeredRuleTimer;
     // -------------------------------------------------
 
     void setupUI();
@@ -111,23 +108,8 @@ private slots:
     void onSaveSetupActivated();
     void onDefaultResetActivated();
 
-    void onDisconnectTimeout();
     void onUpdateProgressBar();
-    void onTriggeredRuleTimer();
-
     void simulateProgress();
     void resetProgress();
-
-    // Подключаются к BinanceWebSocketParser
-    // -------------------------------------------------
-    // Вызывается при обновлении цены на подписанные монеты
-    void onPriceUpdated(const QString &coin, double price);
-    // Вызывается при подключении к websocket к серверу
-    void onWebSocketConnected();
-    // Вызывается при отключении websocket от серверу
-    void onWebSocketDisconnected();
-    // Вызывается при возникновении ошибок в подключении
-    void onWebSocketError(const QString &error);
-    // -------------------------------------------------
 
 };

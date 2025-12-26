@@ -6,30 +6,18 @@ void MainWindow::onClickedButtonConvert() {
 }
 
 void MainWindow::onClickedButtonStart() {
-    // Подписываемся на монеты
-    wsParser->subscribeToCoins(curScannerConfig.pairs);
-    wsParser->connectToStream(BinanceParser::TradeUrl);
-
-    // Запускаем таймер для автоматического отключения (если включено в конфиге)
-    if (curScannerConfig.enableAutoDisconnect)
-        disconnectTimer->start(curScannerConfig.allDuration);
-    // Запускаем таймер для обработки правил (если есть хотя бы одно сканирование)
-    if (curScannerConfig.durations.size() > 0)
-        triggeredRuleTimer->start(curScannerConfig.durations[0]);
-
-    status_panel->show();
+    _scanner->start();
 }
 
 void MainWindow::onClickedButtonEnd() {
-
-    if (disconnectTimer->isActive())
-        disconnectTimer->stop();
-
-    wsParser->disconnectFromStream();
-    status_panel->close();
+    _scanner->stop();
 }
 
-void MainWindow::onDisconnectTimeout()
+void MainWindow::onClickedButtonClearOutput() {
+    outputResult->clear();
+}
+
+/*void MainWindow::onDisconnectTimeout()
 {
     wsParser->disconnectFromStream();
     showMessage("Auto Disconnect", "Stream automatically disconnected after timeout", QMessageBox::Information);
@@ -48,11 +36,7 @@ void MainWindow::onTriggeredRuleTimer() {
         status_panel->displayResults(exp.value());
     else
         outputResult->append(QString("Error : %1").arg(exp.error()));
-}
-
-void MainWindow::onClickedButtonClearOutput() {
-    outputResult->clear();
-}
+}*/
 
 void MainWindow::onCurrencyRatesActivated() {
     //DTable = new DTableCurrencyRates(5, parser_cb->getCurrencyRates().size(), parser_cb->getLastDate(), parser_cb->getCurrencyRates(), this);
@@ -120,25 +104,4 @@ void MainWindow::onUpdateProgressBar() {
             updateProgressBarTimer->stop();
         statusBar()->showMessage("Completed", 3000);
     }
-}
-
-void MainWindow::onPriceUpdated(const QString &coin, double price)
-{
-    // Вызывается мгновенно при изменении цены на Binance
-    my_wallet->updateAllAssets(coin, price);
-    my_wallet->updateWallet();
-
-    status_panel->display();
-}
-
-void MainWindow::onWebSocketConnected() {
-    outputResult->append("Connected to Binance WebSocket");
-}
-
-void MainWindow::onWebSocketDisconnected() {
-    outputResult->append("Disconnected from Binance WebSocket");
-}
-
-void MainWindow::onWebSocketError(const QString &error) {
-   outputResult->append("WebSocket error: " + error);
 }
