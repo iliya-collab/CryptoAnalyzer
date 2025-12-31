@@ -5,6 +5,7 @@
 #include <QBoxLayout>
 
 class SetupPage : public QWidget {
+    Q_OBJECT
 public:
 
     SetupPage(QWidget* parent = nullptr) : QWidget(parent) {}

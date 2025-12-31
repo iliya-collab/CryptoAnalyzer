@@ -4,17 +4,13 @@
 #include "SetupPage.hpp"
 
 #include <QTextEdit>
-#include <QComboBox>
 
 class SetupMyWalletPage : public SetupPage {
 private:
 
     QTextEdit* editAsset;
-    QComboBox* rulesScan;
-    QTextEdit* editRules;
 
     QMap<QString, double> parseAsset();
-    QMap<QString, QString> parseRules();
 
 public:
 

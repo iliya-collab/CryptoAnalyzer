@@ -16,18 +16,32 @@ QJsonObject ScannerConfig::toJson() {
         arrPairs.append(i);
     scanner["Pairs"] = arrPairs;
 
+    QJsonArray rulesArray;
+    for (const auto& ruleObj : _config.rules) {
+        QJsonObject rule;
+        for (auto [name, amount] : ruleObj.asKeyValueRange())
+            rule[name] = amount;
+        rulesArray.append(rule);
+    }
+    scanner["Rules"] = rulesArray;
+
     return scanner;
 }
 
 void ScannerConfig::setDefaultConfig() {
     _config.enableLogs = false;
     _config.enableAutoDisconnect = true;
+    _config.formatDurations = { "10000" };
+    _config.pairs = { "BTCUSDT" };
 
+    _config.rules.clear();
+    QMap<QString, QString> rule;
+    rule["BTC"] = "sell 10%";
+    _config.rules.append(rule);
+
+    
     _config.allDuration = 0;
-
-    _config.formatDurations = {};
     _config.durations = {};
-    _config.pairs = {};
 }
 
 void ScannerConfig::fromJson(const QJsonObject& obj) {
@@ -62,4 +76,14 @@ void ScannerConfig::fromJson(const QJsonObject& obj) {
     _config.pairs.clear();
     for (int i = 0; i < arrPairs.size(); i++)
         _config.pairs.append(arrPairs[i].toString());
+
+    QJsonArray rules = obj.value("Rules").toArray();
+    _config.rules.clear();
+    for (int i = 0; i < rules.size(); i++) {
+        QJsonObject ruleObj = rules[i].toObject();
+        QMap<QString, QString> rule;
+        for (auto it = ruleObj.begin(); it != ruleObj.end(); ++it)
+            rule[it.key()] = it.value().toString();
+        _config.rules.append(rule);
+    }
 }

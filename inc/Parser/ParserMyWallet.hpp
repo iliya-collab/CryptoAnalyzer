@@ -88,7 +88,6 @@ public:
         statMyWallet->statWallet.allRevenue = 0;
 
         amountEachAssets = curConfig.asset;
-        rulesWallet = curConfig.rules;
 
         LogHandler::setEnable(ScannerConfig::instance().getConfig().enableLogs);
         LogHandler::clearLog();
@@ -114,6 +113,10 @@ public:
 
     static double getAllRevenue() {
         return statMyWallet->statWallet.allRevenue;
+    }
+
+    void setRules(const QMap<QString, QString>& _rulesWallet) {
+        rulesWallet = _rulesWallet;
     }
 
 };

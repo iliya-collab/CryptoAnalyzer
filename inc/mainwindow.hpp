@@ -10,16 +10,12 @@
 #include <QProgressBar>
 
 #include "Parser/ParserCB.hpp"
-#include "Parser/BinanceParser.hpp"
 #include "Parser/RegularParser.hpp"
 #include "Parser/Scanner.hpp"
-
-#include "RestartManager.hpp"
 
 #include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
 #include "CustomWindowDialogs/DialogTableCurrencyRates.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
-#include "CustomWindowDialogs/StatusPanel.hpp"
 
 class MainWindow : public QMainWindow
 {

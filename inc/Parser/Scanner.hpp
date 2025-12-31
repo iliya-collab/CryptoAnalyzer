@@ -18,20 +18,35 @@ private:
     ParamsScannerConfig pScannerConfig;
     ParamsMyWalletConfig pMyWalletConfig;
 
+    QStringList requestedCoin;
+
     std::unique_ptr<WebSocketParser> wsParser;
     std::unique_ptr<ParserMyWallet> myWalletParser;
 
     std::unique_ptr<QTimer> autoDisconnectTimer;
     std::unique_ptr<QTimer> triggeredRuleTimer;
 
+    std::unique_ptr<QTimer> snapshotTimer;
+    std::unique_ptr<QTimer> connectTimer;
+
     void initTimers();
+    void getRequestedCoin();
+
+    bool isAutoDisconnected;
+    bool isDisconnected;
+
+    int nScan = 1;
+
+    void startSnapshotCheck();
 
 private slots:
 
     void onDisconnectTimeout();
     void onTriggeredRuleTimer();
 
-    // Подключаются к WebSocketParser
+    void checkSnapshot();
+
+    // Определяем основные сигналы для WebSocketParser
     // -------------------------------------------------
     // Вызывается при обновлении цены на подписанные монеты
     void onPriceUpdated(const QString &coin, double price);

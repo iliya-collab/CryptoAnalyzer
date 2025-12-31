@@ -10,6 +10,8 @@ struct ParamsScannerConfig {
     QList<QString> formatDurations;
     QList<QString> pairs;
 
+    QList<QMap<QString, QString>> rules;
+
     bool enableLogs;
     bool enableAutoDisconnect;
 };

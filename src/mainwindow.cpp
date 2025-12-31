@@ -2,6 +2,9 @@
 
 #include "Configs/ScannerConfig.hpp"
 
+#include "Parser/BinanceParser.hpp"
+#include "RestartManager.hpp"
+
 #include <QWidgetAction>
 #include <QMenuBar>
 #include <QMenu>

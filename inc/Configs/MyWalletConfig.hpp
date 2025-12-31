@@ -6,7 +6,6 @@
 
 struct ParamsMyWalletConfig {
     QMap<QString, double> asset;
-    QMap<QString, QString> rules;
 };
 
 
@@ -23,7 +22,6 @@ public:
 
     void setDefaultConfig() override {
         _config.asset = {};
-        _config.rules = {};
     }
 
     void fromJson(const QJsonObject& obj) override;
