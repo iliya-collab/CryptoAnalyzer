@@ -7,15 +7,13 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QPushButton>
-#include <QProgressBar>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
 
-#include "Parser/ParserCB.hpp"
-#include "Parser/RegularParser.hpp"
-#include "Parser/Scanner.hpp"
-
-#include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
-#include "CustomWindowDialogs/DialogTableCurrencyRates.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
+
+#include "Parser/Scanner.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -28,43 +26,29 @@ public:
 
 private:
 
-    // Центральный виджет
     QWidget* mainWindow = nullptr;
-    // Главный layout
     QGridLayout* mainLayout = nullptr;
 
     // -------------------------------------------------
-    // Основные виджеты
     QLineEdit* editValute = nullptr;
     QPushButton* btnConvert = nullptr;
     QPushButton* btnStart = nullptr;
     QPushButton* btnEnd = nullptr;
     QPushButton* btnClearOutput = nullptr;
     QTextEdit* outputResult = nullptr;
-    QProgressBar* progressBar = nullptr;
     // -------------------------------------------------
 
     // -------------------------------------------------
-    // Дополнительные диалоговые окна
-    DTableCurrencyRates* DTable = nullptr;
-    QAction* actionTabelCurrencyRates = nullptr;
-
-    DDynamicsGraph* DGraph = nullptr;
-    QAction* actionDynamicsGraph = nullptr;
-
-    DialogSetupMenu* DSetupMenu = nullptr;
+    std::unique_ptr<DialogSetupMenu> DSetupMenu = nullptr;
     QAction* actionSetupMenu = nullptr;
     QAction* actionSaveSetup = nullptr;
     QAction* actionDefaultReset = nullptr;
 
-    //StatusPanel* status_panel = nullptr;
-    // -------------------------------------------------
+    std::unique_ptr<DialogTable> DTable;
+    QAction* actionTabel = nullptr;
 
-    // -------------------------------------------------
-    // Объявление парсеров
-    std::unique_ptr<ParserCB> parser_cb;
-    std::unique_ptr<RegularParser> reg_parser;
-    std::unique_ptr<WebSocketParser> wsParser;
+    std::unique_ptr<DDynamicsGraph> DGraph;
+    QAction* actionDynamicsGraph = nullptr;
     // -------------------------------------------------
 
     std::unique_ptr<Scanner> _scanner;
@@ -74,18 +58,10 @@ private:
     ParamsMyWalletConfig curMyWalletConfig;
     // -------------------------------------------------
 
-    // -------------------------------------------------
-    // Таймер обновления ProgressBar
-    std::unique_ptr<QTimer> updateProgressBarTimer;
-    // -------------------------------------------------
-
     void setupUI();
     void connectionSignals();
 
     void getCurrentConfig();
-    void initParsers();
-    void setupTimers();
-    void setupProgressBar();
 
     void createMenu();
     void createUI();
@@ -100,15 +76,8 @@ private slots:
     void onClickedButtonEnd();
     void onClickedButtonClearOutput();
 
-    void onCurrencyRatesActivated();
-    void onDynamicsGraphActivated();
-
     void onSetupMenuActivated();
     void onSaveSetupActivated();
     void onDefaultResetActivated();
-
-    void onUpdateProgressBar();
-    void simulateProgress();
-    void resetProgress();
 
 };

@@ -1,27 +1,42 @@
 #include "Parser/Scanner.hpp"
-#include "Configs/MyWalletConfig.hpp"
-#include "CustomWindowDialogs/StatusPanel.hpp"
+
 #include "Parser/BinanceParser.hpp"
+#include "Parser/BybitParser.hpp"
+#include "Parser/OKXParser.hpp"
+#include "Parser/WebSocketParser.hpp"
+#include <memory>
 
 Scanner::Scanner(QWidget *parent) {
 
-    isAutoDisconnected = false;
-    isDisconnected = false;
     statPanel = std::make_unique<StatusPanel>(parent);
     myWalletParser = std::make_unique<ParserMyWallet>();
 
-    initTimers();
+    initParsers();
+    connectSignals();
+
 }
 
-void Scanner::setWebSocketParser(std::unique_ptr<WebSocketParser> _wsParser) {
-    wsParser = std::move(_wsParser);
+void Scanner::connectSignals() {
+    connect(statPanel.get(), &StatusPanel::clicked_btn, this, &Scanner::onStartConnection);
+    connect(statPanel.get(), &StatusPanel::triggered_table, this, &Scanner::onDialogTable);
+    for (auto [name, parser] : lstParsers.asKeyValueRange())
+        connect(parser.get(), &WebSocketParser::priceUpdated, this, &Scanner::updateTable);
+}
 
-    if (wsParser) {
-        connect(wsParser.get(), &WebSocketParser::priceUpdated, this, &Scanner::onPriceUpdated);
-        connect(wsParser.get(), &WebSocketParser::connected, this, &Scanner::onWebSocketConnected);
-        connect(wsParser.get(), &WebSocketParser::disconnected, this, &Scanner::onWebSocketDisconnected);
-        connect(wsParser.get(), &WebSocketParser::errorOccurred, this, &Scanner::onWebSocketError);
-    }
+void Scanner::initParsers() {
+    std::shared_ptr<BinanceParser> binance_spot = std::make_shared<BinanceParser>("Binance/spot", WebSocketParser::TMarketData::SPOT, this);
+    std::shared_ptr<BinanceParser> binance_futures = std::make_shared<BinanceParser>("Binance/futures", WebSocketParser::TMarketData::FUTURES, this);
+    std::shared_ptr<BybitParser> bybit_spot = std::make_shared<BybitParser>("Bybit/spot", WebSocketParser::TMarketData::SPOT, this);
+    std::shared_ptr<BybitParser> bybit_futures = std::make_shared<BybitParser>("Bybit/futures", WebSocketParser::TMarketData::FUTURES, this);
+    std::shared_ptr<OKXParser> okx_spot = std::make_shared<OKXParser>("OKX/spot", WebSocketParser::TMarketData::SPOT, this);
+    std::shared_ptr<OKXParser> okx_futures = std::make_shared<OKXParser>("OKX/futures", WebSocketParser::TMarketData::FUTURES, this);
+
+    lstParsers[binance_spot->getNameMarket()] = binance_spot;
+    lstParsers[binance_futures->getNameMarket()] = binance_futures;
+    lstParsers[bybit_spot->getNameMarket()] = bybit_spot;
+    lstParsers[bybit_futures->getNameMarket()] = bybit_futures;
+    lstParsers[okx_spot->getNameMarket()] = okx_spot;
+    lstParsers[okx_futures->getNameMarket()] = okx_futures;
 }
 
 void Scanner::setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsMyWalletConfig& _MyWalletConfig) {
@@ -29,127 +44,34 @@ void Scanner::setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsM
     pMyWalletConfig = _MyWalletConfig;
 }
 
-void Scanner::initTimers() {
-
-    autoDisconnectTimer = std::make_unique<QTimer>();
-    autoDisconnectTimer->setSingleShot(true);
-    connect(autoDisconnectTimer.get(), &QTimer::timeout, this, &Scanner::onDisconnectTimeout);
-
-    triggeredRuleTimer = std::make_unique<QTimer>();
-    triggeredRuleTimer->setSingleShot(true);
-    connect(triggeredRuleTimer.get(), &QTimer::timeout, this, &Scanner::onTriggeredRuleTimer);
-}
-
-void Scanner::onDisconnectTimeout() {
-    isAutoDisconnected = true;
-    stop();
-}
-
-void Scanner::onTriggeredRuleTimer() {
-
-    auto exp = myWalletParser->parseAllRules();
-    if (exp.has_value()) {
-        statPanel->clearDisplay(StatusPanel::Display::StatWallet);
-        statPanel->outputStringInDisplay(StatusPanel::Display::StatWallet,
-            QString("Scan #%1\nRevenue : %2")
-            .arg(nScan)
-            .arg(QString::number(exp.value(), 'f', 4)));
-        statPanel->displayStatWallet();
-    }
-    else
-        statPanel->displayMessages(QString("Error : %1").arg(exp.error()));
-
-    nScan++;
-
-    if (!triggeredRuleTimer->isActive() && pScannerConfig.durations.size() >= nScan)
-        triggeredRuleTimer->start(pScannerConfig.durations[nScan-1]);
-}
-
-void Scanner::getRequestedCoin() {
-    requestedCoin.clear();
-    auto cur_asset = MyWalletConfig::instance().getConfig().asset;
-    for (auto [coin, amount] : cur_asset.asKeyValueRange())
-        requestedCoin.push_back(coin);
-}
-
 void Scanner::start() {
-
-    nScan = 1;
-    isDisconnected = false;
-
     statPanel->show();
-
-    wsParser->subscribeToCoins(pScannerConfig.pairs);
-    wsParser->connectToStream(WebSocketParser::TradeUrl);
-}
-
-void Scanner::startSnapshotCheck() {
-    statPanel->displayMessages("Waiting to receive a snapshot...");
-
-    getRequestedCoin();
-
-    snapshotTimer = std::make_unique<QTimer>();
-    snapshotTimer->setInterval(100);
-    connect(snapshotTimer.get(), &QTimer::timeout, this, &Scanner::checkSnapshot);
-    snapshotTimer->start();
-}
-
-void Scanner::checkSnapshot() {
-    auto allCoins = BinanceParser::getInfoAboutAllCoins();
-
-    for (auto next_coin = requestedCoin.begin(); next_coin != requestedCoin.end(); ) {
-        if (allCoins.contains(*next_coin)) {
-            statPanel->displayMessages(QString("%1 - received").arg(*next_coin));
-            next_coin = requestedCoin.erase(next_coin);
-        }
-        else
-            ++next_coin;
-    }
-
-    if (requestedCoin.empty() && snapshotTimer->isActive()) {
-        snapshotTimer->stop();
-        statPanel->displayMessages("All snapshots received");
-
-        if (pScannerConfig.enableAutoDisconnect && !autoDisconnectTimer->isActive())
-            autoDisconnectTimer->start(pScannerConfig.allDuration + 1000);
-
-        if (pScannerConfig.durations.size() > 0 && !triggeredRuleTimer->isActive())
-            triggeredRuleTimer->start(pScannerConfig.durations[nScan-1]);
-    }
-
 }
 
 void Scanner::stop() {
-    wsParser->disconnectFromStream();
+    for (auto [name, parser] : lstParsers.asKeyValueRange())
+        parser->disconnectFromStream();
 }
 
-void Scanner::onPriceUpdated(const QString &coin, double price)
-{
-    // Вызывается мгновенно при изменении цены на Binance
-    myWalletParser->updateAllAssets(coin, price);
-    myWalletParser->updateWallet();
-    statPanel->clearDisplay(StatusPanel::Display::StatAssets);
-    statPanel->displayStatAssets();
+void Scanner::updateTable(const QString &coin, double price) {
+    qDebug() << coin << QString::number(price, 'f', 3);
+    statPanel->getTable()->updateTable(coin, price);
 }
 
-void Scanner::onWebSocketConnected() {
-    statPanel->displayMessages("Connected to WebSocket");
-    startSnapshotCheck();
+void Scanner::onDialogTable() {
+    QStringList lst = pScannerConfig.pairs;
+    for (auto& pair : lst)
+        pair.replace("/", "");
+    statPanel->getTable()->showTable(lstParsers.size(), pScannerConfig.pairs.size(), lst, lstParsers.keys());
 }
 
-void Scanner::onWebSocketDisconnected() {
-    if (!isDisconnected) {
-        if (isAutoDisconnected) 
-            statPanel->displayMessages("Auto disconnected from WebSocket");
-        else
-            statPanel->displayMessages("Disconnected from WebSocket");
+void Scanner::onDialogGraph() {
 
-        isDisconnected = true;
-        isAutoDisconnected = false;
-        autoDisconnectTimer->stop();
+}
+
+void Scanner::onStartConnection() {
+    for (auto [name, parser] : lstParsers.asKeyValueRange()) {
+        parser->subscribeToCoins(pScannerConfig.pairs);
+        parser->connectToStream();
     }
-}
-
-void Scanner::onWebSocketError(const QString &error) {
-   statPanel->displayMessages("WebSocket error: " + error);
 }

@@ -44,7 +44,7 @@ void DDynamicsGraph::setupUI() {
 
     chartView = new QChartView();
     chartView->setRenderHint(QPainter::Antialiasing);
-    
+
     layout = new QVBoxLayout(this);
     layout->addLayout(row1);
     layout->addWidget(chartView);
@@ -56,16 +56,16 @@ void DDynamicsGraph::connectionSignals() {
 }
 
 void DDynamicsGraph::initParsers() {
-    parser_cb = new ParserCB;
+    //parser_cb = new ParserCB;
 }
 
 void DDynamicsGraph::createGraph() {
 
-    QList<QLineSeries*> ListSeries;
+    /*QList<QLineSeries*> ListSeries;
     QDate baseDate = QDate::fromString(editDate1->text().replace('/', '.'), "dd.MM.yyyy");
     int xPoint = 0;
     QString lastID = "";
-    
+
     for (auto i : ListCurrencyRates) {
 
         if (lastID != i.ID) {
@@ -79,7 +79,7 @@ void DDynamicsGraph::createGraph() {
         xPoint = baseDate.daysTo(currentDate);
         ListSeries[ListSeries.size()-1]->append(xPoint, i.Value);
         //qDebug() << QString("   (%1;%2)").arg(xPoint).arg(i.Value);
-        
+
     }
 
     for (auto series : ListSeries)
@@ -123,7 +123,7 @@ void DDynamicsGraph::createGraph() {
     qreal yMargin = (globalMaxY - globalMinY) * 0.1;
     axisX->setRange(globalMinX, globalMaxX);
     axisY->setRange(globalMinY - yMargin, globalMaxY + yMargin);
-    
+
     chart->addAxis(axisX, Qt::AlignBottom);
     chart->addAxis(axisY, Qt::AlignLeft);
 
@@ -134,14 +134,14 @@ void DDynamicsGraph::createGraph() {
 
     chartView->setChart(chart);
 
-    chartView->update();
+    chartView->update();*/
 
 }
 
 void DDynamicsGraph::onClickedButtonUpdate() {
-    ListCurrencyRates.clear();
+    /*ListCurrencyRates.clear();
     if (editDate1->text() != "" || editDate2->text() != "" || editID->text() != "") {
-        
+
         QStringList listID = editID->text().split(",");
         for (auto i : listID) {
             parser_cb->makeRequest(editDate1->text(), editDate2->text(), i);
@@ -149,5 +149,5 @@ void DDynamicsGraph::onClickedButtonUpdate() {
 
         }
     }
-    createGraph();
+    createGraph();*/
 }

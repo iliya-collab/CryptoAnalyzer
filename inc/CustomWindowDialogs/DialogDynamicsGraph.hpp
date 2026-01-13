@@ -1,7 +1,5 @@
-#ifndef _DIALOG_DYNAMICS_GRAPH_
-#define _DIALOG_DYNAMICS_GRAPH_
+#pragma once
 
-#include "Parser/ParserCB.hpp"
 #include "CustomQDialog.hpp"
 
 #include <QLabel>
@@ -10,15 +8,13 @@
 #include <QList>
 #include <QPushButton>
 
-#include <algorithm>
-
 class DDynamicsGraph : public CustomQDialog {
     Q_OBJECT
 public:
     DDynamicsGraph(QWidget* parent = nullptr);
     ~DDynamicsGraph();
 
-    
+
 private:
 
     QLineEdit* editDate1;
@@ -26,9 +22,6 @@ private:
     QLineEdit* editID;
     QChartView* chartView;
     QPushButton* btnUpdate;
-
-    ParserCB* parser_cb;
-    QList<CurrencyRateCB> ListCurrencyRates;
 
     void initParsers();
     void createGraph();
@@ -39,5 +32,3 @@ private slots:
     void onClickedButtonUpdate();
 
 };
-
-#endif

@@ -8,26 +8,13 @@
 #include <QCheckBox>
 #include <QPushButton>
 
-#include "CustomWidgets/EditableComboBox.hpp"
-
 class SetupScanerPage : public SetupPage {
 private:
 
-    QCheckBox* checkEnableLogs;
-    QCheckBox* checkEnableAutoDisconnect;
 
     QTextEdit* editCoinsPairs;
-    QTextEdit* editRules;
     
-    EditableComboBox* comboDurations;
-
-    QMap<QString, QString> parseRules();
-
     ParamsScannerConfig& curConfig;
-
-private slots:
-    void onComboIndexChanged(const QString& text, int index);
-    void onEditingFinished(const QString& text);
 
 public:
 

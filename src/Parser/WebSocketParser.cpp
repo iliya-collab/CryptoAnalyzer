@@ -1,20 +1,19 @@
 #include "Parser/WebSocketParser.hpp"
+#include <qurl.h>
 
-QMap<QString, WebSocketParser::stInfoCoin> WebSocketParser::currentInfoAboutCoins;
-QReadWriteLock WebSocketParser::dataLock;
-QSet<QString> WebSocketParser::subscribedCoins;
-QUrl WebSocketParser::TradeUrl;
-
-WebSocketParser::WebSocketParser(QObject* parent) :
+WebSocketParser::WebSocketParser(const QString& name, TMarketData TMarket, QObject* parent) :
     QObject(parent),
+    nameMarket(name),
     webSocket(nullptr),
     reconnectTimer(nullptr),
     pingTimer(nullptr),
     autoReconnect(true),
     reconnectAttempts(0),
-    isConnecting(false)
+    isConnecting(false),
+    t_market(TMarket)
 {
     setupWebSocket();
+    connectSignals();
 }
 WebSocketParser::~WebSocketParser() {
     cleanup();
@@ -30,15 +29,16 @@ void WebSocketParser::setupWebSocket() {
     webSocket = std::make_unique<QWebSocket>("", QWebSocketProtocol::VersionLatest);
 
     webSocket->setSslConfiguration(sslConfig);
+    reconnectTimer->setSingleShot(true);
+}
 
-
+void WebSocketParser::connectSignals() {
     connect(webSocket.get(), &QWebSocket::connected, this, &WebSocketParser::onConnected);
     connect(webSocket.get(), &QWebSocket::disconnected, this, &WebSocketParser::onDisconnected);
     connect(webSocket.get(), &QWebSocket::textMessageReceived, this, &WebSocketParser::onTextMessageReceived);
     connect(webSocket.get(), &QWebSocket::errorOccurred, this, &WebSocketParser::onError);
     connect(webSocket.get(), &QWebSocket::sslErrors, this, &WebSocketParser::onSslErrors);
 
-    reconnectTimer->setSingleShot(true);
     connect(reconnectTimer.get(), &QTimer::timeout, this, &WebSocketParser::reconnect);
 
     connect(pingTimer.get(), &QTimer::timeout, this, [this]() {
@@ -72,13 +72,13 @@ void WebSocketParser::cleanup() {
     }
 }
 
-void WebSocketParser::connectToStream(QUrl url) {
+void WebSocketParser::connectToStream() {
     if (isConnecting || webSocket->state() == QAbstractSocket::ConnectedState)
         return;
 
     isConnecting = true;
 
-    webSocket->open(url);
+    webSocket->open(Url);
 }
 
 void WebSocketParser::disconnectFromStream() {
@@ -117,7 +117,7 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
     QStringList streamsToUnsubscribe;
     QWriteLocker locker(&dataLock);
 
-    for (const QString &coin : coins) {
+    for (QString coin : coins) {
         QString coinUpper = coin.toUpper();
         if (subscribedCoins.contains(coinUpper)) {
             subscribedCoins.remove(coinUpper);
@@ -138,7 +138,7 @@ void WebSocketParser::unsubscribeAllCoins() {
         return;
 
     QStringList allStreams;
-    for (const QString &coin : subscribedCoins)
+    for (QString coin : subscribedCoins)
         allStreams.append(coinToStream(coin));
 
     subscribedCoins.clear();
@@ -171,6 +171,7 @@ bool WebSocketParser::isConnected() const {
 }
 
 void WebSocketParser::onConnected() {
+    qDebug() << nameMarket << "Connected to WebSocket";
     isConnecting = false;
     reconnectAttempts = 0;
 
@@ -183,6 +184,7 @@ void WebSocketParser::onConnected() {
 }
 
 void WebSocketParser::onDisconnected() {
+    qDebug() << nameMarket << "Disconnected from WebSocket";
     if (pingTimer && pingTimer->isActive())
         pingTimer->stop();
 
@@ -198,20 +200,19 @@ void WebSocketParser::onDisconnected() {
 void WebSocketParser::onError(QAbstractSocket::SocketError error) {
     isConnecting = false;
     QString errorString = webSocket->errorString();
-    qDebug() << "WebSocket error:" << error << "-" << errorString;
+    qDebug() << nameMarket << "WebSocket error:" << error << "-" << errorString;
     emit errorOccurred(errorString);
 }
 
 void WebSocketParser::onSslErrors(const QList<QSslError> &errors) {
-    qDebug() << "SSL errors occurred:";
-    for (const QSslError &error : errors) {
+    qDebug() << nameMarket << "SSL errors occurred:";
+    for (const QSslError &error : errors)
         qDebug() << " -" << error.errorString();
-    }
 
     webSocket->ignoreSslErrors();
 }
 
 void WebSocketParser::reconnect() {
     if (autoReconnect && !isConnecting)
-        connectToStream(TradeUrl);
+        connectToStream();
 }

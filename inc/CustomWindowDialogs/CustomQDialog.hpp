@@ -20,4 +20,9 @@ protected:
 public:
     CustomQDialog(QWidget* parent = nullptr) : QDialog(parent) {}
     virtual ~CustomQDialog() {};
+
+    void showDialog() {
+        show();
+    }
+
 };

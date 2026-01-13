@@ -9,9 +9,18 @@
 #include <QThread>
 
 #include <memory>
+#include <optional>
+#include <qobject.h>
 
 class WebSocketParser : public QObject {
     Q_OBJECT
+
+public:
+
+    enum TMarketData {
+        SPOT,
+        FUTURES
+    };
 
 protected:
 
@@ -22,10 +31,17 @@ protected:
     // Метод обновления цены монеты
     virtual void processPriceUpdate(const QJsonObject &json) = 0;
     // Метод для создания потока на подписанную монету
-    virtual QString coinToStream(const QString &coin) = 0;
+    virtual QString coinToStream(QString &coin) = 0;
+
+    virtual std::optional<QUrl> getURLMarketData(TMarketData TMarket) = 0;
+
+    virtual QString formatCoin(const QString& coin) = 0;
+
+    TMarketData t_market;
 
     // Метод настройки веб-сокета
     void setupWebSocket();
+    void connectSignals();
     // Метод для корректного закрытия веб-сокета
     void cleanup();
 
@@ -35,38 +51,48 @@ protected:
     std::unique_ptr<QTimer> reconnectTimer;
     // Таймер проверки доступности соединения
     std::unique_ptr<QTimer> pingTimer;
-    
+
     bool autoReconnect;
     int reconnectAttempts;
     bool isConnecting;
 
-    static QSet<QString> subscribedCoins;
-    static QReadWriteLock dataLock;
+    QReadWriteLock dataLock;
 
     struct stInfoCoin {
         double value;       // Текущая цена
         double dif;         // Разница между новой и старой
     };
 
-    static QMap<QString, stInfoCoin> currentInfoAboutCoins;
+    //  subscribedCoins = { "BTC/USDT", "ETH/USDT", "ADA/USDT" }
+    //  currentInfoAboutCoins = { {"BTCUSDT", {...}}, ... }
+    QSet<QString> subscribedCoins;
+    QMap<QString, stInfoCoin> currentInfoAboutCoins;
+
+    QUrl Url;
+    QString nameMarket;
+
+    const double MIN_PRICE_CHANGE = 0.000001; // 0.0001%
+    const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
 
 public:
 
-    explicit WebSocketParser(QObject* parent = nullptr);
+    explicit WebSocketParser(const QString& name, TMarketData TMarket, QObject* parent = nullptr);
     virtual ~WebSocketParser();
 
     void subscribeToCoins(const QStringList &coins);
     void unsubscribeFromCoins(const QStringList &coins);
     void unsubscribeAllCoins();
-    void connectToStream(QUrl url);
+    void connectToStream();
     void disconnectFromStream();
     bool isConnected() const;
 
-    static QUrl TradeUrl;
+    stInfoCoin getInfoAboutCoin(const QString &coin);
+    QMap<QString, stInfoCoin> getInfoAboutAllCoins();
+    QStringList getSubscribedCoins();
 
-    static stInfoCoin getInfoAboutCoin(const QString &coin);
-    static QMap<QString, stInfoCoin> getInfoAboutAllCoins();
-    static QStringList getSubscribedCoins();
+    QString getNameMarket() {
+        return nameMarket;
+    }
 
 signals:
 
@@ -82,6 +108,6 @@ protected slots:
     void onError(QAbstractSocket::SocketError error);
     void onSslErrors(const QList<QSslError> &errors);
     void reconnect();
-    
+
     virtual void onTextMessageReceived(const QString &message) = 0;
 };

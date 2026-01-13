@@ -1,6 +1,6 @@
 #include "CustomWindowDialogs/StatusPanel.hpp"
 
-#include "Configs/MyWalletConfig.hpp"
+#include "CustomWindowDialogs/DialogTable.hpp"
 #include "Parser/ParserMyWallet.hpp"
 
 StatusPanel::StatusPanel(QWidget* parent) : CustomQDialog(parent) {
@@ -8,7 +8,10 @@ StatusPanel::StatusPanel(QWidget* parent) : CustomQDialog(parent) {
     setWindowTitle("Status panel");
 
     setupUI();
+    setupMenu();
     connectionSignals();
+
+    table = std::make_unique<TableController>(this);
 }
 
 
@@ -61,16 +64,20 @@ void StatusPanel::setupUI() {
     layout->addLayout(row);
 }
 
+void StatusPanel::setupMenu() {
+    QMenuBar* menuBar = new QMenuBar(this);
+    QMenu* menuWindow = menuBar->addMenu("Windows");
+    actionTabel = new QAction("Tabel", this);
+    menuWindow->addAction(actionTabel);
+    actionDynamicsGraph = new QAction("Dynamics graph", this);
+    menuWindow->addAction(actionDynamicsGraph);
+    layout->setMenuBar(menuBar);
+}
+
 void StatusPanel::connectionSignals() {
-    connect(btnOK, &QPushButton::clicked, this, &StatusPanel::close);
-}
-
-void StatusPanel::showWidget() {
-    QWidget::show();
-}
-
-void StatusPanel::show() {
-    showWidget();
+    connect(btnOK, &QPushButton::clicked, this, &StatusPanel::onClickedButtonOk);
+    connect(actionTabel, &QAction::triggered, this, &StatusPanel::onDialogTableActivated);
+    connect(actionDynamicsGraph, &QAction::triggered, this, &StatusPanel::onDynamicsGraphActivated);
 }
 
 void StatusPanel::clearDisplay(StatusPanel::Display _disp) {
@@ -260,4 +267,19 @@ void StatusPanel::displayEachAsset() {
 
         changeCursor.insertText(changeStr, valueFormat);
     }
+}
+
+void StatusPanel::onClickedButtonOk() {
+    qDebug() << "StatusPanel::onClickedButtonOk";
+    emit clicked_btn();
+}
+
+void StatusPanel::onDialogTableActivated() {
+    qDebug() << "StatusPanel::onDialogTableActivated";
+    emit triggered_table();
+}
+
+void StatusPanel::onDynamicsGraphActivated() {
+    qDebug() << "StatusPanel::onDynamicsGraphActivated";
+    emit triggered_graph();
 }
