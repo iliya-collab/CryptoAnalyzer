@@ -69,46 +69,51 @@ void OKXParser::processPriceUpdate(const QJsonObject &json) {
 
     QJsonObject ticker = dataArray[0].toObject();
 
-    QString priceStr;
-    if (ticker.contains("last"))
-        priceStr = ticker["last"].toString();
-    else {
-        qDebug() << "OKX: No price field in ticker data";
-        return;
+    stInfoCoin _info;
+
+    if (ticker.contains("last")) {
+        _info.stPrice.prevPrice = _info.stPrice.curPrice;
+        _info.stPrice.curPrice = ticker["last"].toString().toDouble();
+        _info.stPrice.difPrice = _info.stPrice.curPrice - _info.stPrice.prevPrice;
     }
 
-    bool ok;
-    double price = priceStr.toDouble(&ok);
+    if (ticker.contains("askPx") && ticker.contains("askSz") && 
+        ticker.contains("bidPx") && ticker.contains("bidSz")) {
+        _info.stBooks[0].askPrice = ticker["askPx"].toString().toDouble();
+        _info.stBooks[0].askSize = ticker["askSz"].toString().toDouble();
+        _info.stBooks[0].bidPrice = ticker["bidPx"].toString().toDouble();
+        _info.stBooks[0].askSize = ticker["bidSz"].toString().toDouble();
+    }
+    
+    if (ticker.contains("high24h") && ticker.contains("low24h") && 
+        ticker.contains("volCcy24h") && ticker.contains("vol24h")) {
+        _info.st24hStat.high24h = ticker["high24h"].toString().toDouble();
+        _info.st24hStat.low24h = ticker["low24h"].toString().toDouble();
+        _info.st24hStat.volCсy24h = ticker["volCcy24h"].toString().toDouble();
+        _info.st24hStat.vol24h = ticker["vol24h"].toString().toDouble();
+    }
 
     // qDebug() << "OKX: Received price for" << coin << ":" << price << "(valid:" << ok << ")";
 
-    if (ok && price > 0) {
-        QWriteLocker locker(&dataLock);
+    QWriteLocker locker(&dataLock);
+    currentInfoAboutCoins[coin] = _info;
+    locker.unlock();
 
-        auto& curCoin = currentInfoAboutCoins[coin];
-        double oldPrice = curCoin.value;
-        curCoin.value = price;
-        curCoin.dif = price - oldPrice;
-
-        locker.unlock();
-
-        if (oldPrice == 0 || qAbs((price - oldPrice) / oldPrice) > MIN_PRICE_CHANGE) {
-            emit priceUpdated(coin, price);
-        }
-    }
+    if (_info.stPrice.prevPrice != 0 || qAbs((_info.stPrice.difPrice) / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+        emit priceUpdated(coin, _info.stPrice.curPrice);
 }
 
-void OKXParser::sendSubscriptionMessage()
+void OKXParser::sendSubscriptionMessage(const QStringList &streams)
 {
-    if (subscribedCoins.isEmpty())
+    if (streams.isEmpty())
         return;
 
-    QReadLocker locker(&dataLock);
+    /*QReadLocker locker(&dataLock);
 
     QJsonArray args;
 
     for (QString coin : subscribedCoins) {
-        QString stream = coinToStream(coin);
+        QString stream = tickerStream(coin);
 
         QJsonObject arg = {
             {"channel", "tickers"},
@@ -117,14 +122,14 @@ void OKXParser::sendSubscriptionMessage()
         args.append(arg);
     }
 
-    locker.unlock();
+    locker.unlock();*/
 
     // Отправляем подписки порциями
-    for (int i = 0; i < args.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
+    for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
 
         QJsonArray chunk;
-        for (int j = i; j < qMin(i + MAX_STREAMS_PER_SUBSCRIPTION, args.size()); ++j)
-            chunk.append(args[j]);
+        for (int j = i; j < qMin(i + MAX_STREAMS_PER_SUBSCRIPTION, streams.size()); ++j)
+            chunk.append(streams[j]);
 
         QJsonObject subscribeMessage{
             {"op", "subscribe"},
@@ -136,7 +141,7 @@ void OKXParser::sendSubscriptionMessage()
 
         webSocket->sendTextMessage(message);
 
-        if (i + MAX_STREAMS_PER_SUBSCRIPTION < args.size())
+        if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
             QThread::msleep(100);
     }
 }
@@ -149,7 +154,7 @@ void OKXParser::sendUnsubscriptionMessage(const QStringList &streams)
     QJsonArray args;
     
     for (QString coin : streams) {
-        QString stream = coinToStream(coin);
+        QString stream = tickerStream(coin);
         qDebug() << stream << "unsubscribe";
         QJsonObject arg = {
             {"channel", "tickers"},
@@ -181,8 +186,14 @@ void OKXParser::sendUnsubscriptionMessage(const QStringList &streams)
     }
 }
 
-QString OKXParser::coinToStream(QString &coin) {
+QString OKXParser::tickerStream(QString &coin) {
     // Формат: BTC/USDT -> "BTC-USDT" или "BTC-USDT-SWAP"
     QString okxSymbol = coin.replace("/", "-");
     return (t_market == TMarketData::SPOT) ? okxSymbol : QString("%1-SWAP").arg(okxSymbol.toUpper());
+}
+
+QString OKXParser::books1Stream(QString &coin) {
+}
+
+QString OKXParser::books5Stream(QString &coin) {
 }

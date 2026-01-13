@@ -19,24 +19,24 @@ Scanner::Scanner(QWidget *parent) {
 void Scanner::connectSignals() {
     connect(statPanel.get(), &StatusPanel::clicked_btn, this, &Scanner::onStartConnection);
     connect(statPanel.get(), &StatusPanel::triggered_table, this, &Scanner::onDialogTable);
-    for (auto [name, parser] : lstParsers.asKeyValueRange())
-        connect(parser.get(), &WebSocketParser::priceUpdated, this, &Scanner::updateTable);
+    /*for (auto [name, parser] : lstParsers.asKeyValueRange())
+        connect(parser.get(), &WebSocketParser::updated, this, &Scanner::updateTable);*/
 }
 
 void Scanner::initParsers() {
     std::shared_ptr<BinanceParser> binance_spot = std::make_shared<BinanceParser>("Binance/spot", WebSocketParser::TMarketData::SPOT, this);
     std::shared_ptr<BinanceParser> binance_futures = std::make_shared<BinanceParser>("Binance/futures", WebSocketParser::TMarketData::FUTURES, this);
-    std::shared_ptr<BybitParser> bybit_spot = std::make_shared<BybitParser>("Bybit/spot", WebSocketParser::TMarketData::SPOT, this);
+    /*std::shared_ptr<BybitParser> bybit_spot = std::make_shared<BybitParser>("Bybit/spot", WebSocketParser::TMarketData::SPOT, this);
     std::shared_ptr<BybitParser> bybit_futures = std::make_shared<BybitParser>("Bybit/futures", WebSocketParser::TMarketData::FUTURES, this);
     std::shared_ptr<OKXParser> okx_spot = std::make_shared<OKXParser>("OKX/spot", WebSocketParser::TMarketData::SPOT, this);
-    std::shared_ptr<OKXParser> okx_futures = std::make_shared<OKXParser>("OKX/futures", WebSocketParser::TMarketData::FUTURES, this);
+    std::shared_ptr<OKXParser> okx_futures = std::make_shared<OKXParser>("OKX/futures", WebSocketParser::TMarketData::FUTURES, this);*/
 
     lstParsers[binance_spot->getNameMarket()] = binance_spot;
     lstParsers[binance_futures->getNameMarket()] = binance_futures;
-    lstParsers[bybit_spot->getNameMarket()] = bybit_spot;
+    /*lstParsers[bybit_spot->getNameMarket()] = bybit_spot;
     lstParsers[bybit_futures->getNameMarket()] = bybit_futures;
     lstParsers[okx_spot->getNameMarket()] = okx_spot;
-    lstParsers[okx_futures->getNameMarket()] = okx_futures;
+    lstParsers[okx_futures->getNameMarket()] = okx_futures;*/
 }
 
 void Scanner::setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsMyWalletConfig& _MyWalletConfig) {

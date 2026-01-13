@@ -41,49 +41,120 @@ void BinanceParser::onTextMessageReceived(const QString &message) {
 
     if (json.contains("result") && json.contains("id"))
         return;
-    else if (json.contains("e") && json["e"].toString() == "24hrTicker")
-        processPriceUpdate(json);
+    else if (json.contains("stream")) {
+        QString stream = json["stream"].toString();
+        if (stream.endsWith("@ticker"))
+            updateTicker(json);
+        else if (stream.endsWith("@depth") && !stream.endsWith("@depth5"))
+            updateBooks1(json);
+        else if (stream.endsWith("@depth5"))
+            updateBooks5(json);
+
+    }
     else if (json.contains("ping")) {
         QJsonObject pong{{"pong", json["ping"]}};
         webSocket->sendTextMessage(QJsonDocument(pong).toJson());
     }
 }
 
-void BinanceParser::processPriceUpdate(const QJsonObject &json) {
-    if (!json.contains("s") || !json.contains("c"))
+void BinanceParser::updateTicker(const QJsonObject &json) {
+    qDebug() << QString("%1:%2").arg(getNameMarket()).arg(json["stream"].toString());
+
+    if (!json.contains("s"))
         return;
 
-    QString coin = formatCoin(json["s"].toString());
-    bool ok;
-    double price = json["c"].toString().toDouble(&ok);
+    QString coin = json["s"].toString();
 
+    stInfoCoin _info;
 
-    if (ok && price > 0) {
-        //qDebug() << "Binance: Received price for" << coin << ":" << price;
-        QWriteLocker locker(&dataLock);
-
-        auto& curCoin = currentInfoAboutCoins[coin];
-        double oldPrice = curCoin.value;
-        curCoin.value = price;
-        curCoin.dif = price - oldPrice;
-
-        locker.unlock();
-
-        if (oldPrice == 0 || qAbs((price - oldPrice) / oldPrice) > MIN_PRICE_CHANGE)
-            emit priceUpdated(coin, price);
-
+    if (json.contains("c")) {
+        _info.stPrice.prevPrice = _info.stPrice.curPrice;
+        _info.stPrice.curPrice = json["c"].toString().toDouble();
+        _info.stPrice.difPrice = _info.stPrice.curPrice - _info.stPrice.prevPrice;
     }
+
+    if (json.contains("a") && json.contains("A") && 
+        json.contains("b") && json.contains("B")) {
+        _info.stBooks[0].askPrice = json["a"].toString().toDouble();
+        _info.stBooks[0].askSize = json["A"].toString().toDouble();
+        _info.stBooks[0].bidPrice = json["b"].toString().toDouble();
+        _info.stBooks[0].askSize = json["B"].toString().toDouble();
+    }
+    
+    if (json.contains("h") && json.contains("l") && 
+        json.contains("q") && json.contains("v")) {
+        _info.st24hStat.high24h = json["h"].toString().toDouble();
+        _info.st24hStat.low24h = json["l"].toString().toDouble();
+        _info.st24hStat.volCсy24h = json["q"].toString().toDouble();
+        _info.st24hStat.vol24h = json["v"].toString().toDouble();
+    }
+    
+    QWriteLocker locker(&dataLock);
+    currentInfoAboutCoins[coin] = _info;
+    locker.unlock();
+
+    if (_info.stPrice.prevPrice != 0 || qAbs((_info.stPrice.difPrice) / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+        emit updated(formatCoin(coin), _info);
+
 }
 
-void BinanceParser::sendSubscriptionMessage() {
-    if (subscribedCoins.isEmpty())
+void BinanceParser::updateBooks1(const QJsonObject &json) {
+    qDebug() << QString("%1:%2").arg(getNameMarket()).arg(json["stream"].toString());
+
+    if (!json.contains("s"))
         return;
 
-    QStringList streams;
-    QReadLocker locker(&dataLock);
-    for (QString coin : subscribedCoins)
-        streams.append(coinToStream(coin));
+    QString coin = json["s"].toString();
+
+    stInfoCoin _info;
+
+    if (json.contains("a") && json.contains("b")) {
+        QJsonArray asks = json["a"].toArray();
+        QJsonArray bids = json["b"].toArray();
+        _info.stBooks[0].askPrice = asks[0].toString().toDouble();
+        _info.stBooks[0].askSize = asks[1].toString().toDouble();
+        _info.stBooks[0].bidPrice = bids[0].toString().toDouble();
+        _info.stBooks[0].askSize = bids[1].toString().toDouble();
+    }
+
+    QWriteLocker locker(&dataLock);
+    currentInfoAboutCoins[coin] = _info;
     locker.unlock();
+
+    emit updated(formatCoin(coin), _info);
+
+}
+
+void BinanceParser::updateBooks5(const QJsonObject &json) {
+    
+    if (!json.contains("s"))
+        return;
+    
+    qDebug() << QString("%1:%2").arg(getNameMarket()).arg(json["stream"].toString());
+    
+    QString coin = json["s"].toString();
+
+    stInfoCoin _info;
+
+    if (json.contains("a") && json.contains("b")) {
+        QJsonArray asks = json["a"].toArray();
+        QJsonArray bids = json["b"].toArray();
+        _info.stBooks[0].askPrice = asks[0].toString().toDouble();
+        _info.stBooks[0].askSize = asks[1].toString().toDouble();
+        _info.stBooks[0].bidPrice = bids[0].toString().toDouble();
+        _info.stBooks[0].askSize = bids[1].toString().toDouble();
+    }
+
+    QWriteLocker locker(&dataLock);
+    currentInfoAboutCoins[coin] = _info;
+    locker.unlock();
+
+    emit updated(formatCoin(coin), _info);
+}
+
+void BinanceParser::sendSubscriptionMessage(const QStringList &streams) {
+    if (streams.isEmpty())
+        return;
 
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
         QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
@@ -98,7 +169,6 @@ void BinanceParser::sendSubscriptionMessage() {
 
         webSocket->sendTextMessage(message);
 
-        // ЗАДЕРЖКА МЕЖДУ ПОДПИСКАМИ
         if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
             QThread::msleep(100);
     }
@@ -126,6 +196,14 @@ void BinanceParser::sendUnsubscriptionMessage(const QStringList &streams) {
     }
 }
 
-QString BinanceParser::coinToStream(QString &coin) {
+QString BinanceParser::tickerStream(QString &coin) {
     return QString("%1@ticker").arg(coin.replace("/", "").toLower());
+}
+
+QString BinanceParser::books1Stream(QString &coin) {
+    return QString("%1@depth").arg(coin.replace("/", "").toLower());
+}
+
+QString BinanceParser::books5Stream(QString &coin) {
+    return QString("%1@depth5").arg(coin.replace("/", "").toLower());
 }

@@ -66,36 +66,46 @@ void BybitParser::onTextMessageReceived(const QString &message) {
 
 void BybitParser::processPriceUpdate(const QJsonObject &json) {
 
-    QString symbol = json["topic"].toString().mid(8);
+    if (!json.contains("topic"))
+        return;
 
     if (!json.contains("data") || !json["data"].isObject())
         return;
-
+        
+    QString coin = formatCoin(json["topic"].toString().mid(8));
     QJsonObject data = json["data"].toObject();
 
-    if (!data.contains("lastPrice"))
-        return;
+    stInfoCoin _info;
 
-    QString priceStr = data["lastPrice"].toString();
-
-    QString coin = formatCoin(symbol);
-    bool ok;
-    double price = data["lastPrice"].toString().toDouble(&ok);
-
-    if (ok && price > 0) {
-        //qDebug() << "Bybit: Received price for" << symbol << ":" << price;
-        QWriteLocker locker(&dataLock);
-
-        auto& curCoin = currentInfoAboutCoins[coin];
-        double oldPrice = curCoin.value;
-        curCoin.value = price;
-        curCoin.dif = price - oldPrice;
-
-        locker.unlock();
-
-        if (oldPrice == 0 || qAbs((price - oldPrice) / oldPrice) > MIN_PRICE_CHANGE)
-            emit priceUpdated(coin, price);
+    if (data.contains("lastPrice")) {
+        _info.stPrice.prevPrice = _info.stPrice.curPrice;
+        _info.stPrice.curPrice = json["lastPrice"].toString().toDouble();
+        _info.stPrice.difPrice = _info.stPrice.curPrice - _info.stPrice.prevPrice;
     }
+
+    if (json.contains("ask1Price") && json.contains("ask1Size") && 
+        json.contains("bid1Price") && json.contains("bid1Size")) {
+        _info.stBooks[0].askPrice = json["ask1Price"].toString().toDouble();
+        _info.stBooks[0].askSize = json["ask1Size"].toString().toDouble();
+        _info.stBooks[0].bidPrice = json["bid1Price"].toString().toDouble();
+        _info.stBooks[0].askSize = json["bid1Size"].toString().toDouble();
+    }
+    
+    if (json.contains("highPrice24h") && json.contains("lowPrice24h") && 
+        json.contains("turnover24h") && json.contains("volume24h")) {
+        _info.st24hStat.high24h = json["highPrice24h"].toString().toDouble();
+        _info.st24hStat.low24h = json["lowPrice24h"].toString().toDouble();
+        _info.st24hStat.volCсy24h = json["turnover24h"].toString().toDouble();
+        _info.st24hStat.vol24h = json["volume24h"].toString().toDouble();
+    }
+
+        
+    QWriteLocker locker(&dataLock);
+    currentInfoAboutCoins[coin] = _info;
+    locker.unlock();
+
+    if (_info.stPrice.prevPrice != 0 || qAbs((_info.stPrice.difPrice) / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+        emit priceUpdated(coin, _info.stPrice.curPrice);
 }
 
 void BybitParser::sendSubscriptionMessage()
@@ -106,7 +116,7 @@ void BybitParser::sendSubscriptionMessage()
     QReadLocker locker(&dataLock);
     QStringList streams;
     for (QString coin : subscribedCoins)
-        streams.append(coinToStream(coin));
+        streams.append(tickerStream(coin));
     locker.unlock();
 
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
@@ -151,6 +161,12 @@ void BybitParser::sendUnsubscriptionMessage(const QStringList &streams)
 
 }
 
-QString BybitParser::coinToStream(QString &coin) {
+QString BybitParser::tickerStream(QString &coin) {
     return QString("tickers.%1").arg(coin.replace("/", "").toUpper());
+}
+
+QString BybitParser::books1Stream(QString &coin) {
+}
+
+QString BybitParser::books5Stream(QString &coin) {
 }

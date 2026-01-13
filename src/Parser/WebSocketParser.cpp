@@ -1,5 +1,4 @@
 #include "Parser/WebSocketParser.hpp"
-#include <qurl.h>
 
 WebSocketParser::WebSocketParser(const QString& name, TMarketData TMarket, QObject* parent) :
     QObject(parent),
@@ -92,22 +91,31 @@ void WebSocketParser::disconnectFromStream() {
         pingTimer->stop();
 
     if (webSocket && webSocket->state() != QAbstractSocket::UnconnectedState) {
+        unsubscribeAllCoins();
         webSocket->close();
         webSocket->abort();
     }
 }
 
 void WebSocketParser::subscribeToCoins(const QStringList &coins) {
+
     QWriteLocker locker(&dataLock);
+
     for (const QString &coin : coins) {
         QString coinUpper = coin.toUpper();
         if (!subscribedCoins.contains(coinUpper))
             subscribedCoins.insert(coinUpper);
     }
+
+    QStringList allStreams;
+    for (QString coin : subscribedCoins)
+        if (!subscribedCoins.contains(tickerStream(coin)))
+            allStreams.append(tickerStream(coin));
+
     locker.unlock();
 
     if (isConnected())
-        sendSubscriptionMessage();
+        sendSubscriptionMessage(allStreams);
 }
 
 void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
@@ -122,7 +130,7 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
         if (subscribedCoins.contains(coinUpper)) {
             subscribedCoins.remove(coinUpper);
             currentInfoAboutCoins.remove(coinUpper);
-            streamsToUnsubscribe.append(coinToStream(coin));
+            streamsToUnsubscribe.append(tickerStream(coin));
         }
     }
     locker.unlock();
@@ -132,14 +140,14 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
 }
 
 void WebSocketParser::unsubscribeAllCoins() {
-     QWriteLocker locker(&dataLock);
+    QWriteLocker locker(&dataLock);
 
     if (subscribedCoins.isEmpty())
         return;
 
     QStringList allStreams;
     for (QString coin : subscribedCoins)
-        allStreams.append(coinToStream(coin));
+        allStreams.append(tickerStream(coin));
 
     subscribedCoins.clear();
     currentInfoAboutCoins.clear();

@@ -56,5 +56,5 @@ void ParserMyWallet::updateAsset(const QString &coin, double price) {
 void ParserMyWallet::updateAllAssets(const QString &coin, double price) {
     auto info = ptrParser->getInfoAboutAllCoins();
     for (auto [name, _info] : info.asKeyValueRange())
-        updateAsset(name, (name != coin) ? _info.value : price);
+        updateAsset(name, (name != coin) ? _info.stPrice.curPrice : price);
 }

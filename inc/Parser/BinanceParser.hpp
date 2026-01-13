@@ -7,10 +7,17 @@ class BinanceParser : public WebSocketParser {
 
 private:
 
-    void sendSubscriptionMessage() override;
+    void sendSubscriptionMessage(const QStringList &streams) override;
     void sendUnsubscriptionMessage(const QStringList &streams) override;
-    void processPriceUpdate(const QJsonObject &json) override;
-    QString coinToStream(QString &coin) override;
+    
+    void updateTicker(const QJsonObject &json) override;
+    void updateBooks1(const QJsonObject &json) override;
+    void updateBooks5(const QJsonObject &json) override;
+    
+    QString tickerStream(QString &coin) override;
+    QString books1Stream(QString &coin) override;
+    QString books5Stream(QString &coin) override;
+
 
     std::optional<QUrl> getURLMarketData(TMarketData TMarket) override;
 
