@@ -4,12 +4,11 @@
 
 #include <QTableWidget>
 #include <memory>
-#include <qobject.h>
-#include <qwidget.h>
 
 class DialogTable : public CustomQDialog {
     Q_OBJECT
 public:
+
     DialogTable(QWidget* parent = nullptr);
     ~DialogTable() = default;
 
@@ -21,7 +20,7 @@ public:
     qint64 findIndexByHorizontalHeaders(const QString& str);
     qint64 findIndexByVerticalHeaders(const QString& str);
 
-private:
+protected:
 
     void setupUI() override;
     void connectionSignals() override;
@@ -40,13 +39,18 @@ class TableController : QObject {
     Q_OBJECT
 public:
 
-    explicit TableController(QWidget* parent = nullptr);
     void updateTable(const QString &coin, double price);
     void showTable(qint64 cols, qint64 rows, const QStringList& verHeaders, const QStringList& horHeaders);
 
+    DialogTable* table();
+
+    TableController(QWidget* parent = nullptr);
+
 private:
 
-    std::unique_ptr<DialogTable> table;
+
+    std::unique_ptr<DialogTable> _table;
+
     bool tableIsOpen = false;
 
 };

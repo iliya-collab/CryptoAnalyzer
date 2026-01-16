@@ -1,6 +1,6 @@
 #include "Parser/WebSocketParser.hpp"
 
-WebSocketParser::WebSocketParser(const QString& name, TMarketData TMarket, QObject* parent) :
+WebSocketParser::WebSocketParser(const QString& name, QObject* parent) :
     QObject(parent),
     nameMarket(name),
     webSocket(nullptr),
@@ -9,11 +9,21 @@ WebSocketParser::WebSocketParser(const QString& name, TMarketData TMarket, QObje
     autoReconnect(true),
     reconnectAttempts(0),
     isConnecting(false),
-    t_market(TMarket)
-{
+    isCorrectInit(true),
+    t_market(TMarketData::NONEMARKET) {}
+
+bool WebSocketParser::init() {
     setupWebSocket();
     connectSignals();
+
+    t_market = getTypeMarket(nameMarket);
+    WebSocketUrl();
+
+    pingTimer->start(ACTIVE_PING_INTERVAL);
+
+    return isCorrectInit;
 }
+
 WebSocketParser::~WebSocketParser() {
     cleanup();
 }
@@ -44,6 +54,28 @@ void WebSocketParser::connectSignals() {
         if (webSocket->state() == QAbstractSocket::ConnectedState)
             webSocket->ping();
     });
+}
+
+WebSocketParser::TMarketData WebSocketParser::getTypeMarket(const QString& name) {
+    QStringList tocken = name.split("/");
+    if (tocken.size() != 2)
+        return TMarketData::NONEMARKET;
+    else if (tocken[1] == "spot")
+        return TMarketData::SPOT;
+    else if (tocken[1] == "futures")
+        return TMarketData::FUTURES;
+    else
+        return TMarketData::NONEMARKET;
+}
+
+void WebSocketParser::WebSocketUrl() {
+    auto ret = getURLMarketData();
+    if (ret.has_value())
+        Url = ret.value();
+    else {
+        isCorrectInit = false;
+        qCritical() << "Failed to initialize WebSocketParser:" << ret.error();
+    }
 }
 
 void WebSocketParser::cleanup() {
@@ -98,24 +130,27 @@ void WebSocketParser::disconnectFromStream() {
 }
 
 void WebSocketParser::subscribeToCoins(const QStringList &coins) {
-
     QWriteLocker locker(&dataLock);
 
-    for (const QString &coin : coins) {
-        QString coinUpper = coin.toUpper();
-        if (!subscribedCoins.contains(coinUpper))
-            subscribedCoins.insert(coinUpper);
-    }
+    if (coins.isEmpty())
+        return;
 
-    QStringList allStreams;
-    for (QString coin : subscribedCoins)
-        if (!subscribedCoins.contains(tickerStream(coin)))
-            allStreams.append(tickerStream(coin));
+    for (const QString& coin : coins) {
+        subscribedCoins.insert(coin.toUpper());
+        if (_Channels & Channel::TICKER)
+            usedStreams.insert(tickerStream(coin));
+        if (_Channels & Channel::BOOKS5)
+            usedStreams.insert(books5Stream(coin));
+        if (_Channels & Channel::BOOKS10)
+            usedStreams.insert(books10Stream(coin));
+        if (_Channels & Channel::BOOKS20)
+            usedStreams.insert(books20Stream(coin));
+    }
 
     locker.unlock();
 
     if (isConnected())
-        sendSubscriptionMessage(allStreams);
+        sendSubscriptionMessage(usedStreams.values());
 }
 
 void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
@@ -125,12 +160,16 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
     QStringList streamsToUnsubscribe;
     QWriteLocker locker(&dataLock);
 
-    for (QString coin : coins) {
+    for (const QString& coin : coins) {
         QString coinUpper = coin.toUpper();
         if (subscribedCoins.contains(coinUpper)) {
             subscribedCoins.remove(coinUpper);
             currentInfoAboutCoins.remove(coinUpper);
-            streamsToUnsubscribe.append(tickerStream(coin));
+
+            QString stream = tickerStream(coin);
+
+            usedStreams.remove(stream);
+            streamsToUnsubscribe.append(stream);
         }
     }
     locker.unlock();
@@ -142,21 +181,20 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
 void WebSocketParser::unsubscribeAllCoins() {
     QWriteLocker locker(&dataLock);
 
-    if (subscribedCoins.isEmpty())
+    if (usedStreams.isEmpty())
         return;
 
-    QStringList allStreams;
-    for (QString coin : subscribedCoins)
-        allStreams.append(tickerStream(coin));
+    QStringList listUsedStreams = usedStreams.values();
 
     subscribedCoins.clear();
     currentInfoAboutCoins.clear();
+    usedStreams.clear();
 
     locker.unlock();
 
 
-    if (isConnected() && !allStreams.isEmpty())
-        sendUnsubscriptionMessage(allStreams);
+    if (isConnected())
+        sendUnsubscriptionMessage(listUsedStreams);
 }
 
 WebSocketParser::stInfoCoin WebSocketParser::getInfoAboutCoin(const QString &coin) {
@@ -185,10 +223,23 @@ void WebSocketParser::onConnected() {
 
     pingTimer->start(30000);
 
-    if (!subscribedCoins.isEmpty())
-        QTimer::singleShot(100, this, &WebSocketParser::sendSubscriptionMessage);
+    if (!usedStreams.isEmpty())
+        QTimer::singleShot(100, this, [this]() {
+            sendSubscriptionMessage(usedStreams.values());
+        });
 
     emit connected();
+}
+
+void WebSocketParser::onTextMessageReceived(const QString &message) {
+    qDebug() << QString("%1:%2").arg(getNameMarket()).arg(message);
+    auto jsonObj = parseTextMessage(message);
+    if (jsonObj.has_value()) {
+        messageReceived(jsonObj.value());
+        sendPingMessage(jsonObj.value());
+    }
+    else
+        qWarning() << jsonObj.error();
 }
 
 void WebSocketParser::onDisconnected() {
@@ -223,4 +274,56 @@ void WebSocketParser::onSslErrors(const QList<QSslError> &errors) {
 void WebSocketParser::reconnect() {
     if (autoReconnect && !isConnecting)
         connectToStream();
+}
+
+QString WebSocketParser::getNameMarket() {
+    return nameMarket;
+}
+
+int WebSocketParser::getChannel(const QString& channel) {
+    if (channel == "ticker")
+        return Channel::TICKER;
+    else if (channel == "books5")
+        return Channel::BOOKS5;
+    else if (channel == "books10")
+        return Channel::BOOKS10;
+    else if (channel == "books20")
+        return Channel::BOOKS20;
+    return Channel::NONECHANNEL;
+}
+
+void WebSocketParser::addChannels(const QString& channels) {
+    QStringList lst_channels = channels.split("/");
+    for (auto& channel : lst_channels)
+        _Channels |= getChannel(channel);
+}
+
+void WebSocketParser::deleteChannels(const QString& channels) {
+    QStringList lst_channels = channels.split("/");
+    for (auto& channel : lst_channels)
+        _Channels ^= getChannel(channel);
+}
+
+void WebSocketParser::deleteAllChannels() {
+    _Channels = 0;
+}
+
+std::expected<QJsonObject, QString> WebSocketParser::parseTextMessage(const QString &message) {
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseError);
+
+    if (parseError.error != QJsonParseError::NoError)
+        return std::unexpected(QString("%1 : JSON parse error: %2").arg(getNameMarket()).arg(parseError.errorString()));
+
+    if (!doc.isObject()) 
+        return std::unexpected(QString("%1 : Document is not an object").arg(getNameMarket()));
+
+    return doc.object();
+}
+
+void WebSocketParser::sendPingMessage(const QJsonObject& obj) {
+    if (obj.contains("ping")) {
+        QJsonObject pong{{"pong", obj["ping"]}};
+        webSocket->sendTextMessage(QJsonDocument(pong).toJson());
+    }
 }

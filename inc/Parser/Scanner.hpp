@@ -5,32 +5,20 @@
 #include "Configs/ScannerConfig.hpp"
 #include "Configs/MyWalletConfig.hpp"
 
-#include "CustomWindowDialogs/StatusPanel.hpp"
-
 class Scanner : public QObject {
     Q_OBJECT
-
 private:
 
     ParamsScannerConfig pScannerConfig;
     ParamsMyWalletConfig pMyWalletConfig;
 
-    std::unique_ptr<StatusPanel> statPanel;
-
     QMap<QString, std::shared_ptr<WebSocketParser>> lstParsers;
 
     std::unique_ptr<ParserMyWallet> myWalletParser;
 
-    void connectSignals();
-    void initParsers();
-
 private slots:
 
-    // Вызывается при обновлении цены на подписанные монеты
-    void updateTable(const QString &coin, double price);
-    void onStartConnection();
-    void onDialogTable();
-    void onDialogGraph();
+    void updateCoin(const QString& symbol, const WebSocketParser::stInfoCoin& _info);
 
 public:
 
@@ -38,7 +26,18 @@ public:
 
     void setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsMyWalletConfig& _MyWalletConfig);
 
+    QStringList getListStockMarket();
+    ParamsScannerConfig getScannerConfig() {
+        return pScannerConfig;
+    }
+
+    void addStockMarket(const QString& StockMarket, const QString& Market, const QString& channel);
+
     void start();
     void stop();
+
+signals:
+
+    void update_coin(const QString& symbol, const WebSocketParser::stInfoCoin& _info);
 
 };

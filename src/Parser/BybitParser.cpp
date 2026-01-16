@@ -5,120 +5,102 @@
 #include <QJsonArray>
 #include <optional>
 
-BybitParser::BybitParser(const QString& name, TMarketData TMarket, QObject* parent) : WebSocketParser(name, TMarket, parent) {
-    auto ret = getURLMarketData(TMarket);
-    if (ret.has_value())
-        Url = ret.value();
-};
-
-std::optional<QUrl> BybitParser::getURLMarketData(TMarketData TMarket) {
-    switch (TMarket) {
+std::expected<QUrl, QString> BybitParser::getURLMarketData() {
+    switch (t_market) {
         case TMarketData::SPOT:
             return QUrl("wss://stream.bybit.com/v5/public/spot");
         case TMarketData::FUTURES:
             return QUrl("wss://stream.bybit.com/v5/public/linear");
         default:
-            return std::nullopt;
+            return std::unexpected(QString("The name is incorrect : %1").arg(nameMarket));
     }
 }
 
 QString BybitParser::formatCoin(const QString& coin) {
-    return QString("%1:%2").arg(nameMarket).arg(coin);
+    return coin;
 }
 
-void BybitParser::onTextMessageReceived(const QString &message) {
-     //qDebug() << "Bybit RAW received:" << message;
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        qDebug() << "Bybit: JSON parse error:" << parseError.errorString();
-        qDebug() << "Message:" << message;
-        return;
-    }
-
-    if (!doc.isObject()) {
-        qDebug() << "Bybit: Document is not an object";
-        return;
-    }
-
-    QJsonObject json = doc.object();
-
-    if (json.contains("success") && json.contains("op")) {
-        QString operation = json["op"].toString();
-        bool success = json["success"].toBool();
-        if (!success) {
-            QString retMsg = json["ret_msg"].toString();
-            qWarning() << "Bybit" << operation << "failed:" << retMsg;
-            emit errorOccurred(retMsg);
-        }
-        return;
-    }
-    else if (json.contains("topic") && json["topic"].toString().startsWith("tickers.")) {
-        processPriceUpdate(json);
-    }
-    else if (json.contains("ping")) {
-        QJsonObject pong{{"pong", json["ping"]}};
-        webSocket->sendTextMessage(QJsonDocument(pong).toJson());
+void BybitParser::messageReceived(const QJsonObject &obj) {
+    if (obj.contains("topic")) {
+        QString channel = obj["topic"].toString();
+        if (channel.startsWith("tickers."))
+            updateTicker(obj);
+        else if (channel.startsWith("orderbook.5."))
+            updateBooks5(obj);
+        else if (channel.startsWith("orderbook.10."))
+            updateBooks10(obj);
+        else if (channel.startsWith("orderbook.20."))
+            updateBooks20(obj);
     }
 }
 
-void BybitParser::processPriceUpdate(const QJsonObject &json) {
+void BybitParser::updateTicker(const QJsonObject &json) {
+    //qDebug() << QJsonDocument(json).toJson(QJsonDocument::Compact);
 
-    if (!json.contains("topic"))
-        return;
+    static quint64 ts = 0;
+    quint64 cur_ts = 0;
+    bool needUpdate = false;
+
+    if (json.contains("ts"))
+        cur_ts = json["ts"].toInteger();
+    if (cur_ts - ts > MIN_CHANGE_TIME) {
+        ts = cur_ts;
+        needUpdate = true;
+    }
 
     if (!json.contains("data") || !json["data"].isObject())
         return;
         
-    QString coin = formatCoin(json["topic"].toString().mid(8));
     QJsonObject data = json["data"].toObject();
+    QString coin = formatCoin(data["symbol"].toString());
 
     stInfoCoin _info;
+    if (currentInfoAboutCoins.contains(coin))
+        _info = currentInfoAboutCoins[coin];
+    else
+        _info = {};
 
-    if (data.contains("lastPrice")) {
-        _info.stPrice.prevPrice = _info.stPrice.curPrice;
-        _info.stPrice.curPrice = json["lastPrice"].toString().toDouble();
-        _info.stPrice.difPrice = _info.stPrice.curPrice - _info.stPrice.prevPrice;
-    }
+    if (data.contains("lastPrice"))
+        _info.stPrice.curPrice = data["lastPrice"].toString().toDouble();
 
-    if (json.contains("ask1Price") && json.contains("ask1Size") && 
-        json.contains("bid1Price") && json.contains("bid1Size")) {
-        _info.stBooks[0].askPrice = json["ask1Price"].toString().toDouble();
-        _info.stBooks[0].askSize = json["ask1Size"].toString().toDouble();
-        _info.stBooks[0].bidPrice = json["bid1Price"].toString().toDouble();
-        _info.stBooks[0].askSize = json["bid1Size"].toString().toDouble();
+    if (data.contains("ask1Price") && data.contains("ask1Size") && 
+        data.contains("bid1Price") && data.contains("bid1Size")) {
+        _info.stBooks[0].askPrice = data["ask1Price"].toString().toDouble();
+        _info.stBooks[0].askSize = data["ask1Size"].toString().toDouble();
+        _info.stBooks[0].bidPrice = data["bid1Price"].toString().toDouble();
+        _info.stBooks[0].askSize = data["bid1Size"].toString().toDouble();
     }
     
-    if (json.contains("highPrice24h") && json.contains("lowPrice24h") && 
-        json.contains("turnover24h") && json.contains("volume24h")) {
-        _info.st24hStat.high24h = json["highPrice24h"].toString().toDouble();
-        _info.st24hStat.low24h = json["lowPrice24h"].toString().toDouble();
-        _info.st24hStat.volCсy24h = json["turnover24h"].toString().toDouble();
-        _info.st24hStat.vol24h = json["volume24h"].toString().toDouble();
+    if (data.contains("highPrice24h") && data.contains("lowPrice24h") && 
+        data.contains("turnover24h") && data.contains("volume24h")) {
+        _info.st24hStat.high24h = data["highPrice24h"].toString().toDouble();
+        _info.st24hStat.low24h = data["lowPrice24h"].toString().toDouble();
+        _info.st24hStat.volCcy24h = data["turnover24h"].toString().toDouble();
+        _info.st24hStat.vol24h = data["volume24h"].toString().toDouble();
     }
 
-        
     QWriteLocker locker(&dataLock);
+    if (currentInfoAboutCoins.contains(coin)) {
+        _info.stPrice.prevPrice = currentInfoAboutCoins[coin].stPrice.curPrice;
+        _info.stPrice.difPrice = _info.stPrice.curPrice - _info.stPrice.prevPrice;
+    }
     currentInfoAboutCoins[coin] = _info;
     locker.unlock();
 
-    if (_info.stPrice.prevPrice != 0 || qAbs((_info.stPrice.difPrice) / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
-        emit priceUpdated(coin, _info.stPrice.curPrice);
+    if (_info.stPrice.prevPrice == 0 || needUpdate || qAbs(_info.stPrice.difPrice / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+        emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);
 }
 
-void BybitParser::sendSubscriptionMessage()
-{
-    if (subscribedCoins.isEmpty())
-        return;
+void BybitParser::updateBooks5(const QJsonObject &json) {
+}
 
-    QReadLocker locker(&dataLock);
-    QStringList streams;
-    for (QString coin : subscribedCoins)
-        streams.append(tickerStream(coin));
-    locker.unlock();
+void BybitParser::updateBooks10(const QJsonObject &json) {
+}
 
+void BybitParser::updateBooks20(const QJsonObject &json) {
+}
+
+void BybitParser::sendSubscriptionMessage(const QStringList &streams) {
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
         QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
@@ -137,11 +119,7 @@ void BybitParser::sendSubscriptionMessage()
     }
 }
 
-void BybitParser::sendUnsubscriptionMessage(const QStringList &streams)
-{
-    if (streams.isEmpty())
-        return;
-
+void BybitParser::sendUnsubscriptionMessage(const QStringList &streams) {
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
         QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
@@ -161,12 +139,22 @@ void BybitParser::sendUnsubscriptionMessage(const QStringList &streams)
 
 }
 
-QString BybitParser::tickerStream(QString &coin) {
-    return QString("tickers.%1").arg(coin.replace("/", "").toUpper());
+QString BybitParser::tickerStream(const QString &coin) {
+    QString _coin = coin;
+    return QString("tickers.%1").arg(_coin.replace("/", "").toUpper());
 }
 
-QString BybitParser::books1Stream(QString &coin) {
+QString BybitParser::books5Stream(const QString &coin) {
+    QString _coin = coin;
+    return QString("orderbook.5.%1").arg(_coin.replace("/", "").toUpper());
 }
 
-QString BybitParser::books5Stream(QString &coin) {
+QString BybitParser::books10Stream(const QString &coin) {
+    QString _coin = coin;
+    return QString("orderbook.10.%1").arg(_coin.replace("/", "").toUpper());
+}
+
+QString BybitParser::books20Stream(const QString &coin) {
+    QString _coin = coin;
+    return QString("orderbook.20.%1").arg(_coin.replace("/", "").toUpper());
 }

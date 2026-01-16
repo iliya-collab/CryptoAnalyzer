@@ -64,16 +64,20 @@ qint64 DialogTable::findIndexByVerticalHeaders(const QString& str) {
 }
 
 TableController::TableController(QWidget* parent) {
-    table = std::make_unique<DialogTable>(parent);
-    connect(table.get(), &QDialog::finished, this, [this]() { tableIsOpen = false; });
+    _table = std::make_unique<DialogTable>();
+    connect(_table.get(), &QDialog::finished, this, [this]() { tableIsOpen = false; });
+}
+
+DialogTable* TableController::table() {
+    return _table.get();
 }
 
 void TableController::showTable(qint64 cols, qint64 rows, const QStringList& verHeaders, const QStringList& horHeaders) {
     tableIsOpen = true;
-    table->setSize(cols, rows);
-    table->setVerticalHeader(verHeaders);
-    table->setHorizontalHeader(horHeaders);
-    table->showDialog();
+    _table->setSize(cols, rows);
+    _table->setVerticalHeader(verHeaders);
+    _table->setHorizontalHeader(horHeaders);
+    _table->showDialog();
 }
 
 void TableController::updateTable(const QString &coin, double price) {
@@ -81,7 +85,7 @@ void TableController::updateTable(const QString &coin, double price) {
         return;
 
     QStringList lst = coin.split(':'); // lst[0] - market , lst[1] - coin
-    qint64 col = table->findIndexByHorizontalHeaders(lst[0]);
-    qint64 row = table->findIndexByVerticalHeaders(lst[1]);
-    table->fillTable(row, col, QString::number(price, 'f', 3));
+    qint64 col = _table->findIndexByHorizontalHeaders(lst[0]);
+    qint64 row = _table->findIndexByVerticalHeaders(lst[1]);
+    _table->fillTable(row, col, QString::number(price, 'f', 3));
 }

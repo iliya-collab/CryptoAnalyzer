@@ -1,6 +1,7 @@
 #include "mainwindow.hpp"
 
 #include "Managers/RestartManager.hpp"
+#include "Managers/Settings.hpp"
 #include "CustomWindowDialogs/DebugOutput.hpp"
 
 #include <QWidgetAction>
@@ -26,8 +27,8 @@ MainWindow::MainWindow(QString style, QWidget *parent) : QMainWindow(parent) {
     DebugOutput::instance()->redirectQtMessages();
     DebugOutput::instance()->setTextEdit(outputResult);
 
-    _scanner = std::make_unique<Scanner>(this);
-    _scanner->setConfig(curScannerConfig, curMyWalletConfig);
+    DScanner = std::make_unique<DialogScanner>(this);
+    DScanner->scanner()->setConfig(curScannerConfig, curMyWalletConfig);
 }
 
 MainWindow::~MainWindow() {}
@@ -46,7 +47,6 @@ void MainWindow::setupUI() {
 }
 
 void MainWindow::connectionSignals() {
-    connect(btnConvert, &QPushButton::clicked, this, &MainWindow::onClickedButtonConvert);
     connect(btnStart, &QPushButton::clicked, this, &MainWindow::onClickedButtonStart);
     connect(btnEnd, &QPushButton::clicked, this, &MainWindow::onClickedButtonEnd);
     connect(btnClearOutput, &QPushButton::clicked, this, &MainWindow::onClickedButtonClearOutput);
@@ -70,8 +70,6 @@ void MainWindow::createMenu() {
 }
 
 void MainWindow::createUI() {
-    editValute = new QLineEdit(this);
-    btnConvert = new QPushButton("Convert", this);
     btnStart = new QPushButton("Start", this);
     btnEnd = new QPushButton("End", this);
     btnClearOutput = new QPushButton("Clear", this);
@@ -92,11 +90,9 @@ void MainWindow::createUI() {
         for (int col = 0; col < Col; ++col)
             mainLayout->addWidget(new QWidget(this), row, col);
 
-    mainLayout->addWidget(editValute, 0, 0, 1, 10);
-    mainLayout->addWidget(outputResult, 1, 0, 8, 10);
+    mainLayout->addWidget(outputResult, 0, 0, 9, 10);
     mainLayout->addWidget(btnStart, 9, 0, 1, 1);
     mainLayout->addWidget(btnEnd, 9, 1, 1, 1);
-    mainLayout->addWidget(btnConvert, 9, 8, 1, 1);
     mainLayout->addWidget(btnClearOutput, 9, 9, 1, 1);
 }
 
@@ -120,4 +116,32 @@ bool MainWindow::showMessage(const char* title, const char* msg, QMessageBox::Ic
 
 void MainWindow::restartApplication() {
     RestartManager::requestRestart();
+}
+
+void MainWindow::onClickedButtonStart() {
+    DScanner->showDialog();
+}
+
+void MainWindow::onClickedButtonEnd() {
+    DScanner->scanner()->stop();
+}
+
+void MainWindow::onClickedButtonClearOutput() {
+    outputResult->clear();
+}
+
+void MainWindow::onSetupMenuActivated() {
+    DSetupMenu = std::make_unique<DialogSetupMenu>(this);
+}
+
+void MainWindow::onSaveSetupActivated() {
+    if (showMessage("Confirmation", "Save changes", QMessageBox::Question))
+        Settings::writeAllConfig();
+    if (showMessage("Confirmation", "Restart the progremm?", QMessageBox::Question))
+        restartApplication();
+}
+
+void MainWindow::onDefaultResetActivated() {
+    MyWalletConfig::instance().setDefaultConfig();
+    ScannerConfig::instance().setDefaultConfig();
 }

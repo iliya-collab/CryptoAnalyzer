@@ -4,7 +4,6 @@
 #include <QMainWindow>
 
 #include <QGridLayout>
-#include <QLineEdit>
 #include <QTextEdit>
 #include <QPushButton>
 #include <QMenuBar>
@@ -12,8 +11,7 @@
 #include <QAction>
 
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
-
-#include "Parser/Scanner.hpp"
+#include "CustomWindowDialogs/DialogScanner.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -30,8 +28,6 @@ private:
     QGridLayout* mainLayout = nullptr;
 
     // -------------------------------------------------
-    QLineEdit* editValute = nullptr;
-    QPushButton* btnConvert = nullptr;
     QPushButton* btnStart = nullptr;
     QPushButton* btnEnd = nullptr;
     QPushButton* btnClearOutput = nullptr;
@@ -43,15 +39,9 @@ private:
     QAction* actionSetupMenu = nullptr;
     QAction* actionSaveSetup = nullptr;
     QAction* actionDefaultReset = nullptr;
-
-    std::unique_ptr<DialogTable> DTable;
-    QAction* actionTabel = nullptr;
-
-    std::unique_ptr<DDynamicsGraph> DGraph;
-    QAction* actionDynamicsGraph = nullptr;
     // -------------------------------------------------
 
-    std::unique_ptr<Scanner> _scanner;
+    std::unique_ptr<DialogScanner> DScanner;
 
     // -------------------------------------------------
     ParamsScannerConfig curScannerConfig;
@@ -71,7 +61,6 @@ private:
 
 private slots:
 
-    void onClickedButtonConvert();
     void onClickedButtonStart();
     void onClickedButtonEnd();
     void onClickedButtonClearOutput();
