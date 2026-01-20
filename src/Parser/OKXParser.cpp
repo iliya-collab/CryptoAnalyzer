@@ -26,12 +26,8 @@ void OKXParser::messageReceived(const QJsonObject &obj) {
         QString channel = arg["channel"].toString();
         if (channel == "tickers")
             updateTicker(obj);
-        else if (channel == "books5")
-            updateBooks5(obj);
-        else if (channel == "books10")
-            updateBooks10(obj);
-        else if (channel == "books20")
-            updateBooks20(obj);
+        else if (channel == "books")
+            updateBooks(obj);
     }
 }
 
@@ -45,37 +41,39 @@ void OKXParser::updateTicker(const QJsonObject &json) {
 
     QJsonObject ticker = dataArray[0].toObject();
 
-    static quint64 ts = 0;
-    quint64 cur_ts = 0;
-    bool needUpdate = false;
-
-    if (ticker.contains("ts"))
-        cur_ts = ticker["ts"].toInteger();
-    if (cur_ts - ts > MIN_CHANGE_TIME) {
-        ts = cur_ts;
-        needUpdate = true;
-    }
-
     stInfoCoin _info;
     if (currentInfoAboutCoins.contains(coin))
         _info = currentInfoAboutCoins[coin];
     else
         _info = {};
 
+    quint64 cur_ts = 0;
+    bool needUpdate = false;
+
+    if (ticker.contains("ts"))
+        cur_ts = ticker["ts"].toInteger();
+    if (cur_ts - _info.ts > MIN_CHANGE_TIME) {
+        _info.ts = cur_ts;
+        needUpdate = true;
+    }
+
     if (ticker.contains("last"))
         _info.stPrice.curPrice = ticker["last"].toString().toDouble();
 
-
-    if (ticker.contains("askPx") && ticker.contains("askSz") && 
-        ticker.contains("bidPx") && ticker.contains("bidSz")) {
-        _info.stBooks[0].askPrice = ticker["askPx"].toString().toDouble();
-        _info.stBooks[0].askSize = ticker["askSz"].toString().toDouble();
-        _info.stBooks[0].bidPrice = ticker["bidPx"].toString().toDouble();
-        _info.stBooks[0].askSize = ticker["bidSz"].toString().toDouble();
+    if (ticker.contains("askPx") && ticker.contains("askSz") && ticker.contains("bidPx") && ticker.contains("bidSz")) {
+        _info.stBooks.clear();
+        stInfoBooks st_books;
+        st_books = {
+            .bidPrice = ticker["bidPx"].toString().toDouble(),
+            .askPrice = ticker["askPx"].toString().toDouble(),
+            .bidSize  = ticker["bidSz"].toString().toDouble(),
+            .askSize  = ticker["askSz"].toString().toDouble(),
+            .spread   = st_books.askPrice - st_books.bidPrice
+        };
+        _info.stBooks.append(st_books);
     }
     
-    if (ticker.contains("high24h") && ticker.contains("low24h") && 
-        ticker.contains("volCcy24h") && ticker.contains("vol24h")) {
+    if (ticker.contains("high24h") && ticker.contains("low24h") && ticker.contains("volCcy24h") && ticker.contains("vol24h")) {
         _info.st24hStat.high24h = ticker["high24h"].toString().toDouble();
         _info.st24hStat.low24h = ticker["low24h"].toString().toDouble();
         _info.st24hStat.volCcy24h = ticker["volCcy24h"].toString().toDouble();
@@ -90,30 +88,19 @@ void OKXParser::updateTicker(const QJsonObject &json) {
     currentInfoAboutCoins[coin] = _info;
     locker.unlock();
 
-    if (_info.stPrice.prevPrice == 0 || needUpdate || qAbs(_info.stPrice.difPrice / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+    if (needUpdate || qAbs(_info.stPrice.difPrice / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
         emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);
 }
 
-void OKXParser::updateBooks5(const QJsonObject &json) {
-    /*QJsonObject arg = json["arg"].toObject();
+void OKXParser::updateBooks(const QJsonObject &json) {
+    QJsonObject arg = json["arg"].toObject();
     QString coin = formatCoin(arg["instId"].toString());
 
     QJsonArray dataArray = json["data"].toArray();
     if (dataArray.isEmpty())
         return;
 
-    QJsonObject books5 = dataArray[0].toObject();
-
-    static quint64 ts = 0;
-    quint64 cur_ts = 0;
-    bool needUpdate = false;
-
-    if (books5.contains("ts"))
-        cur_ts = books5["ts"].toInteger();
-    if (cur_ts - ts > MIN_CHANGE_TIME) {
-        ts = cur_ts;
-        needUpdate = true;
-    }
+    QJsonObject books = dataArray[0].toObject();
 
     stInfoCoin _info;
     if (currentInfoAboutCoins.contains(coin)) 
@@ -122,34 +109,28 @@ void OKXParser::updateBooks5(const QJsonObject &json) {
 
     _info.stBooks.clear();
 
-    QJsonArray asksArray = books5["asks"].toArray();
-    for (const QJsonValue& askValue : asksArray) {
-        QJsonArray askArray = askValue.toArray();
-        if (askArray.size() >= 4) {
-            snapshot.asks.append(parseLevel(askArray));
-        }
-    }
-    
-    QJsonArray bidsArray = data["bids"].toArray();
-    for (const QJsonValue& bidValue : bidsArray) {
-        QJsonArray bidArray = bidValue.toArray();
-        if (bidArray.size() >= 4) {
-            snapshot.bids.append(parseLevel(bidArray));
-        }
+    QJsonArray asksArray = books["asks"].toArray();
+    QJsonArray bidsArray = books["bids"].toArray();
+    for (int i = 0; i < bidsArray.size() && i < mxDepthBooks; i++) {
+        QJsonArray bid = bidsArray[i].toArray();
+        QJsonArray ask = asksArray[i].toArray();
+        _info.stBooks.clear();
+        stInfoBooks st_books;
+        st_books = {
+            .bidPrice = bid[0].toString().toDouble(),
+            .askPrice = ask[0].toString().toDouble(),
+            .bidSize  = bid[1].toString().toDouble(),
+            .askSize  = ask[1].toString().toDouble(),
+            .spread   = st_books.askPrice - st_books.bidPrice
+        };
+        _info.stBooks.append(st_books);
     }
 
     QWriteLocker locker(&dataLock);
     currentInfoAboutCoins[coin] = _info;
     locker.unlock();
 
-    if (needUpdate)
-        emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);*/
-}
-
-void OKXParser::updateBooks10(const QJsonObject &json) {
-}
-
-void OKXParser::updateBooks20(const QJsonObject &json) {
+    emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);
 }
 
 void OKXParser::sendSubscriptionMessage(const QStringList &streams) {
@@ -202,35 +183,12 @@ QString OKXParser::tickerStream(const QString &coin) {
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }
 
-QString OKXParser::books5Stream(const QString &coin) {
+QString OKXParser::booksStream(const QString &coin) {
     QString _coin = coin;
     QString okxSymbol = (t_market == TMarketData::SPOT) ? _coin.replace("/", "-") : QString("%1-SWAP").arg(_coin.replace("/", "-").toUpper());
     QJsonObject obj = {
         {"channel", "books"},
-        {"instId", okxSymbol},
-        {"sz", 5}
-    };
-    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
-}
-
-QString OKXParser::books10Stream(const QString &coin) {
-    QString _coin = coin;
-    QString okxSymbol = (t_market == TMarketData::SPOT) ? _coin.replace("/", "-") : QString("%1-SWAP").arg(_coin.replace("/", "-").toUpper());
-    QJsonObject obj = {
-        {"channel", "books"},
-        {"instId", okxSymbol},
-        {"sz", 10}
-    };
-    return QJsonDocument(obj).toJson(QJsonDocument::Compact);
-}
-
-QString OKXParser::books20Stream(const QString &coin) {
-    QString _coin = coin;
-    QString okxSymbol = (t_market == TMarketData::SPOT) ? _coin.replace("/", "-") : QString("%1-SWAP").arg(_coin.replace("/", "-").toUpper());
-    QJsonObject obj = {
-        {"channel", "books"},
-        {"instId", okxSymbol},
-        {"sz", 20}
+        {"instId", okxSymbol}
     };
     return QJsonDocument(obj).toJson(QJsonDocument::Compact);
 }

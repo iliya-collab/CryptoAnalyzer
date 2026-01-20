@@ -1,16 +1,13 @@
 #include "Parser/WebSocketParser.hpp"
 
-WebSocketParser::WebSocketParser(const QString& name, QObject* parent) :
-    QObject(parent),
-    nameMarket(name),
-    webSocket(nullptr),
-    reconnectTimer(nullptr),
-    pingTimer(nullptr),
-    autoReconnect(true),
-    reconnectAttempts(0),
-    isConnecting(false),
-    isCorrectInit(true),
-    t_market(TMarketData::NONEMARKET) {}
+WebSocketParser::WebSocketParser(const QString& name, QObject* parent) : QObject(parent), webSocket(nullptr), reconnectTimer(nullptr), pingTimer(nullptr) {
+    nameMarket = name;
+    autoReconnect = true; 
+    isConnecting = false; 
+    isCorrectInit = true; 
+    reconnectAttempts = 0; 
+    t_market = TMarketData::NONEMARKET;
+}
 
 bool WebSocketParser::init() {
     setupWebSocket();
@@ -137,14 +134,12 @@ void WebSocketParser::subscribeToCoins(const QStringList &coins) {
 
     for (const QString& coin : coins) {
         subscribedCoins.insert(coin.toUpper());
+
         if (_Channels & Channel::TICKER)
             usedStreams.insert(tickerStream(coin));
-        if (_Channels & Channel::BOOKS5)
-            usedStreams.insert(books5Stream(coin));
-        if (_Channels & Channel::BOOKS10)
-            usedStreams.insert(books10Stream(coin));
-        if (_Channels & Channel::BOOKS20)
-            usedStreams.insert(books20Stream(coin));
+
+        if (_Channels & (Channel::BOOKS5 | Channel::BOOKS10 | Channel::BOOKS20))
+            usedStreams.insert(booksStream(coin));
     }
 
     locker.unlock();
@@ -232,7 +227,7 @@ void WebSocketParser::onConnected() {
 }
 
 void WebSocketParser::onTextMessageReceived(const QString &message) {
-    qDebug() << QString("%1:%2").arg(getNameMarket()).arg(message);
+    //qDebug() << QString("%1:%2").arg(getNameMarket()).arg(message);
     auto jsonObj = parseTextMessage(message);
     if (jsonObj.has_value()) {
         messageReceived(jsonObj.value());
@@ -280,7 +275,11 @@ QString WebSocketParser::getNameMarket() {
     return nameMarket;
 }
 
-int WebSocketParser::getChannel(const QString& channel) {
+int WebSocketParser::getChannels() const {
+    return _Channels;
+}
+
+int WebSocketParser::convertChannel(const QString& channel) {
     if (channel == "ticker")
         return Channel::TICKER;
     else if (channel == "books5")
@@ -295,16 +294,35 @@ int WebSocketParser::getChannel(const QString& channel) {
 void WebSocketParser::addChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
-        _Channels |= getChannel(channel);
+        _Channels |= convertChannel(channel);
+
+    if (_Channels & Channel::BOOKS20)
+        mxDepthBooks = std::max(20, mxDepthBooks);
+    else if (_Channels & Channel::BOOKS10)
+        mxDepthBooks = std::max(10, mxDepthBooks);
+    else if (_Channels & Channel::BOOKS5)
+        mxDepthBooks = std::max(5, mxDepthBooks);
+    else if (_Channels & Channel::TICKER)
+        mxDepthBooks = std::max(1, mxDepthBooks);
 }
 
 void WebSocketParser::deleteChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
-        _Channels ^= getChannel(channel);
+        _Channels ^= convertChannel(channel);
+
+    if (_Channels & Channel::BOOKS20)
+        mxDepthBooks = 20;
+    else if (_Channels & Channel::BOOKS10)
+        mxDepthBooks = 10;
+    else if (_Channels & Channel::BOOKS5)
+        mxDepthBooks = 5;
+    else if (_Channels & Channel::TICKER)
+        mxDepthBooks = 1;
 }
 
 void WebSocketParser::deleteAllChannels() {
+    mxDepthBooks = 0;
     _Channels = 0;
 }
 

@@ -1,17 +1,7 @@
 #include "Parser/Scanner.hpp"
-
 #include "Parser/WebSocketParserBuilder.hpp"
 
 #include <memory>
-
-Scanner::Scanner(QWidget *parent) {
-    myWalletParser = std::make_unique<ParserMyWallet>();
-}
-
-void Scanner::setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsMyWalletConfig& _MyWalletConfig) {
-    pScannerConfig = _ScannerConfig;
-    pMyWalletConfig = _MyWalletConfig;
-}
 
 void Scanner::start() {
     for (auto [name, parser] : lstParsers.asKeyValueRange()) {
@@ -26,7 +16,7 @@ void Scanner::stop() {
 }
 
 void Scanner::addStockMarket(const QString& StockMarket, const QString& Market, const QString& channel) {
-    qDebug() << StockMarket << Market << channel;
+    //qDebug() << StockMarket << Market << channel;
     QString name = QString("%1/%2").arg(StockMarket).arg(Market);
     bool isInit = true;
 
@@ -35,7 +25,7 @@ void Scanner::addStockMarket(const QString& StockMarket, const QString& Market, 
         if ((isInit = new_parser->init())) {
             lstParsers[name] = new_parser;
             connect(lstParsers[name].get(), &WebSocketParser::updated, this, &Scanner::updateCoin);
-            qDebug() << QString("Created %1 :").arg(name) << lstParsers[name].get();
+            qDebug() << "Created" << name;
         }
     }
 
@@ -43,8 +33,26 @@ void Scanner::addStockMarket(const QString& StockMarket, const QString& Market, 
         lstParsers[name]->addChannels(channel);
 }
 
+void Scanner::delStockMarket(const QString& StockMarket, const QString& Market) {
+    QString name = QString("%1/%2").arg(StockMarket).arg(Market);
+    if (!lstParsers.contains(name)) {
+        qWarning() << name << "does not exist";
+        return;
+    }
+    lstParsers.remove(name);
+    qDebug() << name << "was deleted";
+}
+
 QStringList Scanner::getListStockMarket() {
     return lstParsers.keys();
+}
+
+void Scanner::setScannerConfig(const ParamsScannerConfig& _config) {
+    pScannerConfig = _config;
+}
+
+ParamsScannerConfig Scanner::getScannerConfig() {
+    return pScannerConfig;
 }
 
 void Scanner::updateCoin(const QString &symbol, const WebSocketParser::stInfoCoin& _info) {

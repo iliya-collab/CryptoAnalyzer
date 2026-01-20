@@ -30,21 +30,13 @@ void DialogSetupMenu::setupUI() {
     setup_scaner_page = new SetupScanerPage(this);
     setup_scaner_page->createPage();
 
-    setup_my_wallet_page = new SetupMyWalletPage(this);
-    setup_my_wallet_page->createPage();
 
     pagesWidget->addWidget(setup_scaner_page->getPage());
-    pagesWidget->addWidget(setup_my_wallet_page->getPage());
 
     QListWidgetItem* scanerButton = new QListWidgetItem(contentsWidget);
     scanerButton->setText("Scaner");
     scanerButton->setTextAlignment(Qt::AlignHCenter);
     scanerButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-
-    QListWidgetItem* myWalletButton = new QListWidgetItem(contentsWidget);
-    myWalletButton->setText("My wallet");
-    myWalletButton->setTextAlignment(Qt::AlignHCenter);
-    myWalletButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
     // Добавляем виджеты в layout
     mainLayout->addWidget(contentsWidget);
@@ -75,7 +67,6 @@ void DialogSetupMenu::connectionSignals() {
 
 void DialogSetupMenu::onClickedButtonApply() {
     setup_scaner_page->readConfig();
-    setup_my_wallet_page->readConfig();
 }
 
 

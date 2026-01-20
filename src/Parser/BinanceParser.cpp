@@ -21,9 +21,9 @@ void BinanceParser::messageReceived(const QJsonObject &obj)  {
         QString channel = obj["e"].toString();
         if (channel == "24hrTicker")
             updateTicker(obj);
+        else if (channel == "depthUpdate")
+            updateBooks(obj);
     }
-    else if (obj.contains("bids") && obj.contains("asks"))
-        updateBooks20(obj);
 
 }
 
@@ -33,36 +33,39 @@ void BinanceParser::updateTicker(const QJsonObject &json) {
 
     QString coin = json["s"].toString();
 
-    static quint64 ts = 0;
-    quint64 cur_ts = 0;
-    bool needUpdate = false;
-
-    if (json.contains("E"))
-        cur_ts = json["E"].toInteger();
-    if (cur_ts - ts > MIN_CHANGE_TIME) {
-        ts = cur_ts;
-        needUpdate = true;
-    }
-
     stInfoCoin _info;
     if (currentInfoAboutCoins.contains(coin))
         _info = currentInfoAboutCoins[coin];
     else
         _info = {};
 
+    quint64 cur_ts = 0;
+    bool needUpdate = false;
+
+    if (json.contains("E"))
+        cur_ts = json["E"].toInteger();
+    if (cur_ts - _info.ts > MIN_CHANGE_TIME) {
+        _info.ts = cur_ts;
+        needUpdate = true;
+    }
+
     if (json.contains("c")) 
         _info.stPrice.curPrice = json["c"].toString().toDouble();
 
-    if (json.contains("a") && json.contains("A") && 
-        json.contains("b") && json.contains("B")) {
-        _info.stBooks[0].askPrice = json["a"].toString().toDouble();
-        _info.stBooks[0].askSize = json["A"].toString().toDouble();
-        _info.stBooks[0].bidPrice = json["b"].toString().toDouble();
-        _info.stBooks[0].askSize = json["B"].toString().toDouble();
+    if (json.contains("a") && json.contains("A") && json.contains("b") && json.contains("B")) {
+        _info.stBooks.clear();
+        stInfoBooks st_books;
+        st_books = {
+            .bidPrice = json["b"].toString().toDouble(),
+            .askPrice = json["a"].toString().toDouble(),
+            .bidSize  = json["B"].toString().toDouble(),
+            .askSize  = json["A"].toString().toDouble(),
+            .spread   = st_books.askPrice - st_books.bidPrice
+        };
+        _info.stBooks.append(st_books);
     }
     
-    if (json.contains("h") && json.contains("l") && 
-        json.contains("q") && json.contains("v")) {
+    if (json.contains("h") && json.contains("l") && json.contains("q") && json.contains("v")) {
         _info.st24hStat.high24h = json["h"].toString().toDouble();
         _info.st24hStat.low24h = json["l"].toString().toDouble();
         _info.st24hStat.volCcy24h = json["q"].toString().toDouble();
@@ -77,36 +80,46 @@ void BinanceParser::updateTicker(const QJsonObject &json) {
     currentInfoAboutCoins[coin] = _info;
     locker.unlock();
 
-    if (_info.stPrice.prevPrice == 0 || needUpdate || qAbs(_info.stPrice.difPrice / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
+    if (needUpdate || qAbs(_info.stPrice.difPrice / _info.stPrice.curPrice) > MIN_PRICE_CHANGE)
         emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);
 
 }
 
-void BinanceParser::updateBooks5(const QJsonObject &json) {}
-
-void BinanceParser::updateBooks10(const QJsonObject &json) {}
-
-void BinanceParser::updateBooks20(const QJsonObject &json) {
-    /*if (!json.contains("s"))
+void BinanceParser::updateBooks(const QJsonObject &json) {
+    if (!json.contains("s"))
         return;
 
     QString coin = formatCoin(json["s"].toString());
 
     stInfoCoin _info;
+    if (currentInfoAboutCoins.contains(coin))
+        _info = currentInfoAboutCoins[coin];
+    else
+        _info = {};
 
-    if (json.contains("a") && json.contains("b")) {
-        QJsonArray asks = json["a"].toArray();
-        QJsonArray bids = json["b"].toArray();
-        _info.stBooks[0].askPrice = asks[0].toString().toDouble();
-        _info.stBooks[0].askSize = asks[1].toString().toDouble();
-        _info.stBooks[0].bidPrice = bids[0].toString().toDouble();
-        _info.stBooks[0].askSize = bids[1].toString().toDouble();
+    QJsonArray bidsArray = json.value("bids").toArray();
+    QJsonArray asksArray = json.value("asks").toArray();
+    for (int i = 0; i < bidsArray.size() && i < mxDepthBooks; i++) {
+        QJsonArray bid = bidsArray[i].toArray();
+        QJsonArray ask = asksArray[i].toArray();
+        _info.stBooks.clear();
+        stInfoBooks st_books;
+        st_books = {
+            .bidPrice = bid[0].toString().toDouble(),
+            .askPrice = ask[0].toString().toDouble(),
+            .bidSize  = bid[1].toString().toDouble(),
+            .askSize  = ask[1].toString().toDouble(),
+            .spread   = st_books.askPrice - st_books.bidPrice
+        };
+        _info.stBooks.append(st_books);
     }
+
 
     QWriteLocker locker(&dataLock);
     currentInfoAboutCoins[coin] = _info;
     locker.unlock();
-    emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);*/
+    
+    emit updated(QString("%1:%2").arg(getNameMarket()).arg(coin), _info);
 }
 
 void BinanceParser::sendSubscriptionMessage(const QStringList &streams) {
@@ -152,18 +165,7 @@ QString BinanceParser::tickerStream(const QString &coin) {
     return QString("%1@ticker").arg(_coin.replace("/", "").toLower());
 }
 
-QString BinanceParser::books5Stream(const QString &coin) {
+QString BinanceParser::booksStream(const QString &coin) {
     QString _coin = coin;
-    return QString("%1@depth5").arg(_coin.replace("/", "").toLower());
+    return QString("%1@depth").arg(_coin.replace("/", "").toLower());
 }
-
-QString BinanceParser::books10Stream(const QString &coin) {
-    QString _coin = coin;
-    return QString("%1@depth10").arg(_coin.replace("/", "").toLower());
-}
-
-QString BinanceParser::books20Stream(const QString &coin) {
-    QString _coin = coin;
-    return QString("%1@depth20").arg(_coin.replace("/", "").toLower());
-}
-

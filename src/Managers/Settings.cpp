@@ -1,7 +1,6 @@
 #include "Managers/Settings.hpp"
 
 #include "Configs/ScannerConfig.hpp"
-#include "Configs/MyWalletConfig.hpp"
 
 QJsonObject Settings::root = {};
 QString Settings::l_error = "";
@@ -10,7 +9,6 @@ const char* Settings::configFile = "config.json";
 void Settings::getDefaultConfig() {
 
     ScannerConfig::instance().setDefaultConfig();
-    MyWalletConfig::instance().setDefaultConfig();
 
 }
 
@@ -46,7 +44,6 @@ void Settings::parseJsonDocument(const QJsonDocument& doc) {
     root = doc.object();
 
     ScannerConfig::instance().fromJson(root.value(ScannerConfig::instance().getName()).toObject());
-    MyWalletConfig::instance().fromJson(root.value(MyWalletConfig::instance().getName()).toObject());
 
 }
 
@@ -54,7 +51,6 @@ void Settings::parseJsonDocument(const QJsonDocument& doc) {
 void Settings::writeAllConfig() {
 
     root[ScannerConfig::instance().getName()] = ScannerConfig::instance().toJson();
-    root[MyWalletConfig::instance().getName()] = MyWalletConfig::instance().toJson();
 
     QJsonDocument doc(root);
     JsonManager::setDocument(doc);

@@ -45,7 +45,6 @@ private:
 
     // -------------------------------------------------
     ParamsScannerConfig curScannerConfig;
-    ParamsMyWalletConfig curMyWalletConfig;
     // -------------------------------------------------
 
     void setupUI();

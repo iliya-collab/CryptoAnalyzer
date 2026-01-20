@@ -1,20 +1,16 @@
 #pragma once
 
-#include "Parser/ParserMyWallet.hpp"
-
 #include "Configs/ScannerConfig.hpp"
-#include "Configs/MyWalletConfig.hpp"
+
+#include "Parser/WebSocketParser.hpp"
 
 class Scanner : public QObject {
     Q_OBJECT
 private:
 
     ParamsScannerConfig pScannerConfig;
-    ParamsMyWalletConfig pMyWalletConfig;
 
     QMap<QString, std::shared_ptr<WebSocketParser>> lstParsers;
-
-    std::unique_ptr<ParserMyWallet> myWalletParser;
 
 private slots:
 
@@ -22,16 +18,13 @@ private slots:
 
 public:
 
-    explicit Scanner(QWidget *parent = nullptr);
-
-    void setConfig(const ParamsScannerConfig& _ScannerConfig, const ParamsMyWalletConfig& _MyWalletConfig);
-
     QStringList getListStockMarket();
-    ParamsScannerConfig getScannerConfig() {
-        return pScannerConfig;
-    }
+
+    void setScannerConfig(const ParamsScannerConfig& _config);
+    ParamsScannerConfig getScannerConfig();
 
     void addStockMarket(const QString& StockMarket, const QString& Market, const QString& channel);
+    void delStockMarket(const QString& StockMarket, const QString& Market);
 
     void start();
     void stop();

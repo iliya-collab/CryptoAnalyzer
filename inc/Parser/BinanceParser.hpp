@@ -12,14 +12,10 @@ private:
     void messageReceived(const QJsonObject &obj) override;
     
     void updateTicker(const QJsonObject &json) override;
-    void updateBooks5(const QJsonObject &json) override;
-    void updateBooks10(const QJsonObject &json) override;
-    void updateBooks20(const QJsonObject &json) override;
+    void updateBooks(const QJsonObject &json) override;
     
     QString tickerStream(const QString &coin) override;
-    QString books5Stream(const QString &coin) override;
-    QString books10Stream(const QString &coin) override;
-    QString books20Stream(const QString &coin) override;
+    QString booksStream(const QString &coin) override;
 
     std::expected<QUrl, QString> getURLMarketData() override;
 

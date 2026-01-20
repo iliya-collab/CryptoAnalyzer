@@ -28,14 +28,13 @@ MainWindow::MainWindow(QString style, QWidget *parent) : QMainWindow(parent) {
     DebugOutput::instance()->setTextEdit(outputResult);
 
     DScanner = std::make_unique<DialogScanner>(this);
-    DScanner->scanner()->setConfig(curScannerConfig, curMyWalletConfig);
+    DScanner->scanner()->setScannerConfig(curScannerConfig);
 }
 
 MainWindow::~MainWindow() {}
 
 void MainWindow::getCurrentConfig() {
     curScannerConfig = ScannerConfig::instance().getConfig();
-    curMyWalletConfig = MyWalletConfig::instance().getConfig();
 }
 
 void MainWindow::setupUI() {
@@ -142,6 +141,5 @@ void MainWindow::onSaveSetupActivated() {
 }
 
 void MainWindow::onDefaultResetActivated() {
-    MyWalletConfig::instance().setDefaultConfig();
     ScannerConfig::instance().setDefaultConfig();
 }

@@ -4,6 +4,8 @@
 #include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
 #include "CustomWindowDialogs/DialogTable.hpp"
 
+#include "CustomWidgets/TreeViewWidget.hpp"
+
 #include "Parser/Scanner.hpp"
 
 #include <QWidget>
@@ -28,6 +30,9 @@ private:
 
     QPushButton* btnOK;
     QPushButton* btnAdd;
+    QPushButton* btnDel;
+
+    TreeViewWidget* treeViewer;
 
     QComboBox* comboStockMarket;
     QComboBox* comboMarket;
@@ -46,6 +51,8 @@ private slots:
 
     void onClickedButtonOk();
     void onClickedButtonAdd();
+    void onClickedButtonDel();
+
     void onDialogTableActivated();
     void onDialogGraphActivated();
 
@@ -53,8 +60,6 @@ public:
 
     DialogScanner(QWidget* parent = nullptr);
 
-    Scanner* scanner() {
-        return _scan.get();
-    }
+    Scanner* scanner();
     
 };
