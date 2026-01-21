@@ -15,38 +15,49 @@
 #include <memory>
 #include <expected>
 
+// https://chat.deepseek.com/share/t1yakp1a6ukuhjk3r9
+
 class WebSocketParser : public QObject {
     Q_OBJECT
 public:
 
-    struct stInfoPrice {
-        double curPrice;                // Последняя цена сделки
-        double prevPrice;               // Предыдущая последняя цена сделки
-        double difPrice;                // Разница между curPrice и prevPrice
+    struct Ask {
+        double askPrice;                // Цена продажи
+        double askSize;                 // Объем продажи 
     };
 
-    struct stInfoBooks {
-        double bidPrice;                // Лучшая цена покупки
-        double askPrice;                // Лучшая цена продажи
-        double bidSize;                 // Объем по лучшей цене покупки
-        double askSize;                 // Объем по лучшей цене продажи 
+    struct Bid {
+        double bidPrice;                // Цена покупки
+        double bidSize;                 // Объем покупки
+    };
+
+    struct stOrderBooks {
+        QString namePair;               // Название монетной пары (Binance/spot:BTCUSDT)
+
+        QList<Bid> bids;                // Покупки
+        QList<Ask> asks;                // Продажи
+
         double spread;                  // Спред
-        double totalVolume;             // Общий обЪем    
+
+        double totalBidVolume;          // Общий обЪем покупки
+        double totalAskVolume;          // Общий обЪем продажи
     };
 
-    struct stInfo24hStat {
+    struct stTicker {
+        QString namePair;               // Название монетной пары (BTCUSDT)
+
+        double curPrice;                // Последняя цена сделки
+
         double high24h;                 // Максимальная цена за 24 часа
         double low24h;                  // Минимальная цена за 24 часа
         double volCcy24h;               // Объем торгов в котируемой валюте за 24ч (USDT)
         double vol24h;                  // Объем торгов в базовой валюте за 24ч (BTC)
+
+        Ask bestAsk;                    // Лучшая продажа
+        Bid bestBid;                    // Лучшая покупка
+        double spread;                  // Спред
     };
 
-    struct stInfoCoin {
-        stInfoPrice stPrice;            // Информация о цене
-        QList<stInfoBooks> stBooks;     // Стакан ордеров
-        stInfo24hStat st24hStat;        // Статистика за 24 часа
-        quint64 ts = 0;                 // Временная метка (последнее обновление монеты)
-    };
 
 protected:
 
@@ -74,12 +85,12 @@ protected:
     // Метод обновления для ticker
     virtual void updateTicker(const QJsonObject &json) = 0;
     // Метод обновления для books
-    virtual void updateBooks(const QJsonObject &json) = 0;
+    virtual void updateOrderBooks(const QJsonObject &json) = 0;
 
     // Метод для подписки монеты на ticker
     virtual QString tickerStream(const QString &coin) = 0;
     // Метод для подписки монеты на books
-    virtual QString booksStream(const QString &coin) = 0;
+    virtual QString orderBooksStream(const QString &coin) = 0;
 
     // Получает нужный url для конкретного рынка сбыта (spot/futures)
     virtual std::expected<QUrl, QString> getURLMarketData() = 0;
@@ -124,7 +135,6 @@ protected:
     //  currentInfoAboutCoins = { {"BTCUSDT", {...}}, ... }
     QSet<QString> subscribedCoins;
     QSet<QString> usedStreams;
-    QMap<QString, stInfoCoin> currentInfoAboutCoins;
 
     TMarketData t_market;
     QUrl Url;
@@ -133,10 +143,9 @@ protected:
 
     int mxDepthBooks = 0;                           // Максимальная глубина стакана ордеров 
 
-    const double MIN_PRICE_CHANGE = 0.000001;       // 0.0001%
     const int MAX_STREAMS_PER_SUBSCRIPTION = 10;    // Максимальное число подписок/отписок в одном сообщении
     const int ACTIVE_PING_INTERVAL = 10000;         // каждые 10 с
-    const int MIN_CHANGE_TIME = 500;                // каждые 500 мс
+    const int MIN_CHANGE_TIME = 200;                // каждые 200 мс
 
 public:
 
@@ -157,15 +166,15 @@ public:
     void deleteChannels(const QString& channels);
     void deleteAllChannels();
 
-    stInfoCoin getInfoAboutCoin(const QString &coin);
-    QMap<QString, stInfoCoin> getInfoAboutAllCoins();
     QStringList getSubscribedCoins();
 
     QString getNameMarket();
 
 signals:
 
-    void updated(const QString& symbol, const stInfoCoin& info);
+    void updatedTicker(const stTicker& _ticker);
+    void updatedOrderBooks(const stOrderBooks& _orderBooks);
+
     void connected();
     void disconnected();
     void errorOccurred(const QString &error);

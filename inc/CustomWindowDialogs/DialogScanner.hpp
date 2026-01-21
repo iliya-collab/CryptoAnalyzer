@@ -46,8 +46,8 @@ private:
 
 private slots:
 
-    void updateTable(const QString &symbol, const WebSocketParser::stInfoCoin& _info);
-    void updateGraph(const QString &symbol, const WebSocketParser::stInfoCoin& _info);
+    void updateTable(const WebSocketParser::stTicker& _ticker);
+    void updateGraph(const WebSocketParser::stTicker& _ticker);
 
     void onClickedButtonOk();
     void onClickedButtonAdd();

@@ -139,7 +139,7 @@ void WebSocketParser::subscribeToCoins(const QStringList &coins) {
             usedStreams.insert(tickerStream(coin));
 
         if (_Channels & (Channel::BOOKS5 | Channel::BOOKS10 | Channel::BOOKS20))
-            usedStreams.insert(booksStream(coin));
+            usedStreams.insert(orderBooksStream(coin));
     }
 
     locker.unlock();
@@ -159,12 +159,19 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
         QString coinUpper = coin.toUpper();
         if (subscribedCoins.contains(coinUpper)) {
             subscribedCoins.remove(coinUpper);
-            currentInfoAboutCoins.remove(coinUpper);
 
-            QString stream = tickerStream(coin);
 
-            usedStreams.remove(stream);
-            streamsToUnsubscribe.append(stream);
+            if (_Channels & Channel::TICKER) {
+                QString stream = tickerStream(coin);
+                usedStreams.remove(stream);
+                streamsToUnsubscribe.append(stream);
+            }
+
+            if (_Channels & (Channel::BOOKS5 | Channel::BOOKS10 | Channel::BOOKS20)) {
+                QString stream = orderBooksStream(coin);
+                usedStreams.remove(stream);
+                streamsToUnsubscribe.append(stream);
+            }
         }
     }
     locker.unlock();
@@ -182,7 +189,6 @@ void WebSocketParser::unsubscribeAllCoins() {
     QStringList listUsedStreams = usedStreams.values();
 
     subscribedCoins.clear();
-    currentInfoAboutCoins.clear();
     usedStreams.clear();
 
     locker.unlock();
@@ -190,16 +196,6 @@ void WebSocketParser::unsubscribeAllCoins() {
 
     if (isConnected())
         sendUnsubscriptionMessage(listUsedStreams);
-}
-
-WebSocketParser::stInfoCoin WebSocketParser::getInfoAboutCoin(const QString &coin) {
-    QReadLocker locker(&dataLock);
-    return currentInfoAboutCoins[coin.toUpper()];
-}
-
-QMap<QString, WebSocketParser::stInfoCoin> WebSocketParser::getInfoAboutAllCoins() {
-    QReadLocker locker(&dataLock);
-    return currentInfoAboutCoins;
 }
 
 QStringList WebSocketParser::getSubscribedCoins() {
@@ -302,8 +298,6 @@ void WebSocketParser::addChannels(const QString& channels) {
         mxDepthBooks = std::max(10, mxDepthBooks);
     else if (_Channels & Channel::BOOKS5)
         mxDepthBooks = std::max(5, mxDepthBooks);
-    else if (_Channels & Channel::TICKER)
-        mxDepthBooks = std::max(1, mxDepthBooks);
 }
 
 void WebSocketParser::deleteChannels(const QString& channels) {
@@ -317,8 +311,6 @@ void WebSocketParser::deleteChannels(const QString& channels) {
         mxDepthBooks = 10;
     else if (_Channels & Channel::BOOKS5)
         mxDepthBooks = 5;
-    else if (_Channels & Channel::TICKER)
-        mxDepthBooks = 1;
 }
 
 void WebSocketParser::deleteAllChannels() {

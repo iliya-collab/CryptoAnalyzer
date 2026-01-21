@@ -12,9 +12,12 @@ private:
 
     QMap<QString, std::shared_ptr<WebSocketParser>> lstParsers;
 
+    void setupParserConnections(WebSocketParser* parser, const QString& channel);
+
 private slots:
 
-    void updateCoin(const QString& symbol, const WebSocketParser::stInfoCoin& _info);
+    void updateTicker(const WebSocketParser::stTicker& _ticker);
+    void updateOrderBooks(const WebSocketParser::stOrderBooks& _orderBooks);
 
 public:
 
@@ -31,6 +34,7 @@ public:
 
 signals:
 
-    void update_coin(const QString& symbol, const WebSocketParser::stInfoCoin& _info);
+    void ticker(const WebSocketParser::stTicker& _ticker);
+    void orderBooks(const WebSocketParser::stOrderBooks& _orderBooks);
 
 };

@@ -123,19 +123,19 @@ void DialogScanner::onDialogTableActivated() {
     for (auto& pair : lstPairs)
         pair.replace("/", "");
     TController->showTable(lstStockMarket.size(), lstPairs.size(), lstPairs, lstStockMarket);
-    connect(_scan.get(), &Scanner::update_coin, this, &DialogScanner::updateTable, Qt::UniqueConnection);
+    connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateTable, Qt::UniqueConnection);
 }
 
 void DialogScanner::onDialogGraphActivated() {
     //qDebug() << "DialogScanner::onDialogGraphActivated";
-    connect(_scan.get(), &Scanner::update_coin, this, &DialogScanner::updateGraph, Qt::UniqueConnection);
+    connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateGraph, Qt::UniqueConnection);
 }
 
-void DialogScanner::updateTable(const QString &symbol, const WebSocketParser::stInfoCoin& _info) {
-    TController->updateTable(symbol, _info.stPrice.curPrice);
+void DialogScanner::updateTable(const WebSocketParser::stTicker& _ticker) {
+    TController->updateTable(_ticker.namePair, _ticker.curPrice);
 }
 
-void DialogScanner::updateGraph(const QString &symbol, const WebSocketParser::stInfoCoin& _info) {
+void DialogScanner::updateGraph(const WebSocketParser::stTicker& _ticker) {
 
 }
 
