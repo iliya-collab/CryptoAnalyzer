@@ -25,7 +25,7 @@ void Scanner::addStockMarket(const QString& StockMarket, const QString& Market, 
     }
     
     // Создание нового парсера
-    auto parser = std::make_shared<WebSocketParser>(WebSocketParserBuilder::createParser(StockMarket, Market)->parser());
+    auto parser = std::shared_ptr<WebSocketParser>(WebSocketParserBuilder::createParser(StockMarket, Market)->parser());
     if (!parser || !parser->init()) {
         qDebug() << "Failed to create parser for" << name;
         return;

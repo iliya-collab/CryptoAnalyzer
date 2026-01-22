@@ -1,6 +1,6 @@
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 
-DialogSetupMenu::DialogSetupMenu(QWidget* parent) : CustomQDialog(parent) {
+DialogSetupMenu::DialogSetupMenu(QWidget* parent) : IDialog(parent) {
 
     setWindowTitle("Settigs");
     setMinimumSize(700, 500);
@@ -13,8 +13,6 @@ DialogSetupMenu::DialogSetupMenu(QWidget* parent) : CustomQDialog(parent) {
 }
 
 void DialogSetupMenu::setupUI() {
-
-    QHBoxLayout* mainLayout = new QHBoxLayout(this);
 
     // Виджет содержания (меню)
     contentsWidget = new QListWidget(this);
@@ -55,6 +53,7 @@ void DialogSetupMenu::setupUI() {
     rightLayout->addWidget(pagesWidget, 1);
     rightLayout->addLayout(buttonLayout);
 
+    mainLayout = new QHBoxLayout(this);
     mainLayout->addLayout(rightLayout);
 
     contentsWidget->setCurrentRow(0);

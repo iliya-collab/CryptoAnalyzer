@@ -1,6 +1,6 @@
-#include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
+#include "CustomWindowDialogs/DialogGraph.hpp"
 
-DDynamicsGraph::DDynamicsGraph(QWidget* parent) : CustomQDialog(parent) {
+DialogGraph::DialogGraph(QWidget* parent) : IDialog(parent) {
     setAttribute(Qt::WA_DeleteOnClose);
     setModal(false);
     setWindowTitle("DynamicsGraph");
@@ -9,59 +9,19 @@ DDynamicsGraph::DDynamicsGraph(QWidget* parent) : CustomQDialog(parent) {
     move(100, 100);
 
     setupUI();
-    connectionSignals();
-    initParsers();
-
-    show();
 }
 
-DDynamicsGraph::~DDynamicsGraph() {
-
-}
-
-void DDynamicsGraph::setupUI() {
-    editDate1 = new QLineEdit(this);
-    editDate2 = new QLineEdit(this);
-    editID = new QLineEdit(this);
-    btnUpdate = new QPushButton("Update", this);
-
-    editDate1->setMaxLength(10);
-    editDate1->setPlaceholderText("dd/mm/yyyy");
-    editDate2->setMaxLength(10);
-    editDate2->setPlaceholderText("dd/mm/yyyy");
-    btnUpdate->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-    btnUpdate->setFocusPolicy(Qt::NoFocus);
-    editID->setPlaceholderText("ID");
-
-    QHBoxLayout* row1 = new QHBoxLayout;
-    row1->addWidget(editDate1);
-    row1->addWidget(editDate2);
-    row1->addWidget(editID);
-
-    QHBoxLayout* row3 = new QHBoxLayout;
-    row3->addWidget(btnUpdate);
-    row3->addStretch();
-
+void DialogGraph::setupUI() {
     chartView = new QChartView();
     chartView->setRenderHint(QPainter::Antialiasing);
 
-    layout = new QVBoxLayout(this);
-    layout->addLayout(row1);
-    layout->addWidget(chartView);
-    layout->addLayout(row3);
+    mainLayout = new QVBoxLayout(this);
+    mainLayout->addWidget(chartView);
 }
 
-void DDynamicsGraph::connectionSignals() {
-    QObject::connect(btnUpdate, &QPushButton::clicked, this, &DDynamicsGraph::onClickedButtonUpdate);
-}
+/*void DialogGraph::createGraph() {
 
-void DDynamicsGraph::initParsers() {
-    //parser_cb = new ParserCB;
-}
-
-void DDynamicsGraph::createGraph() {
-
-    /*QList<QLineSeries*> ListSeries;
+    QList<QLineSeries*> ListSeries;
     QDate baseDate = QDate::fromString(editDate1->text().replace('/', '.'), "dd.MM.yyyy");
     int xPoint = 0;
     QString lastID = "";
@@ -134,20 +94,6 @@ void DDynamicsGraph::createGraph() {
 
     chartView->setChart(chart);
 
-    chartView->update();*/
+    chartView->update();
 
-}
-
-void DDynamicsGraph::onClickedButtonUpdate() {
-    /*ListCurrencyRates.clear();
-    if (editDate1->text() != "" || editDate2->text() != "" || editID->text() != "") {
-
-        QStringList listID = editID->text().split(",");
-        for (auto i : listID) {
-            parser_cb->makeRequest(editDate1->text(), editDate2->text(), i);
-            ListCurrencyRates += parser_cb->getCurrencyRates();
-
-        }
-    }
-    createGraph();*/
-}
+}*/

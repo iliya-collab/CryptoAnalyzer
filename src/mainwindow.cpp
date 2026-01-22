@@ -118,7 +118,7 @@ void MainWindow::restartApplication() {
 }
 
 void MainWindow::onClickedButtonStart() {
-    DScanner->showDialog();
+    DScanner->show();
 }
 
 void MainWindow::onClickedButtonEnd() {

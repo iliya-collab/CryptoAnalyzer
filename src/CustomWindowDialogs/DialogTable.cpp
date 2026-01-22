@@ -4,23 +4,14 @@
 #include <QTableWidgetItem>
 #include <memory>
 
-DialogTable::DialogTable(QWidget* parent) : CustomQDialog(parent) {
-    //setAttribute(Qt::WA_DeleteOnClose);
+DialogTable::DialogTable(QWidget* parent) : IDialog(parent) {
+    setAttribute(Qt::WA_DeleteOnClose);
     setModal(false);
     setWindowTitle("Table");
     setMinimumSize(300, 200);
     resize(500, 400);
-    move(100, 100);
 
     setupUI();
-    connectionSignals();
-}
-
-void DialogTable::setSize(qint64 cols, qint64 rows) {
-    colTable = cols;
-    rowTable = rows;
-    tableWidget->setRowCount(rowTable);
-    tableWidget->setColumnCount(colTable);
 }
 
 void DialogTable::setupUI() {
@@ -28,12 +19,18 @@ void DialogTable::setupUI() {
     tableWidget->setShowGrid(true);
     tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    layout = new QVBoxLayout(this);
-    layout->addWidget(tableWidget);
-    setLayout(layout);
+    mainLayout = new QVBoxLayout(this);
+    mainLayout->addWidget(tableWidget);
+    //setLayout(mainLayout);
 }
 
-void DialogTable::connectionSignals() {
+void DialogTable::setSize(qint64 cols, qint64 rows) {
+    if (cols > 0)
+        colTable = cols;
+    if (rows > 0)
+        rowTable = rows;
+    tableWidget->setRowCount(rowTable);
+    tableWidget->setColumnCount(colTable);
 }
 
 void DialogTable::setHorizontalHeader(const QStringList& headers) {
@@ -63,9 +60,12 @@ qint64 DialogTable::findIndexByVerticalHeaders(const QString& str) {
     return verHeaders.indexOf(str);
 }
 
-TableController::TableController(QWidget* parent) {
-    _table = std::make_unique<DialogTable>();
-    connect(_table.get(), &QDialog::finished, this, [this]() { tableIsOpen = false; });
+/*TableController::TableController(QWidget* parent) {
+    connect(_table.get(), &QDialog::finished, this, [this]() { 
+        tableIsOpen = false;
+        _table.release();
+        _table = nullptr; 
+    });
 }
 
 DialogTable* TableController::table() {
@@ -74,6 +74,7 @@ DialogTable* TableController::table() {
 
 void TableController::showTable(qint64 cols, qint64 rows, const QStringList& verHeaders, const QStringList& horHeaders) {
     tableIsOpen = true;
+    _table = std::make_unique<DialogTable>();
     _table->setSize(cols, rows);
     _table->setVerticalHeader(verHeaders);
     _table->setHorizontalHeader(horHeaders);
@@ -84,8 +85,11 @@ void TableController::updateTable(const QString &coin, double price) {
     if (!tableIsOpen)
         return;
 
+    if (_table == nullptr)
+        
+
     QStringList lst = coin.split(':'); // lst[0] - market , lst[1] - coin
     qint64 col = _table->findIndexByHorizontalHeaders(lst[0]);
     qint64 row = _table->findIndexByVerticalHeaders(lst[1]);
     _table->fillTable(row, col, QString::number(price, 'f', 3));
-}
+}*/

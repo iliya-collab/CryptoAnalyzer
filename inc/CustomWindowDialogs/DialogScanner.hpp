@@ -1,8 +1,9 @@
 #pragma once
 
-#include "CustomWindowDialogs/CustomQDialog.hpp"
-#include "CustomWindowDialogs/DialogDynamicsGraph.hpp"
+#include "CustomWindowDialogs/IDialog.hpp"
 #include "CustomWindowDialogs/DialogTable.hpp"
+#include "CustomWindowDialogs/DialogGraph.hpp"
+#include "CustomWindowDialogs/DialogOrderBook.hpp"
 
 #include "CustomWidgets/TreeViewWidget.hpp"
 
@@ -18,13 +19,13 @@
 #include <QMenu>
 #include <QAction>
 
-class DialogScanner : public CustomQDialog {
+class DialogScanner : public IDialog {
     Q_OBJECT
 private:
 
     std::unique_ptr<Scanner> _scan;
 
-    void setupUI();
+    void setupUI() override;
     void connectionSignals();
     void setupMenu();
 
@@ -38,16 +39,22 @@ private:
     QComboBox* comboMarket;
     QComboBox* comboChannel;
 
-    std::unique_ptr<TableController> TController;
+    //std::unique_ptr<TableController> cntlTable;
     QAction* actionTabel = nullptr;
-
-    std::unique_ptr<DDynamicsGraph> DGraph;
+    //std::unique_ptr<DDynamicsGraph> DGraph;
     QAction* actionGraph = nullptr;
+
+    //std::unique_ptr<OrderBookController> cntlOrderBook;
+    QAction* actionOrderBooks = nullptr;
+
+    QVBoxLayout* mainLayout;
 
 private slots:
 
     void updateTable(const WebSocketParser::stTicker& _ticker);
     void updateGraph(const WebSocketParser::stTicker& _ticker);
+
+    void updateOrderBook(const WebSocketParser::stOrderBooks& _orderBooks);
 
     void onClickedButtonOk();
     void onClickedButtonAdd();
@@ -55,6 +62,8 @@ private slots:
 
     void onDialogTableActivated();
     void onDialogGraphActivated();
+
+    void onDialogOrderBookActivated();
 
 public:
 

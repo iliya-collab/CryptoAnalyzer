@@ -1,6 +1,6 @@
 #include "CustomWindowDialogs/DialogScanner.hpp"
 
-DialogScanner::DialogScanner(QWidget* parent) : CustomQDialog(parent) {
+DialogScanner::DialogScanner(QWidget* parent) : IDialog(parent) {
     resize(600, 400);
     setWindowTitle("Scanner");
 
@@ -8,7 +8,8 @@ DialogScanner::DialogScanner(QWidget* parent) : CustomQDialog(parent) {
     setupMenu();
     connectionSignals();
 
-    TController = std::make_unique<TableController>(this);
+    //cntlTable = std::make_unique<TableController>(this);
+    //cntlOrderBook = std::make_unique<OrderBookController>(this);
     _scan = std::make_unique<Scanner>();
 }
 
@@ -20,12 +21,6 @@ void DialogScanner::setupUI() {
     comboMarket = new QComboBox(this);
     comboChannel = new QComboBox(this);
     treeViewer = new TreeViewWidget(this);
-
-    /*treeViewer->addItems("Фрукты", {"Яблоки", "Бананы", "Апельсины"});
-    treeViewer->addItems("Овощи", {"Морковь", "Помидоры", "Огурцы"});
-    treeViewer->addItems("Напитки", {"Сок", "Вода", "Чай"});
-    treeViewer->addItem("Фрукты/Яблоки/Красные");
-    treeViewer->removeItem("Напитки");*/
 
     btnAdd = new QPushButton(this);
     btnAdd->setText("Add");
@@ -67,20 +62,23 @@ void DialogScanner::setupUI() {
     row2->addStretch();
     row2->addStretch();
 
-    layout = new QVBoxLayout(this);
-    layout->addLayout(row1);
-    layout->addWidget(treeViewer);
-    layout->addLayout(row2);
+    mainLayout = new QVBoxLayout(this);
+    mainLayout->addLayout(row1);
+    mainLayout->addWidget(treeViewer);
+    mainLayout->addLayout(row2);
 }
 
 void DialogScanner::setupMenu() {
     QMenuBar* menuBar = new QMenuBar(this);
+    mainLayout->setMenuBar(menuBar);
+
     QMenu* menuWindow = menuBar->addMenu("Windows");
     actionTabel = new QAction("Table", this);
     menuWindow->addAction(actionTabel);
     actionGraph = new QAction("Graph", this);
     menuWindow->addAction(actionGraph);
-    layout->setMenuBar(menuBar);
+    
+    QMenu* menuChannels = menuBar->addMenu("Channels");
 }
 
 void DialogScanner::connectionSignals() {
@@ -122,7 +120,7 @@ void DialogScanner::onDialogTableActivated() {
     QStringList lstPairs = _scan->getScannerConfig().pairs;
     for (auto& pair : lstPairs)
         pair.replace("/", "");
-    TController->showTable(lstStockMarket.size(), lstPairs.size(), lstPairs, lstStockMarket);
+    //cntlTable->showTable(lstStockMarket.size(), lstPairs.size(), lstPairs, lstStockMarket);
     connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateTable, Qt::UniqueConnection);
 }
 
@@ -131,11 +129,19 @@ void DialogScanner::onDialogGraphActivated() {
     connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateGraph, Qt::UniqueConnection);
 }
 
+void DialogScanner::onDialogOrderBookActivated() {
+    connect(_scan.get(), &Scanner::orderBooks, this, &DialogScanner::updateOrderBook, Qt::UniqueConnection);
+}
+
 void DialogScanner::updateTable(const WebSocketParser::stTicker& _ticker) {
-    TController->updateTable(_ticker.namePair, _ticker.curPrice);
+    //cntlTable->updateTable(_ticker.namePair, _ticker.curPrice);
 }
 
 void DialogScanner::updateGraph(const WebSocketParser::stTicker& _ticker) {
+
+}
+
+void DialogScanner::updateOrderBook(const WebSocketParser::stOrderBooks& _orderBooks) {
 
 }
 

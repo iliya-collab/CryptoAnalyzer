@@ -1,15 +1,24 @@
 #pragma once
 
-#include "CustomWindowDialogs/CustomQDialog.hpp"
+#include "CustomWindowDialogs/IDialog.hpp"
 #include "Parser/WebSocketParser.hpp"
 
+#include <QComboBox>
+#include <QBoxLayout>
 
-class OrderBookModel : public CustomQDialog {
-public:
-
-    explicit OrderBookModel(QObject* parent = nullptr);
-
+class DialogOrderBook : public IDialog {
+    Q_OBJECT
 private:
 
+    QComboBox* subscribedCoins;
+    QComboBox* usedStockMarkets;
+
+    QVBoxLayout* mainLayout;
+
+public:
+
+    explicit DialogOrderBook(QWidget* parent = nullptr);
+
+    void setupUI() override;
 
 };
