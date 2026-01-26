@@ -21,7 +21,6 @@ void DialogTable::setupUI() {
 
     mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(tableWidget);
-    //setLayout(mainLayout);
 }
 
 void DialogTable::setSize(qint64 cols, qint64 rows) {

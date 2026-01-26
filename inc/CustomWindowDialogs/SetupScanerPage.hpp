@@ -11,7 +11,6 @@
 class SetupScanerPage : public SetupPage {
 private:
 
-
     QTextEdit* editCoinsPairs;
     
     ParamsScannerConfig& curConfig;

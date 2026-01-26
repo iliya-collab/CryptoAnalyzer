@@ -27,10 +27,10 @@ std::expected<QJsonDocument, QString> JsonManager::readDocument(const char* _fil
 
 void JsonManager::writeDocument(const char* _file) {
     QFile jsonFile(_file);
-    jsonFile.open(QIODevice::WriteOnly);
-    jsonFile.write(doc.toJson(QJsonDocument::Indented));
-    jsonFile.close();
-
+    if (jsonFile.open(QIODevice::WriteOnly)) {
+        jsonFile.write(doc.toJson(QJsonDocument::Indented));
+        jsonFile.close();
+    }
 }
 
 std::expected<QJsonDocument, QString> JsonManager::isDocumentValid(const QJsonDocument& _doc)

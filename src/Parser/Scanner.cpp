@@ -69,11 +69,10 @@ ParamsScannerConfig Scanner::getScannerConfig() {
 }
 
 void Scanner::updateTicker(const WebSocketParser::stTicker& _ticker){
-    qDebug() << _ticker.namePair << "ticker";
+    qDebug() << "Scanner::updateTicker" << _ticker.namePair << _ticker.curPrice;
     emit ticker(_ticker);
 }
 
 void Scanner::updateOrderBooks(const WebSocketParser::stOrderBooks& _orderBooks) {
-    qDebug() << _orderBooks.namePair << "order books";
     emit orderBooks(_orderBooks);
 }

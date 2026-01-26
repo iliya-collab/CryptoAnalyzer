@@ -36,10 +36,6 @@ void DialogSetupMenu::setupUI() {
     scanerButton->setTextAlignment(Qt::AlignHCenter);
     scanerButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
-    // Добавляем виджеты в layout
-    mainLayout->addWidget(contentsWidget);
-    mainLayout->addWidget(pagesWidget, 1);
-
     applyButton = new QPushButton("Apply");
     applyButton->setAutoDefault(false);
     applyButton->setDefault(false);
@@ -54,6 +50,8 @@ void DialogSetupMenu::setupUI() {
     rightLayout->addLayout(buttonLayout);
 
     mainLayout = new QHBoxLayout(this);
+    mainLayout->addWidget(contentsWidget);
+    //mainLayout->addWidget(pagesWidget, 1);
     mainLayout->addLayout(rightLayout);
 
     contentsWidget->setCurrentRow(0);

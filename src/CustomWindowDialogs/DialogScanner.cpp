@@ -8,9 +8,9 @@ DialogScanner::DialogScanner(QWidget* parent) : IDialog(parent) {
     setupMenu();
     connectionSignals();
 
-    //cntlTable = std::make_unique<TableController>(this);
-    //cntlOrderBook = std::make_unique<OrderBookController>(this);
     _scan = std::make_unique<Scanner>();
+    m_crtl_table = std::make_unique<TableController>(_scan.get(), this);
+    m_crtl_ord_books = std::make_unique<ViewerOrderBooksController>(_scan.get(), this);
 }
 
 
@@ -79,34 +79,34 @@ void DialogScanner::setupMenu() {
     menuWindow->addAction(actionGraph);
     
     QMenu* menuChannels = menuBar->addMenu("Channels");
+    actionTicker = new QAction("Ticker", this);
+    menuChannels->addAction(actionTicker);
+    actionOrderBooks = new QAction("Order books", this);
+    menuChannels->addAction(actionOrderBooks);
 }
 
 void DialogScanner::connectionSignals() {
     connect(btnOK, &QPushButton::clicked, this, &DialogScanner::onClickedButtonOk);
     connect(btnAdd, &QPushButton::clicked, this, &DialogScanner::onClickedButtonAdd);
     connect(btnDel, &QPushButton::clicked, this, &DialogScanner::onClickedButtonDel);
-
     connect(actionTabel, &QAction::triggered, this, &DialogScanner::onDialogTableActivated);
     connect(actionGraph, &QAction::triggered, this, &DialogScanner::onDialogGraphActivated);
+    connect(actionOrderBooks, &QAction::triggered, this, &DialogScanner::onDialogOrderBookActivated);
 }
 
 void DialogScanner::onClickedButtonOk() {
-    //qDebug() << "DialogScanner::onClickedButtonOk";
     _scan->start();
 }
 
 void DialogScanner::onClickedButtonAdd() {
-    //qDebug() << "DialogScanner::onClickedButtonAdd";
     _scan->addStockMarket(comboStockMarket->currentText(), comboMarket->currentText(), comboChannel->currentText());
-    treeViewer->addItem(QString("%1/%2/%3")
+    treeViewer->addItem(QString("%1/%2")
         .arg(comboStockMarket->currentText())
         .arg(comboMarket->currentText())
-        .arg(comboChannel->currentText())
     );
 }
 
 void DialogScanner::onClickedButtonDel() {
-    //qDebug() << "DialogScanner::onClickedButtonDel";
     _scan->delStockMarket(comboStockMarket->currentText(), comboMarket->currentText());
     treeViewer->removeItem(QString("%1/%2")
         .arg(comboStockMarket->currentText())
@@ -115,34 +115,16 @@ void DialogScanner::onClickedButtonDel() {
 }
 
 void DialogScanner::onDialogTableActivated() {
-    //qDebug() << "DialogScanner::onDialogTableActivated";
-    QStringList lstStockMarket = _scan->getListStockMarket();
-    QStringList lstPairs = _scan->getScannerConfig().pairs;
-    for (auto& pair : lstPairs)
-        pair.replace("/", "");
-    //cntlTable->showTable(lstStockMarket.size(), lstPairs.size(), lstPairs, lstStockMarket);
-    connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateTable, Qt::UniqueConnection);
+    m_crtl_table->create();
+    m_crtl_table->show();
 }
 
 void DialogScanner::onDialogGraphActivated() {
-    //qDebug() << "DialogScanner::onDialogGraphActivated";
-    connect(_scan.get(), &Scanner::ticker, this, &DialogScanner::updateGraph, Qt::UniqueConnection);
 }
 
 void DialogScanner::onDialogOrderBookActivated() {
-    connect(_scan.get(), &Scanner::orderBooks, this, &DialogScanner::updateOrderBook, Qt::UniqueConnection);
-}
-
-void DialogScanner::updateTable(const WebSocketParser::stTicker& _ticker) {
-    //cntlTable->updateTable(_ticker.namePair, _ticker.curPrice);
-}
-
-void DialogScanner::updateGraph(const WebSocketParser::stTicker& _ticker) {
-
-}
-
-void DialogScanner::updateOrderBook(const WebSocketParser::stOrderBooks& _orderBooks) {
-
+    m_crtl_ord_books->create();
+    m_crtl_ord_books->show();
 }
 
 Scanner* DialogScanner::scanner() {

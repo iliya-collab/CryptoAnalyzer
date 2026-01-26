@@ -16,7 +16,6 @@ QString BinanceParser::formatCoin(const QString& coin) {
 }
 
 void BinanceParser::messageReceived(const QJsonObject &obj)  {
-
     if (obj.contains("e")) {
         QString channel = obj["e"].toString();
         if (channel == "24hrTicker")
@@ -73,26 +72,36 @@ void BinanceParser::updateOrderBooks(const QJsonObject &json) {
 
     order_books.namePair = QString("%1:%2").arg(getNameMarket()).arg(coin);
 
-    QJsonArray bidsArray = json.value("bids").toArray();
-    QJsonArray asksArray = json.value("asks").toArray();
+    QJsonArray bidsArray = json.value("b").toArray();
     for (int i = 0; i < bidsArray.size() && i < mxDepthBooks; i++) {
         QJsonArray bid = bidsArray[i].toArray();
-        QJsonArray ask = asksArray[i].toArray();
-        Ask _ask = {
-            .askPrice = ask[0].toString().toDouble(),
-            .askSize  = ask[1].toString().toDouble()
-        };
-        Bid _bid = {
-            .bidPrice = bid[0].toString().toDouble(),
-            .bidSize  = bid[1].toString().toDouble(),
-        };
-        order_books.totalAskVolume += _ask.askSize;
-        order_books.totalBidVolume += _bid.bidSize;
-        order_books.asks.append(_ask);
-        order_books.bids.append(_bid);
+        if (bid.size() >= 2) {
+            Bid _bid = {
+                .bidPrice = bid[0].toString().toDouble(),
+                .bidSize  = bid[1].toString().toDouble(),
+            };
+            order_books.totalBidVolume += _bid.bidSize;
+            order_books.bids.append(_bid);
+        }
     }
 
-    order_books.spread = order_books.asks[0].askPrice - order_books.bids[0].bidPrice;
+    QJsonArray asksArray = json.value("a").toArray();
+    for (int i = 0; i < asksArray.size() && i < mxDepthBooks; i++) {
+        QJsonArray ask = asksArray[i].toArray();
+        if (ask.size() >= 2) {
+            Ask _ask = {
+                .askPrice = ask[0].toString().toDouble(),
+                .askSize  = ask[1].toString().toDouble()
+            };
+            order_books.totalAskVolume += _ask.askSize;
+            order_books.asks.append(_ask);
+        }
+    }
+
+    if (!order_books.asks.isEmpty() && !order_books.bids.isEmpty()) 
+        order_books.spread = order_books.asks.first().askPrice - order_books.bids.first().bidPrice;
+    else
+        order_books.spread = 0.0;
     
     emit updatedOrderBooks(order_books);
 }

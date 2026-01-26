@@ -1,9 +1,10 @@
 #pragma once
 
 #include "CustomWindowDialogs/IDialog.hpp"
-#include "CustomWindowDialogs/DialogTable.hpp"
+#include "CustomWindowDialogs/TableController.hpp"
 #include "CustomWindowDialogs/DialogGraph.hpp"
-#include "CustomWindowDialogs/DialogOrderBook.hpp"
+
+#include "CustomWindowDialogs/ViewerOrderBooksController.hpp"
 
 #include "CustomWidgets/TreeViewWidget.hpp"
 
@@ -39,22 +40,17 @@ private:
     QComboBox* comboMarket;
     QComboBox* comboChannel;
 
-    //std::unique_ptr<TableController> cntlTable;
+    std::unique_ptr<TableController> m_crtl_table;
     QAction* actionTabel = nullptr;
-    //std::unique_ptr<DDynamicsGraph> DGraph;
     QAction* actionGraph = nullptr;
 
-    //std::unique_ptr<OrderBookController> cntlOrderBook;
+    QAction* actionTicker = nullptr;
+    std::unique_ptr<ViewerOrderBooksController> m_crtl_ord_books;
     QAction* actionOrderBooks = nullptr;
 
     QVBoxLayout* mainLayout;
 
 private slots:
-
-    void updateTable(const WebSocketParser::stTicker& _ticker);
-    void updateGraph(const WebSocketParser::stTicker& _ticker);
-
-    void updateOrderBook(const WebSocketParser::stOrderBooks& _orderBooks);
 
     void onClickedButtonOk();
     void onClickedButtonAdd();
@@ -62,7 +58,6 @@ private slots:
 
     void onDialogTableActivated();
     void onDialogGraphActivated();
-
     void onDialogOrderBookActivated();
 
 public:
