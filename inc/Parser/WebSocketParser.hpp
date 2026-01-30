@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QReadWriteLock>
 #include <QThread>
+#include <QMetaEnum>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -74,6 +75,7 @@ protected:
         BOOKS10 = 4,
         BOOKS20 = 8
     };
+    Q_ENUM(Channel)
 
     // Метод для отправки сообшения о подписи на монету
     virtual void sendSubscriptionMessage(const QStringList &streams) = 0;
@@ -115,7 +117,9 @@ protected:
     // Метод для корректного закрытия веб-сокета
     void cleanup();
     // Превращает строковое представление канала в его числовой код
-    int convertChannel(const QString& channel);
+    int codeChannel(const QString& channel);
+    // Превращает числовой код канала в его строковое представление
+    QString nameChannel(int channel);
 
     // Веб-сокет
     std::unique_ptr<QWebSocket> webSocket;
@@ -131,14 +135,16 @@ protected:
 
     QReadWriteLock dataLock;
 
-    //  subscribedCoins = { "BTC/USDT", "ETH/USDT", "ADA/USDT", ... }
-    //  currentInfoAboutCoins = { {"BTCUSDT", {...}}, ... }
     QSet<QString> subscribedCoins;
     QSet<QString> usedStreams;
 
+    // Тип сбытового рынка
     TMarketData t_market;
+    // Адрес для подлючения
     QUrl Url;
+    // Уникальное имя биржа/сбытовый_рынок
     QString nameMarket;
+    // Используемые каналы
     int _Channels = 0;
 
     int mxDepthBooks = 0;                           // Максимальная глубина стакана ордеров 
@@ -162,6 +168,7 @@ public:
     bool isConnected() const;
 
     int getChannels() const;
+    QStringList getUsedChannels() const;
     void addChannels(const QString& channels);
     void deleteChannels(const QString& channels);
     void deleteAllChannels();

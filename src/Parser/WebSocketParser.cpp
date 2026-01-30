@@ -223,7 +223,7 @@ void WebSocketParser::onConnected() {
 }
 
 void WebSocketParser::onTextMessageReceived(const QString &message) {
-    //qDebug() << "onTextMessageReceived" << QString("%1:%2").arg(getNameMarket()).arg(message);
+    //qDebug() << "Received : " << QString("%1:%2").arg(getNameMarket()).arg(message);
     auto jsonObj = parseTextMessage(message);
     if (jsonObj.has_value()) {
         messageReceived(jsonObj.value());
@@ -275,22 +275,41 @@ int WebSocketParser::getChannels() const {
     return _Channels;
 }
 
-int WebSocketParser::convertChannel(const QString& channel) {
-    if (channel == "ticker")
-        return Channel::TICKER;
-    else if (channel == "books5")
-        return Channel::BOOKS5;
-    else if (channel == "books10")
-        return Channel::BOOKS10;
-    else if (channel == "books20")
-        return Channel::BOOKS20;
-    return Channel::NONECHANNEL;
+QStringList WebSocketParser::getUsedChannels() const {
+    QStringList lst_channels;
+    QMetaEnum metaEnum = QMetaEnum::fromType<Channel>();
+    
+    for (int i = 0; i < metaEnum.keyCount(); ++i)
+        if (_Channels & metaEnum.value(i))
+            lst_channels.append(QString(metaEnum.key(i)).toLower());
+
+    return lst_channels;
 }
+
+int WebSocketParser::codeChannel(const QString& channel) {
+    QMetaEnum metaEnum = QMetaEnum::fromType<Channel>();
+    
+    for (int i = 0; i < metaEnum.keyCount(); ++i)
+        if (QString(metaEnum.key(i)).toLower() == channel)
+            return metaEnum.value(i);
+        
+    return metaEnum.value(0);
+}
+
+ QString WebSocketParser::nameChannel(int channel) {
+    QMetaEnum metaEnum = QMetaEnum::fromType<Channel>();
+    
+    for (int i = 0; i < metaEnum.keyCount(); ++i)
+        if (metaEnum.value(i) == channel)
+            return QString(metaEnum.key(i)).toLower();
+
+    return QString(metaEnum.key(0)).toLower();
+ }
 
 void WebSocketParser::addChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
-        _Channels |= convertChannel(channel);
+        _Channels |= codeChannel(channel);
 
     if (_Channels & Channel::BOOKS20)
         mxDepthBooks = std::max(20, mxDepthBooks);
@@ -303,7 +322,7 @@ void WebSocketParser::addChannels(const QString& channels) {
 void WebSocketParser::deleteChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
-        _Channels ^= convertChannel(channel);
+        _Channels ^= codeChannel(channel);
 
     if (_Channels & Channel::BOOKS20)
         mxDepthBooks = 20;

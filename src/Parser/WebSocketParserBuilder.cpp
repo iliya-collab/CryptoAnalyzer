@@ -3,26 +3,26 @@
 class BinanceParserBuilder : public WebSocketParserBuilder {
 public:
     BinanceParserBuilder(const QString& Market) {
-        _webSocketParser = std::make_unique<BinanceParser>(QString("Binance/%1").arg(Market));
+        m_webSocketParser = std::make_unique<BinanceParser>(QString("Binance/%1").arg(Market));
     }
 };
 
 class BybitParserBuilder : public WebSocketParserBuilder {
 public:
     BybitParserBuilder(const QString& Market) {
-        _webSocketParser = std::make_unique<BybitParser>(QString("Bybit/%1").arg(Market));
+        m_webSocketParser = std::make_unique<BybitParser>(QString("Bybit/%1").arg(Market));
     }
 };
 
 class OKXParserBuilder : public WebSocketParserBuilder {
 public:
     OKXParserBuilder(const QString& Market) {
-        _webSocketParser = std::make_unique<OKXParser>(QString("OKX/%1").arg(Market));
+        m_webSocketParser = std::make_unique<OKXParser>(QString("OKX/%1").arg(Market));
     }
 };
 
 WebSocketParser* WebSocketParserBuilder::parser() {
-    return _webSocketParser.get();
+    return m_webSocketParser.get();
 };
 
 WebSocketParserBuilder* WebSocketParserBuilder::createParser(const QString& StockMarket, const QString& Market) {

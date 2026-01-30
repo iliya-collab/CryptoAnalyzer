@@ -11,7 +11,9 @@
 class WebSocketParserBuilder {
 protected:
 
-    std::unique_ptr<WebSocketParser> _webSocketParser;
+    WebSocketParserBuilder() = default;
+    
+    std::unique_ptr<WebSocketParser> m_webSocketParser;
 
 public:
 

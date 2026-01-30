@@ -1,180 +1,155 @@
 #include "CustomWindowDialogs/ViewerOrderBooks.hpp"
+#include "Parser/RegisterParsers.hpp"
 
 ViewerOrderBooks::ViewerOrderBooks(QWidget* parent) : IDialog(parent) {
     setModal(false);
     setWindowTitle("Order Books");
     setMinimumSize(300, 200);
     resize(500, 400);
-
+    
     setupUI();
+    setupConnection();
+   
+    updateChannelAvailability(comboStockMarkets->currentText());
 }
 
 void ViewerOrderBooks::setupUI() {
-    subscribedCoins = new QComboBox(this);
-    usedStockMarkets = new QComboBox(this);
+    comboSubscribedCoins = new QComboBox(this);
+    comboStockMarkets = new QComboBox(this);
+    stackWidgets = new QStackedWidget(this);
 
     QHBoxLayout* row1 = new QHBoxLayout;
-    row1->addWidget(usedStockMarkets);
-    row1->addWidget(subscribedCoins);
+    row1->addWidget(comboStockMarkets);
+    row1->addWidget(comboSubscribedCoins);
 
     mainLayout = new QVBoxLayout(this);
     mainLayout->addLayout(row1);
+    mainLayout->addWidget(stackWidgets);
 
-    setupOrderBookTable();
+    setupOrderBooksTable();
+    setupMessage();
+}
+
+void ViewerOrderBooks::setupConnection() {
+    connect(comboStockMarkets, &QComboBox::currentTextChanged, this, &ViewerOrderBooks::onComboTextChanged);
+}
+
+void ViewerOrderBooks::updateChannelAvailability(const QString& market) {
+    m_hasChannel =  RegisterParsers::instanse().hasRegistered(market, "books5") || 
+                    RegisterParsers::instanse().hasRegistered(market, "books10")|| 
+                    RegisterParsers::instanse().hasRegistered(market, "books20");
+    
+    if (m_hasChannel)
+        stackWidgets->setCurrentIndex(0);
+    else
+        stackWidgets->setCurrentIndex(1);
+}
+
+void ViewerOrderBooks::onComboTextChanged(const QString &text) {
+    updateChannelAvailability(text);
 }
 
 void ViewerOrderBooks::setStockMarkets(const QStringList& lst) {
-    usedStockMarkets->addItems(lst);
+    comboStockMarkets->addItems(lst);
 }
 
 void ViewerOrderBooks::setPairs(const QStringList& lst) {
-    subscribedCoins->addItems(lst);
+    comboSubscribedCoins->addItems(lst);
 }
 
 QString ViewerOrderBooks::getCurrentStockMarkets() {
-    return usedStockMarkets->currentText();
+    return comboStockMarkets->currentText();
 }
 
 QString ViewerOrderBooks::getCurrentPair() {
-    return subscribedCoins->currentText();
+    return comboSubscribedCoins->currentText();
 }
 
-void ViewerOrderBooks::setupOrderBookTable() {
-    orderBookTable = new QTableWidget(this);
-    orderBookTable->setColumnCount(2);
-    orderBookTable->setHorizontalHeaderLabels({"Prive", "Size"});
-    
-    orderBookTable->horizontalHeader()->setStretchLastSection(true);
-    orderBookTable->verticalHeader()->setVisible(false);
-    orderBookTable->setShowGrid(false);
-    orderBookTable->setAlternatingRowColors(true);
-    
-    orderBookTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    
-    orderBookTable->setColumnWidth(0, 100);
-    orderBookTable->setColumnWidth(1, 150);
+void ViewerOrderBooks::setupOrderBooksTable() {
+    QWidget* tableContainer = new QWidget(this);
+    QVBoxLayout* containerLayout = new QVBoxLayout(tableContainer);
+    containerLayout->setContentsMargins(0, 0, 0, 0);
+    containerLayout->setSpacing(5);
 
-    orderBookTable->setStyleSheet(
+    lblSpread = new QLabel(tableContainer);
+
+    lblSpread->setStyleSheet(
+        "border-radius: 3px;"
+        "qproperty-alignment: AlignCenter;"
+        "qproperty-wordWrap: true;"
+    );
+
+    QFont spreadFont = lblSpread->font();
+    spreadFont.setPointSize(9);
+    spreadFont.setBold(true);
+    lblSpread->setFont(spreadFont);
+
+    orderBooksTable = new QTableWidget(tableContainer);
+    orderBooksTable->setColumnCount(2);
+    orderBooksTable->setHorizontalHeaderLabels({"Price", "Size"});
+    
+    orderBooksTable->horizontalHeader()->setStretchLastSection(true);
+    orderBooksTable->verticalHeader()->setVisible(false);
+    orderBooksTable->setShowGrid(false);
+    orderBooksTable->setAlternatingRowColors(true);
+    
+    orderBooksTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    
+    orderBooksTable->setColumnWidth(0, 100);
+    orderBooksTable->setColumnWidth(1, 150);
+
+    orderBooksTable->setStyleSheet(
         "QTableWidget {"
-        "gridline-color: #ddd;"  // Цвет линий сетки
+        "gridline-color: #ddd;"
         "}"
         "QTableWidget::item {"
-        "border-right: 1px solid #ccc;"  // Вертикальные разделители между колонками
+        "border-right: 1px solid #ccc;"
         "padding-right: 5px;"
         "}"
         "QTableWidget::item:last {"
-        "border-right: none;"  // У последней колонки убираем правую границу
+        "border-right: none;"
         "}"
     );
     
-    mainLayout->addWidget(orderBookTable);
-}
-
-void ViewerOrderBooks::addHorSeparatorWidget(int row) {
-    orderBookTable->setSpan(row, 0, 1, 3);
-    QFrame* hLine = new QFrame;
-    hLine->setFrameShape(QFrame::HLine);
-    hLine->setFrameShadow(QFrame::Sunken);
-    hLine->setStyleSheet("foreground-color: #888; height: 2px;");
-    hLine->setMinimumHeight(2);
-    orderBookTable->setCellWidget(row, 0, hLine);
-}
-
-void ViewerOrderBooks::addVerSeparatorWidget(int row) {
-    QFrame* vLine = new QFrame;
-    vLine->setFrameShape(QFrame::VLine);
-    vLine->setFrameShadow(QFrame::Sunken);
-    vLine->setStyleSheet("foreground-color: #888;");
-    vLine->setMaximumWidth(2);
-    orderBookTable->setCellWidget(row, 1, vLine);
-}
-
-void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, const QList<WebSocketParser::Bid>& bids) {
-    /*orderBookTable->setRowCount(0);
+    containerLayout->addWidget(lblSpread);
+    containerLayout->addWidget(orderBooksTable);
     
-    double maxSize = 0;
-    for (const auto& ask : asks) 
-        maxSize = qMax(maxSize, ask.askSize);
-    for (const auto& bid : bids) 
-        maxSize = qMax(maxSize, bid.bidSize);
+    stackWidgets->addWidget(tableContainer);
+}
 
-    maxSize = (maxSize == 0) ? 1000 : maxSize;
+void ViewerOrderBooks::setupMessage() {
+    lblMessage = new QLabel(this);
 
+    lblMessage->setStyleSheet(
+        "border-radius: 3px;"
+        "qproperty-alignment: AlignCenter;"
+        "qproperty-wordWrap: true;"
+    );
+
+    QFont spreadFont = lblMessage->font();
+    spreadFont.setPointSize(9);
+    spreadFont.setBold(true);
+    lblMessage->setFont(spreadFont);
+
+    lblMessage->setText("You need to use the books5, books10, or books20 channels");
+
+    stackWidgets->addWidget(lblMessage);
+}
+
+void ViewerOrderBooks::updateSpread(double bestAsk, double bestBid) {
+    double spread = bestAsk - bestBid;
+    QString spreadText = QString("ASK: %1  |  BID: %2  |  SPREAD: %3")
+                        .arg(bestAsk, 0, 'f', 2)
+                        .arg(bestBid, 0, 'f', 2)
+                        .arg(spread, 0, 'f', 2);
+    
+    lblSpread->setText(spreadText);
+}
+
+void ViewerOrderBooks::updateAsks(const QList<WebSocketParser::Ask>& asks, double mxSize) {
     for (int i = 0; i < asks.size(); ++i) {
-        int row = orderBookTable->rowCount();
-        orderBookTable->insertRow(row);
-        
-        QTableWidgetItem* priceItem = new QTableWidgetItem(QString::number(asks[i].askPrice, 'f', 2));
-        priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        priceItem->setForeground(Qt::red);
-        orderBookTable->setItem(row, 0, priceItem);
-        
-        addVerSeparatorWidget(row);
-        
-        double percentage = asks[i].askSize / maxSize * 100;
-        
-        QProgressBar* progressBar = new QProgressBar();
-        progressBar->setRange(0, 100);
-        progressBar->setValue(percentage);
-        progressBar->setTextVisible(true);
-        progressBar->setFormat(QString::number(asks[i].askSize));
-        progressBar->setStyleSheet("QProgressBar {"
-                                   "border: 1px solid #ccc;"
-                                   "border-radius: 3px;"
-                                   "text-align: center;"
-                                   "}"
-                                   "QProgressBar::chunk {"
-                                   "background-color: #ff6b6b;"
-                                   "}");
-        
-        orderBookTable->setCellWidget(row, 2, progressBar);
-    }
-
-    int separatorRow = orderBookTable->rowCount();
-    orderBookTable->insertRow(separatorRow);
-    addHorSeparatorWidget(separatorRow);
-        
-    for (int i = 0; i < bids.size(); ++i) {
-        int row = orderBookTable->rowCount();
-        orderBookTable->insertRow(row);
-        
-        QTableWidgetItem* priceItem = new QTableWidgetItem(QString::number(bids[i].bidPrice, 'f', 2));
-        priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        priceItem->setForeground(Qt::green);
-        orderBookTable->setItem(row, 0, priceItem);
-        
-        addVerSeparatorWidget(row);
-        
-        double percentage = bids[i].bidSize / maxSize * 100;
-        
-        QProgressBar* progressBar = new QProgressBar();
-        progressBar->setRange(0, 100);
-        progressBar->setValue(percentage);
-        progressBar->setTextVisible(true);
-        progressBar->setFormat(QString::number(bids[i].bidSize));
-        progressBar->setStyleSheet("QProgressBar {"
-                                   "border: 1px solid #ccc;"
-                                   "border-radius: 3px;"
-                                   "text-align: center;"
-                                   "}"
-                                   "QProgressBar::chunk {"
-                                   "background-color: #51cf66;"
-                                   "}");
-        
-        orderBookTable->setCellWidget(row, 2, progressBar);
-    }*/
-    orderBookTable->setRowCount(0);
-    
-    double maxSize = 0.0;
-    for (const auto& ask : asks) 
-        maxSize = qMax(maxSize, ask.askSize);
-    for (const auto& bid : bids) 
-        maxSize = qMax(maxSize, bid.bidSize);
-    if (maxSize == 0.0) maxSize = 1.0;
-    
-    for (int i = 0; i < asks.size(); ++i) {
-        int row = orderBookTable->rowCount();
-        orderBookTable->insertRow(row);
+        int row = orderBooksTable->rowCount();
+        orderBooksTable->insertRow(row);
         
         QTableWidgetItem* priceItem = new QTableWidgetItem(QString::number(asks[i].askPrice, 'f', 2));
         priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -183,12 +158,12 @@ void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, co
         if (i == 0)
             priceItem->setData(Qt::UserRole, "top_ask");
         
-        orderBookTable->setItem(row, 0, priceItem);
+        orderBooksTable->setItem(row, 0, priceItem);
         
         QProgressBar* bar = new QProgressBar;
-        double percentage = (asks[i].askSize / maxSize) * 100.0;
+        double percentage = (asks[i].askSize / mxSize) * 100.0;
         bar->setRange(0, 100);
-        bar->setValue(static_cast<int>(percentage));
+        bar->setValue(percentage);
         bar->setTextVisible(true);
         bar->setFormat(QString::number(asks[i].askSize, 'f', 4));
         bar->setStyleSheet(
@@ -196,54 +171,34 @@ void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, co
             "border: 1px solid #ffcccc;"
             "border-radius: 3px;"
             "text-align: center;"
-            "color: #ff6b6b;"
-            "background-color: #fff5f5;"
             "}"
             "QProgressBar::chunk {"
             "background-color: #ff6b6b;"
             "border-radius: 2px;"
             "}"
         );
-        orderBookTable->setCellWidget(row, 1, bar);
+        orderBooksTable->setCellWidget(row, 1, bar);
     }
-    
-    // Разделительная строка между ask и bid
-    if (asks.size() > 0 && bids.size() > 0) {
-        int separatorRow = orderBookTable->rowCount();
-        orderBookTable->insertRow(separatorRow);
-        
-        orderBookTable->setSpan(separatorRow, 0, 1, 2);
-        
-        QTableWidgetItem* separatorItem = new QTableWidgetItem("─ ASK / BID ─");
-        separatorItem->setTextAlignment(Qt::AlignCenter);
-        separatorItem->setForeground(QColor(100, 100, 100));
-        separatorItem->setBackground(QColor(240, 240, 240));
-        separatorItem->setFlags(Qt::NoItemFlags);
-        
-        separatorItem->setData(Qt::UserRole, "separator");
-        
-        orderBookTable->setItem(separatorRow, 0, separatorItem);
-        orderBookTable->setRowHeight(separatorRow, 24);
-    }
-    
+}
+
+void ViewerOrderBooks::updateBids(const QList<WebSocketParser::Bid>& bids, double mxSize) {
     for (int i = 0; i < bids.size(); ++i) {
-        int row = orderBookTable->rowCount();
-        orderBookTable->insertRow(row);
+        int row = orderBooksTable->rowCount();
+        orderBooksTable->insertRow(row);
         
-        QTableWidgetItem* priceItem = new QTableWidgetItem(
-            QString::number(bids[i].bidPrice, 'f', 2));
+        QTableWidgetItem* priceItem = new QTableWidgetItem(QString::number(bids[i].bidPrice, 'f', 2));
         priceItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         priceItem->setForeground(QColor(0, 180, 0));
         
         if (i == bids.size() - 1)
             priceItem->setData(Qt::UserRole, "bottom_bid");
         
-        orderBookTable->setItem(row, 0, priceItem);
+        orderBooksTable->setItem(row, 0, priceItem);
         
         QProgressBar* bar = new QProgressBar;
-        double percentage = (bids[i].bidSize / maxSize) * 100.0;
+        double percentage = (bids[i].bidSize / mxSize) * 100.0;
         bar->setRange(0, 100);
-        bar->setValue(static_cast<int>(percentage));
+        bar->setValue(percentage);
         bar->setTextVisible(true);
         bar->setFormat(QString::number(bids[i].bidSize, 'f', 4));
         bar->setStyleSheet(
@@ -251,14 +206,33 @@ void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, co
             "border: 1px solid #ccffcc;"
             "border-radius: 3px;"
             "text-align: center;"
-            "color: #51cf66;"
-            "background-color: #f5fff5;"  // Светло-зеленый фон
             "}"
             "QProgressBar::chunk {"
             "background-color: #51cf66;"
             "border-radius: 2px;"
             "}"
         );
-        orderBookTable->setCellWidget(row, 1, bar);
+        orderBooksTable->setCellWidget(row, 1, bar);
     }
+}
+
+void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, const QList<WebSocketParser::Bid>& bids) {
+    if (!m_hasChannel)
+        return;
+
+    orderBooksTable->setRowCount(0);
+
+    if (!asks.isEmpty() && !bids.isEmpty())
+        updateSpread(asks.first().askPrice, bids.first().bidPrice);
+    
+    double maxSize = 0.0;
+    for (const auto& ask : asks) 
+        maxSize = qMax(maxSize, ask.askSize);
+    for (const auto& bid : bids) 
+        maxSize = qMax(maxSize, bid.bidSize);
+    if (maxSize == 0.0) 
+        maxSize = 1.0;
+
+    updateAsks(asks, maxSize);
+    updateBids(bids, maxSize);
 }

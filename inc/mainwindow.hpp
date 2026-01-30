@@ -28,8 +28,7 @@ private:
     QGridLayout* mainLayout = nullptr;
 
     // -------------------------------------------------
-    QPushButton* btnStart = nullptr;
-    QPushButton* btnEnd = nullptr;
+    QPushButton* btnScanning = nullptr;
     QPushButton* btnClearOutput = nullptr;
     QTextEdit* outputResult = nullptr;
     // -------------------------------------------------
@@ -60,8 +59,7 @@ private:
 
 private slots:
 
-    void onClickedButtonStart();
-    void onClickedButtonEnd();
+    void onClickedButtonScanning();
     void onClickedButtonClearOutput();
 
     void onSetupMenuActivated();

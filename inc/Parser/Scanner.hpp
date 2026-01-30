@@ -3,6 +3,7 @@
 #include "Configs/ScannerConfig.hpp"
 
 #include "Parser/WebSocketParser.hpp"
+#include "Parser/RegisterParsers.hpp"
 
 class Scanner : public QObject {
     Q_OBJECT
@@ -26,8 +27,10 @@ public:
     void setScannerConfig(const ParamsScannerConfig& _config);
     ParamsScannerConfig getScannerConfig();
 
-    void addStockMarket(const QString& StockMarket, const QString& Market, const QString& channel);
-    void delStockMarket(const QString& StockMarket, const QString& Market);
+    void addStockMarket(const QString& StockMarket);
+    void delStockMarket(const QString& StockMarket);
+
+    void addChannels(const QString& StockMarket, const QSet<QString>& channels);
 
     void start();
     void stop();

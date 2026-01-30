@@ -1,4 +1,5 @@
 #include "Parser/Scanner.hpp"
+#include "Parser/RegisterParsers.hpp"
 #include "Parser/WebSocketParserBuilder.hpp"
 
 #include <memory>
@@ -15,28 +16,21 @@ void Scanner::stop() {
         parser->disconnectFromStream();
 }
 
-void Scanner::addStockMarket(const QString& StockMarket, const QString& Market, const QString& channel) {
-    const QString name = QString("%1/%2").arg(StockMarket).arg(Market);
-    
-    // Проверка существования парсера
-    if (lstParsers.contains(name)) {
-        lstParsers[name]->addChannels(channel);
+void Scanner::addStockMarket(const QString& StockMarket) {
+    if (lstParsers.contains(StockMarket))
         return;
-    }
-    
-    // Создание нового парсера
-    auto parser = std::shared_ptr<WebSocketParser>(WebSocketParserBuilder::createParser(StockMarket, Market)->parser());
-    if (!parser || !parser->init()) {
-        qDebug() << "Failed to create parser for" << name;
-        return;
-    }
-    
-    lstParsers[name] = parser;
-    parser->addChannels(channel);
-    setupParserConnections(parser.get(), channel);
-    
-    qDebug() << "Created" << name;
 
+    RegisterParsers::instanse().registerParser(StockMarket);
+    
+    QStringList lst = StockMarket.split('/');
+    auto parser = std::shared_ptr<WebSocketParser>(WebSocketParserBuilder::createParser(lst[0], lst[1])->parser());
+    if (!parser || !parser->init()) {
+        qDebug() << "Failed to create parser for" << StockMarket;
+        return;
+    }
+    
+    lstParsers[StockMarket] = parser;
+    qDebug() << "Created" << StockMarket;
 }
 
 void Scanner::setupParserConnections(WebSocketParser* parser, const QString& channel) {
@@ -46,14 +40,23 @@ void Scanner::setupParserConnections(WebSocketParser* parser, const QString& cha
         connect(parser, &WebSocketParser::updatedOrderBooks, this, &Scanner::updateOrderBooks, Qt::UniqueConnection);
 }
 
-void Scanner::delStockMarket(const QString& StockMarket, const QString& Market) {
-    QString name = QString("%1/%2").arg(StockMarket).arg(Market);
-    if (!lstParsers.contains(name)) {
-        qWarning() << name << "does not exist";
+void Scanner::delStockMarket(const QString& StockMarket) {
+    RegisterParsers::instanse().deleteParser(StockMarket);
+
+    if (!lstParsers.contains(StockMarket)) {
+        qWarning() << StockMarket << "does not exist";
         return;
     }
-    lstParsers.remove(name);
-    qDebug() << name << "was deleted";
+    lstParsers.remove(StockMarket);
+    qDebug() << StockMarket << "was deleted";
+}
+
+void Scanner::addChannels(const QString& StockMarket, const QSet<QString>& channels) {
+    lstParsers[StockMarket]->deleteAllChannels();
+
+    auto lst = channels.values();
+    for (auto channel : lst)
+        lstParsers[StockMarket]->addChannels(channel);
 }
 
 QStringList Scanner::getListStockMarket() {
@@ -69,7 +72,6 @@ ParamsScannerConfig Scanner::getScannerConfig() {
 }
 
 void Scanner::updateTicker(const WebSocketParser::stTicker& _ticker){
-    qDebug() << "Scanner::updateTicker" << _ticker.namePair << _ticker.curPrice;
     emit ticker(_ticker);
 }
 

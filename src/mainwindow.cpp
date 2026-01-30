@@ -46,8 +46,7 @@ void MainWindow::setupUI() {
 }
 
 void MainWindow::connectionSignals() {
-    connect(btnStart, &QPushButton::clicked, this, &MainWindow::onClickedButtonStart);
-    connect(btnEnd, &QPushButton::clicked, this, &MainWindow::onClickedButtonEnd);
+    connect(btnScanning, &QPushButton::clicked, this, &MainWindow::onClickedButtonScanning);
     connect(btnClearOutput, &QPushButton::clicked, this, &MainWindow::onClickedButtonClearOutput);
 
     connect(actionSetupMenu, &QAction::triggered, this, &MainWindow::onSetupMenuActivated);
@@ -69,8 +68,7 @@ void MainWindow::createMenu() {
 }
 
 void MainWindow::createUI() {
-    btnStart = new QPushButton("Start", this);
-    btnEnd = new QPushButton("End", this);
+    btnScanning = new QPushButton("Scanning", this);
     btnClearOutput = new QPushButton("Clear", this);
     outputResult = new QTextEdit(this);
     outputResult->setReadOnly(true);
@@ -90,8 +88,7 @@ void MainWindow::createUI() {
             mainLayout->addWidget(new QWidget(this), row, col);
 
     mainLayout->addWidget(outputResult, 0, 0, 9, 10);
-    mainLayout->addWidget(btnStart, 9, 0, 1, 1);
-    mainLayout->addWidget(btnEnd, 9, 1, 1, 1);
+    mainLayout->addWidget(btnScanning, 9, 0, 1, 1);
     mainLayout->addWidget(btnClearOutput, 9, 9, 1, 1);
 }
 
@@ -117,12 +114,8 @@ void MainWindow::restartApplication() {
     RestartManager::requestRestart();
 }
 
-void MainWindow::onClickedButtonStart() {
+void MainWindow::onClickedButtonScanning() {
     DScanner->show();
-}
-
-void MainWindow::onClickedButtonEnd() {
-    DScanner->scanner()->stop();
 }
 
 void MainWindow::onClickedButtonClearOutput() {
