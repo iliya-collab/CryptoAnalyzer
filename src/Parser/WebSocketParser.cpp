@@ -223,7 +223,7 @@ void WebSocketParser::onConnected() {
 }
 
 void WebSocketParser::onTextMessageReceived(const QString &message) {
-    //qDebug() << "Received : " << QString("%1:%2").arg(getNameMarket()).arg(message);
+    qDebug() << "Received : " << QString("%1:%2").arg(getNameMarket()).arg(message);
     auto jsonObj = parseTextMessage(message);
     if (jsonObj.has_value()) {
         messageReceived(jsonObj.value());

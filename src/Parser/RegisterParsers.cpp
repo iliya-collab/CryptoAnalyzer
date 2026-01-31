@@ -33,3 +33,7 @@ void RegisterParsers::deleteParser(const QString& name, const QString& channel) 
 void RegisterParsers::deleteParser(const QString& name) {
     m_registry.remove(name);
 }
+
+QSet<QString> RegisterParsers::getRegisteredChannels(const QString& name) {
+    return m_registry.value(name);
+}

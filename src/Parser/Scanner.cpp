@@ -33,11 +33,12 @@ void Scanner::addStockMarket(const QString& StockMarket) {
     qDebug() << "Created" << StockMarket;
 }
 
-void Scanner::setupParserConnections(WebSocketParser* parser, const QString& channel) {
-    if (channel == "ticker")
-        connect(parser, &WebSocketParser::updatedTicker, this, &Scanner::updateTicker, Qt::UniqueConnection); 
-    else if (channel.startsWith("books"))
-        connect(parser, &WebSocketParser::updatedOrderBooks, this, &Scanner::updateOrderBooks, Qt::UniqueConnection);
+void Scanner::setupParserConnections(WebSocketParser* parser, const QSet<QString>& channels) {
+    for (auto channel : channels)
+        if (channel == "ticker")
+            connect(parser, &WebSocketParser::updatedTicker, this, &Scanner::updateTicker, Qt::UniqueConnection); 
+        else if (channel.startsWith("books"))
+            connect(parser, &WebSocketParser::updatedOrderBooks, this, &Scanner::updateOrderBooks, Qt::UniqueConnection);
 }
 
 void Scanner::delStockMarket(const QString& StockMarket) {
@@ -57,6 +58,8 @@ void Scanner::addChannels(const QString& StockMarket, const QSet<QString>& chann
     auto lst = channels.values();
     for (auto channel : lst)
         lstParsers[StockMarket]->addChannels(channel);
+
+    setupParserConnections(lstParsers[StockMarket].get(), channels);
 }
 
 QStringList Scanner::getListStockMarket() {

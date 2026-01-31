@@ -18,25 +18,28 @@ public:
         return m_register;
     }
 
-    // Регистрация с каналом
+    // Регистрация парсера с каналом
     void registerParser(const QString& name, const QString& channel);
 
-    // Регистрация только ключа
+    // Регистрация только парсера
     void registerParser(const QString& name);
 
-    // Проверка наличия ключа с конкретным каналом
+    // Проверка наличия парсера с конкретным каналом
     bool hasRegistered(const QString& name, const QString& channel);
 
-    // Проверка наличия ключа
+    // Проверка наличия парсера
     bool hasRegistered(const QString& name);
 
-    // Проверка, есть ли у ключа значения
+    // Проверка, есть ли у парсера каналы
     bool hasChannels(const QString& name);
 
-    // Удаление канала по ключу
+    // Удаление канала у указанного парсера
     void deleteParser(const QString& name, const QString& channel);
 
-    // Удаление ключа с каналами
+    // Удаление парсера
     void deleteParser(const QString& name);
+
+    // Получает список зарегестрированных каналов
+    QSet<QString> getRegisteredChannels(const QString& name);
 
 };

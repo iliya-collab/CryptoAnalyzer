@@ -23,6 +23,13 @@ class DialogScanner : public IDialog {
     Q_OBJECT
 private:
 
+    enum IdButtons {
+        IdBooksNoneRadio,
+        IdBooks5Radio,
+        IdBooks10Radio,
+        IdBooks20Radio
+    };
+
     void setupUI() override;
     void connectionSignals();
     void setupMenu();
@@ -50,8 +57,6 @@ private:
     std::unique_ptr<TableController> m_crtl_table;
     std::unique_ptr<ViewerOrderBooksController> m_crtl_ord_books;
     
-    QSet<QString> Channels;
-
     QAction* actionChannels;
     QAction* actionTabel;
     QAction* actionGraph;

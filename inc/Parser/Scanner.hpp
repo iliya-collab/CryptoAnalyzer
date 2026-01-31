@@ -13,7 +13,7 @@ private:
 
     QMap<QString, std::shared_ptr<WebSocketParser>> lstParsers;
 
-    void setupParserConnections(WebSocketParser* parser, const QString& channel);
+    void setupParserConnections(WebSocketParser* parser, const QSet<QString>& channels);
 
 private slots:
 

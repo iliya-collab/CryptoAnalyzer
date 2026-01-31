@@ -97,30 +97,48 @@ void DialogScanner::connectionSignals() {
     connect(comboStockMarket, &QComboBox::currentTextChanged, this, &DialogScanner::onCurrentTextChanged);
 
     connect(booksGroup, &QButtonGroup::idClicked, this, [this](int idBut) {
-        QAbstractButton* selected = booksGroup->checkedButton();
-        if (selected) {
-            int selectedId = booksGroup->id(selected);
-            qDebug() << "Выбрана кнопка ID:" << selectedId;
-        }
+        QString stockMarket = comboStockMarket->currentText();
 
-        int checkedId = booksGroup->checkedId();
-        if (checkedId != -1) {
-            qDebug() << "Выбран ID:" << checkedId;
-        }
+        if (!RegisterParsers::instanse().hasRegistered(stockMarket))
+            return;
 
-        QRadioButton* radio = static_cast<QRadioButton*>(booksGroup->button(1));
+        RegisterParsers::instanse().deleteParser(stockMarket, "books5");
+        RegisterParsers::instanse().deleteParser(stockMarket, "books10");
+        RegisterParsers::instanse().deleteParser(stockMarket, "books20");
+
+        QRadioButton* radio = static_cast<QRadioButton*>(booksGroup->button(idBut));
         if (radio && radio->isChecked()) {
+            switch (idBut)
+            {
+            case IdButtons::IdBooks5Radio:
+                RegisterParsers::instanse().registerParser(stockMarket, "books5");
+                break;
+            case IdButtons::IdBooks10Radio:
+                RegisterParsers::instanse().registerParser(stockMarket, "books10");
+                break;
+            case IdButtons::IdBooks20Radio:
+                RegisterParsers::instanse().registerParser(stockMarket, "books20");
+                break;
+            default:
+                break;
+            }
         }
+
+        m_scanner->addChannels(stockMarket, RegisterParsers::instanse().getRegisteredChannels(stockMarket));
     });
     
     connect(tickerChannelCheck, &QCheckBox::checkStateChanged, [this](Qt::CheckState state) {
-        if (state == Qt::Checked) {
-            RegisterParsers::instanse().registerParser(comboStockMarket->currentText(), "ticker");
-            Channels.insert("ticker");
-        } else if (state == Qt::Unchecked) {
-            RegisterParsers::instanse().deleteParser(comboStockMarket->currentText(), "ticker");
-            Channels.remove("ticker");
-        }
+        QString stockMarket = comboStockMarket->currentText();
+
+        if (!RegisterParsers::instanse().hasRegistered(stockMarket))
+            return;
+
+        if (state == Qt::Checked)
+            RegisterParsers::instanse().registerParser(stockMarket, "ticker");
+        else if (state == Qt::Unchecked)
+            RegisterParsers::instanse().deleteParser(stockMarket, "ticker");
+
+        m_scanner->addChannels(stockMarket, RegisterParsers::instanse().getRegisteredChannels(stockMarket));
     });
 
     connect(btnStart, &QPushButton::clicked, this, [this]() { m_scanner->start(); });
@@ -140,26 +158,21 @@ void DialogScanner::connectionSignals() {
 
 void DialogScanner::onCurrentTextChanged(const QString& text) {
 
-    tickerChannelCheck->setEnabled(false);
-    booksNoneRadio->setEnabled(true);
+    tickerChannelCheck->setChecked(false);
+    booksNoneRadio->setChecked(true);
 
-    if (RegisterParsers::instanse().hasRegistered(text, "ticker")) {
-        tickerChannelCheck->setEnabled(true);
-        Channels.insert("ticker");
-    }
+    if (!RegisterParsers::instanse().hasRegistered(text))
+        return;
+
+    if (RegisterParsers::instanse().hasRegistered(text, "ticker"))
+        tickerChannelCheck->setChecked(true);
         
-    if (RegisterParsers::instanse().hasRegistered(text, "books20")) {
-        books20Radio->setEnabled(true);
-        Channels.insert("books20");
-    }
-    else if (RegisterParsers::instanse().hasRegistered(text, "books10")) {
-        books10Radio->setEnabled(true);
-        Channels.insert("books10");
-    }
-    else if (RegisterParsers::instanse().hasRegistered(text, "books5")) {
-        books5Radio->setEnabled(true);
-        Channels.insert("books5");
-    }
+    if (RegisterParsers::instanse().hasRegistered(text, "books20"))
+        books20Radio->setChecked(true);
+    else if (RegisterParsers::instanse().hasRegistered(text, "books10"))
+        books10Radio->setChecked(true);
+    else if (RegisterParsers::instanse().hasRegistered(text, "books5"))
+        books5Radio->setChecked(true);
 
 }
 
@@ -174,10 +187,10 @@ QWidget* DialogScanner::createOrderBooksWidget() {
     books10Radio = new QRadioButton("10 levels", widget);
     books20Radio = new QRadioButton("20 levels", widget);
 
-    booksGroup->addButton(booksNoneRadio, 1);
-    booksGroup->addButton(books5Radio, 2);
-    booksGroup->addButton(books10Radio, 3);
-    booksGroup->addButton(books20Radio, 4);
+    booksGroup->addButton(booksNoneRadio, IdButtons::IdBooksNoneRadio);
+    booksGroup->addButton(books5Radio, IdButtons::IdBooks5Radio);
+    booksGroup->addButton(books10Radio, IdButtons::IdBooks10Radio);
+    booksGroup->addButton(books20Radio, IdButtons::IdBooks20Radio);
 
     booksNoneRadio->setChecked(true);
 
@@ -192,13 +205,13 @@ QWidget* DialogScanner::createOrderBooksWidget() {
 void DialogScanner::onClickedButtonAdd() {
     QString stockMarket = comboStockMarket->currentText();
     m_scanner->addStockMarket(stockMarket);
-    m_scanner->addChannels(stockMarket, Channels);
-    treeViewer->addItem(comboStockMarket->currentText().replace('/', '-'));
+    treeViewer->addItem(stockMarket.replace('/', '-'));
 }
 
 void DialogScanner::onClickedButtonDel() {
-    m_scanner->delStockMarket(comboStockMarket->currentText());
-    treeViewer->removeItem(comboStockMarket->currentText().replace('/', '-'));
+    QString stockMarket = comboStockMarket->currentText();
+    m_scanner->delStockMarket(stockMarket);
+    treeViewer->removeItem(stockMarket.replace('/', '-'));
 }
 
 Scanner* DialogScanner::scanner() {
