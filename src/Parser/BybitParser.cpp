@@ -5,6 +5,8 @@
 #include <QJsonArray>
 #include <optional>
 
+//https://chat.deepseek.com/share/qpzt4nu5edyvbmz7ok
+
 std::expected<QUrl, QString> BybitParser::getURLMarketData() {
     switch (t_market) {
         case TMarketData::SPOT:
@@ -47,21 +49,21 @@ void BybitParser::updateTicker(const QJsonObject &json) {
 
     if (data.contains("ask1Price") && data.contains("ask1Size") && data.contains("bid1Price") && data.contains("bid1Size")) {
         ticker.bestAsk = {
-            .askPrice = json["ask1Price"].toString().toDouble(),
-            .askSize = json["ask1Size"].toString().toDouble()
+            .askPrice = data["ask1Price"].toString().toDouble(),
+            .askSize = data["ask1Size"].toString().toDouble()
         };
         ticker.bestBid = {
-            .bidPrice = json["bid1Price"].toString().toDouble(),
-            .bidSize  = json["bid1Size"].toString().toDouble(),
+            .bidPrice = data["bid1Price"].toString().toDouble(),
+            .bidSize  = data["bid1Size"].toString().toDouble(),
         };
         ticker.spread   = ticker.bestAsk.askPrice - ticker.bestBid.bidPrice;
     }
     
     if (data.contains("highPrice24h") && data.contains("lowPrice24h") && data.contains("turnover24h") && data.contains("volume24h")) {
-        ticker.high24h = json["highPrice24h"].toString().toDouble();
-        ticker.low24h = json["lowPrice24h"].toString().toDouble();
-        ticker.volCcy24h = json["turnover24h"].toString().toDouble();
-        ticker.vol24h = json["volume24h"].toString().toDouble();
+        ticker.high24h = data["highPrice24h"].toString().toDouble();
+        ticker.low24h = data["lowPrice24h"].toString().toDouble();
+        ticker.volCcy24h = data["turnover24h"].toString().toDouble();
+        ticker.vol24h = data["volume24h"].toString().toDouble();
     }
 
     emit updatedTicker(ticker);
@@ -77,27 +79,37 @@ void BybitParser::updateOrderBooks(const QJsonObject &json) {
     stOrderBooks order_books = {};
 
     order_books.namePair = QString("%1:%2").arg(getNameMarket()).arg(coin);
-
-    QJsonArray asksArray = data["a"].toArray();
-    QJsonArray bidsArray = data["b"].toArray();
-    for (int i = 0; i < bidsArray.size() && i < mxDepthBooks; i++) {
+    
+    QJsonArray bidsArray = data.value("b").toArray();
+    for (int i = 0; i < bidsArray.size() && i < MAX_DEPTH_BOOKS; i++) {
         QJsonArray bid = bidsArray[i].toArray();
-        QJsonArray ask = asksArray[i].toArray();
-        Ask _ask = {
-            .askPrice = ask[0].toString().toDouble(),
-            .askSize  = ask[1].toString().toDouble()
-        };
-        Bid _bid = {
-            .bidPrice = bid[0].toString().toDouble(),
-            .bidSize  = bid[1].toString().toDouble(),
-        };
-        order_books.totalAskVolume += _ask.askSize;
-        order_books.totalBidVolume += _bid.bidSize;
-        order_books.asks.append(_ask);
-        order_books.bids.append(_bid);
+        if (bid.size() >= 2) {
+            Bid _bid = {
+                .bidPrice = bid[0].toString().toDouble(),
+                .bidSize  = bid[1].toString().toDouble(),
+            };
+            order_books.totalBidVolume += _bid.bidSize;
+            order_books.bids.append(_bid);
+        }
     }
 
-    order_books.spread = order_books.asks[0].askPrice - order_books.bids[0].bidPrice;
+    QJsonArray asksArray = data.value("a").toArray();
+    for (int i = 0; i < asksArray.size() && i < MAX_DEPTH_BOOKS; i++) {
+        QJsonArray ask = asksArray[i].toArray();
+        if (ask.size() >= 2) {
+            Ask _ask = {
+                .askPrice = ask[0].toString().toDouble(),
+                .askSize  = ask[1].toString().toDouble()
+            };
+            order_books.totalAskVolume += _ask.askSize;
+            order_books.asks.append(_ask);
+        }
+    }
+
+    if (!order_books.asks.isEmpty() && !order_books.bids.isEmpty()) 
+        order_books.spread = order_books.asks.first().askPrice - order_books.bids.first().bidPrice;
+    else
+        order_books.spread = 0.0;
 
     emit updatedOrderBooks(order_books);
 }
@@ -148,5 +160,5 @@ QString BybitParser::tickerStream(const QString &coin) {
 
 QString BybitParser::orderBooksStream(const QString &coin) {
     QString _coin = coin;
-    return QString("orderbook.%1").arg(_coin.replace("/", "").toUpper());
+    return QString("orderbook.50.%1").arg(_coin.replace("/", "").toUpper());
 }

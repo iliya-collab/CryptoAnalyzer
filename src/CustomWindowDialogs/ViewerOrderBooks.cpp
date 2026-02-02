@@ -35,10 +35,7 @@ void ViewerOrderBooks::setupConnection() {
 }
 
 void ViewerOrderBooks::updateChannelAvailability(const QString& market) {
-    m_hasChannel =  RegisterParsers::instanse().hasRegistered(market, "books5") || 
-                    RegisterParsers::instanse().hasRegistered(market, "books10")|| 
-                    RegisterParsers::instanse().hasRegistered(market, "books20");
-    
+    m_hasChannel = RegisterParsers::instanse().hasRegistered(market, "books");
     if (m_hasChannel)
         stackWidgets->setCurrentIndex(0);
     else
@@ -131,7 +128,7 @@ void ViewerOrderBooks::setupMessage() {
     spreadFont.setBold(true);
     lblMessage->setFont(spreadFont);
 
-    lblMessage->setText("You need to use the books5, books10, or books20 channels");
+    lblMessage->setText("You need to use the books channels");
 
     stackWidgets->addWidget(lblMessage);
 }

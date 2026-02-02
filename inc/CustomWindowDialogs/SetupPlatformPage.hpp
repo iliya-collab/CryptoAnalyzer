@@ -1,23 +1,23 @@
 #pragma once
 
 #include "SetupPage.hpp"
-#include "Configs/ScannerConfig.hpp"
+#include "Configs/PlatformConfig.hpp"
 
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QCheckBox>
 #include <QPushButton>
 
-class SetupScanerPage : public SetupPage {
+class SetupPlatformPage : public SetupPage {
 private:
 
     QTextEdit* editCoinsPairs;
     
-    ParamsScannerConfig& curConfig;
+    ParamsPlatformConfig& curConfig;
 
 public:
 
-    SetupScanerPage(QWidget* parent = nullptr) : SetupPage(parent), curConfig(ScannerConfig::instance().getConfig()) {}
+    SetupPlatformPage(QWidget* parent = nullptr) : SetupPage(parent), curConfig(PlatformConfig::instance().getConfig()) {}
 
     void createPage() override;
 

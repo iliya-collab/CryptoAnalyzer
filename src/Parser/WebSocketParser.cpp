@@ -138,7 +138,7 @@ void WebSocketParser::subscribeToCoins(const QStringList &coins) {
         if (_Channels & Channel::TICKER)
             usedStreams.insert(tickerStream(coin));
 
-        if (_Channels & (Channel::BOOKS5 | Channel::BOOKS10 | Channel::BOOKS20))
+        if (_Channels & Channel::BOOKS)
             usedStreams.insert(orderBooksStream(coin));
     }
 
@@ -160,14 +160,13 @@ void WebSocketParser::unsubscribeFromCoins(const QStringList &coins) {
         if (subscribedCoins.contains(coinUpper)) {
             subscribedCoins.remove(coinUpper);
 
-
             if (_Channels & Channel::TICKER) {
                 QString stream = tickerStream(coin);
                 usedStreams.remove(stream);
                 streamsToUnsubscribe.append(stream);
             }
 
-            if (_Channels & (Channel::BOOKS5 | Channel::BOOKS10 | Channel::BOOKS20)) {
+            if (_Channels & Channel::BOOKS) {
                 QString stream = orderBooksStream(coin);
                 usedStreams.remove(stream);
                 streamsToUnsubscribe.append(stream);
@@ -310,30 +309,15 @@ void WebSocketParser::addChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
         _Channels |= codeChannel(channel);
-
-    if (_Channels & Channel::BOOKS20)
-        mxDepthBooks = std::max(20, mxDepthBooks);
-    else if (_Channels & Channel::BOOKS10)
-        mxDepthBooks = std::max(10, mxDepthBooks);
-    else if (_Channels & Channel::BOOKS5)
-        mxDepthBooks = std::max(5, mxDepthBooks);
 }
 
 void WebSocketParser::deleteChannels(const QString& channels) {
     QStringList lst_channels = channels.split("/");
     for (auto& channel : lst_channels)
         _Channels ^= codeChannel(channel);
-
-    if (_Channels & Channel::BOOKS20)
-        mxDepthBooks = 20;
-    else if (_Channels & Channel::BOOKS10)
-        mxDepthBooks = 10;
-    else if (_Channels & Channel::BOOKS5)
-        mxDepthBooks = 5;
 }
 
 void WebSocketParser::deleteAllChannels() {
-    mxDepthBooks = 0;
     _Channels = 0;
 }
 

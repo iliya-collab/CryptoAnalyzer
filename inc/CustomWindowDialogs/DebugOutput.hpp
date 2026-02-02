@@ -4,8 +4,7 @@
 #include <QTextEdit>
 #include <QMutex>
 
-class DebugOutput : public QObject
-{
+class DebugOutput : public QObject {
     Q_OBJECT
 public:
     static DebugOutput* instance();

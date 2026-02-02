@@ -2,7 +2,7 @@
 #define DIALOG_SETUP_MENU_HPP
 
 #include "CustomWindowDialogs/IDialog.hpp"
-#include "SetupScanerPage.hpp"
+#include "SetupPlatformPage.hpp"
 
 #include <QListWidget>
 #include <QStackedWidget>
@@ -17,7 +17,7 @@ private:
 
     QPushButton* applyButton;
 
-    SetupScanerPage* setup_scaner_page;
+    SetupPlatformPage* setup_platform_page;
 
     QHBoxLayout* mainLayout;
 

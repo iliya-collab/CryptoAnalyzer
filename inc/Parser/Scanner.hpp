@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Configs/ScannerConfig.hpp"
+#include "Configs/PlatformConfig.hpp"
 
 #include "Parser/WebSocketParser.hpp"
 #include "Parser/RegisterParsers.hpp"
@@ -9,7 +9,7 @@ class Scanner : public QObject {
     Q_OBJECT
 private:
 
-    ParamsScannerConfig pScannerConfig;
+    ParamsPlatformConfig m_platform_config;
 
     QMap<QString, std::shared_ptr<WebSocketParser>> lstParsers;
 
@@ -24,8 +24,8 @@ public:
 
     QStringList getListStockMarket();
 
-    void setScannerConfig(const ParamsScannerConfig& _config);
-    ParamsScannerConfig getScannerConfig();
+    void setConfig(const ParamsPlatformConfig& _config);
+    ParamsPlatformConfig getConfig();
 
     void addStockMarket(const QString& StockMarket);
     void delStockMarket(const QString& StockMarket);

@@ -1,6 +1,7 @@
 #include "CustomWindowDialogs/ViewerOrderBooksController.hpp"
 
 void ViewerOrderBooksController::updateOrderBooks(const WebSocketParser::stOrderBooks& _orderBooks) {
+    qDebug() << "ViewerOrderBooksController::updateOrderBooks";
     QStringList tokens = _orderBooks.namePair.split(':');
     if (m_dialog && tokens[0] == m_dialog->getCurrentStockMarkets() && tokens[1] == m_dialog->getCurrentPair())
         m_dialog->updateDisplay(_orderBooks.asks, _orderBooks.bids);
@@ -8,7 +9,7 @@ void ViewerOrderBooksController::updateOrderBooks(const WebSocketParser::stOrder
 
 void ViewerOrderBooksController::onDialogCreated() {
     QStringList lstStockMarket = scanner->getListStockMarket();
-    QStringList lstPairs = scanner->getScannerConfig().pairs;
+    QStringList lstPairs = scanner->getConfig().pairs;
     for (auto& pair : lstPairs)
         pair.replace("/", "");
 

@@ -3,15 +3,20 @@
 #include <QApplication>
 #include <QMainWindow>
 
-#include <QGridLayout>
-#include <QTextEdit>
-#include <QPushButton>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <QMessageBox>
 
+#include <QRadioButton>
+#include <QButtonGroup>
+
+#include "Managers/Settings.hpp"
+
+#include "Parser/Scanner.hpp"
+#include "CustomWindowDialogs/ViewerOrderBooksController.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
-#include "CustomWindowDialogs/DialogScanner.hpp"
+#include "CustomWindowDialogs/DebugMonitor.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -19,48 +24,45 @@ class MainWindow : public QMainWindow
 
 public:
 
-    ~MainWindow();
-    MainWindow(QString style, QWidget *parent = nullptr);
+    ~MainWindow() = default;
+    MainWindow(QWidget *parent = nullptr);
 
 private:
 
-    QWidget* mainWindow = nullptr;
-    QGridLayout* mainLayout = nullptr;
+    QWidget* mainWindow;
+    QVBoxLayout* mainLayout;
 
-    // -------------------------------------------------
-    QPushButton* btnScanning = nullptr;
-    QPushButton* btnClearOutput = nullptr;
-    QTextEdit* outputResult = nullptr;
-    // -------------------------------------------------
+    std::unique_ptr<DebugMonitor> debug;
 
-    // -------------------------------------------------
-    std::unique_ptr<DialogSetupMenu> DSetupMenu = nullptr;
-    QAction* actionSetupMenu = nullptr;
-    QAction* actionSaveSetup = nullptr;
-    QAction* actionDefaultReset = nullptr;
-    // -------------------------------------------------
+    std::unique_ptr<DialogSetupMenu> DSetupMenu;
+    QAction* actionSetupMenu;
+    QAction* actionSaveSetup;
+    QAction* actionDefaultReset;
 
-    std::unique_ptr<DialogScanner> DScanner;
+    std::unique_ptr<Scanner> m_scanner;
+    
+    enum IDButtons {
+        IdRadioSpotMarket,
+        IdRadioFuturesMarket
+    };
 
-    // -------------------------------------------------
-    ParamsScannerConfig curScannerConfig;
-    // -------------------------------------------------
+    QButtonGroup* groupMarkets;
+    QWidget* createWidgetMenuMarket();
+
+    QComboBox* comboCoins;
+    QWidget* createWidgetMenuCoins();
+
+    std::unique_ptr<ViewerOrderBooksController> m_crtl_ord_books;
+    QAction* actionOrderBooks;
+    QAction* actionTicker;
 
     void setupUI();
     void connectionSignals();
 
-    void getCurrentConfig();
-
     void createMenu();
     void createUI();
 
-    bool showMessage(const char* title, const char* msg, QMessageBox::Icon icon);
-    void restartApplication();
-
 private slots:
-
-    void onClickedButtonScanning();
-    void onClickedButtonClearOutput();
 
     void onSetupMenuActivated();
     void onSaveSetupActivated();

@@ -6,7 +6,7 @@
 
 void Scanner::start() {
     for (auto [name, parser] : lstParsers.asKeyValueRange()) {
-        parser->subscribeToCoins(pScannerConfig.pairs);
+        parser->subscribeToCoins(m_platform_config.pairs);
         parser->connectToStream();
     }
 }
@@ -37,7 +37,7 @@ void Scanner::setupParserConnections(WebSocketParser* parser, const QSet<QString
     for (auto channel : channels)
         if (channel == "ticker")
             connect(parser, &WebSocketParser::updatedTicker, this, &Scanner::updateTicker, Qt::UniqueConnection); 
-        else if (channel.startsWith("books"))
+        else if (channel == "books")
             connect(parser, &WebSocketParser::updatedOrderBooks, this, &Scanner::updateOrderBooks, Qt::UniqueConnection);
 }
 
@@ -66,12 +66,12 @@ QStringList Scanner::getListStockMarket() {
     return lstParsers.keys();
 }
 
-void Scanner::setScannerConfig(const ParamsScannerConfig& _config) {
-    pScannerConfig = _config;
+void Scanner::setConfig(const ParamsPlatformConfig& _config) {
+    m_platform_config = _config;
 }
 
-ParamsScannerConfig Scanner::getScannerConfig() {
-    return pScannerConfig;
+ParamsPlatformConfig Scanner::getConfig() {
+    return m_platform_config;
 }
 
 void Scanner::updateTicker(const WebSocketParser::stTicker& _ticker){

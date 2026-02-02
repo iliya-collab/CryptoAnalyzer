@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Parser/BinanceParser.hpp"
 #include "Parser/BybitParser.hpp"
-#include "Parser/OKXParser.hpp"
 #include "Parser/WebSocketParser.hpp"
 
 #include <memory>

@@ -2,19 +2,6 @@
 
 #include "Managers/JsonManager.hpp"
 
-#ifndef OPERATION_STATUS
-#define OPERATION_STATUS
-
-#define OK  "\033[32m✔\033[0m"
-#define ERR "\033[31m✗\033[0m"
-#define WAR "\033[33m⚠\033[0m"
-
-#endif
-
-/*
-Settings - объект, который считывает все конфиги и настраевает их (вызывается один раз в файле main.cpp)
-*/
-
 class Settings {
 
 private:

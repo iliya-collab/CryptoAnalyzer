@@ -1,9 +1,5 @@
 #include "mainwindow.hpp"
 
-#include "Managers/RestartManager.hpp"
-#include "Managers/Settings.hpp"
-#include "CustomWindowDialogs/DebugOutput.hpp"
-
 #include <QWidgetAction>
 #include <QMenuBar>
 #include <QMenu>
@@ -13,45 +9,43 @@
 #include <memory>
 
 
-MainWindow::MainWindow(QString style, QWidget *parent) : QMainWindow(parent) {
-
-    setWindowTitle("app");
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    setWindowTitle("ByBit Trading Platform");
     resize(800, 600);
-    setStyleSheet(style);
-
-    getCurrentConfig();
 
     setupUI();
     connectionSignals();
 
-    DebugOutput::instance()->redirectQtMessages();
-    DebugOutput::instance()->setTextEdit(outputResult);
+    debug = std::make_unique<DebugMonitor>(this);
+    debug->show();
 
-    DScanner = std::make_unique<DialogScanner>(this);
-    DScanner->scanner()->setScannerConfig(curScannerConfig);
-}
+    qDebug() << "--- Reading the platform configuration ---";
+    if (!Settings::readAllConfig())
+        qDebug() << Settings::getLastError();
+    qDebug() << "--- Configuration reading is completed ---";
 
-MainWindow::~MainWindow() {}
+    m_scanner = std::make_unique<Scanner>();
+    m_scanner->setConfig(PlatformConfig::instance().getConfig());
 
-void MainWindow::getCurrentConfig() {
-    curScannerConfig = ScannerConfig::instance().getConfig();
 }
 
 void MainWindow::setupUI() {
     mainWindow = new QWidget(this);
     setCentralWidget(mainWindow);
 
-    createMenu();
     createUI();
+    createMenu();
 }
 
 void MainWindow::connectionSignals() {
-    connect(btnScanning, &QPushButton::clicked, this, &MainWindow::onClickedButtonScanning);
-    connect(btnClearOutput, &QPushButton::clicked, this, &MainWindow::onClickedButtonClearOutput);
-
     connect(actionSetupMenu, &QAction::triggered, this, &MainWindow::onSetupMenuActivated);
     connect(actionSaveSetup, &QAction::triggered, this, &MainWindow::onSaveSetupActivated);
     connect(actionDefaultReset, &QAction::triggered, this, &MainWindow::onDefaultResetActivated);
+
+    connect(actionOrderBooks, &QAction::triggered, this, [this]() { 
+        m_crtl_ord_books->create();
+        m_crtl_ord_books->show();
+    });
 }
 
 void MainWindow::createMenu() {
@@ -64,62 +58,43 @@ void MainWindow::createMenu() {
     menuSetup->addAction(actionDefaultReset);
     actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(actionSaveSetup);
+    
+    QMenu* menuMarket = menuBar->addMenu("Market");
+    QWidgetAction* marketAction = new QWidgetAction(this);
+    marketAction->setDefaultWidget(createWidgetMenuMarket());    
+    menuMarket->addAction(marketAction);
+
+    QMenu* menuMonitoring = menuBar->addMenu("Monitoring");
+    actionTicker = new QAction("Ticker", this);
+    menuMonitoring->addAction(actionTicker);
+    actionOrderBooks = new QAction("Order books", this);
+    menuMonitoring->addAction(actionOrderBooks);
 
 }
 
 void MainWindow::createUI() {
-    btnScanning = new QPushButton("Scanning", this);
-    btnClearOutput = new QPushButton("Clear", this);
-    outputResult = new QTextEdit(this);
-    outputResult->setReadOnly(true);
+    mainWindow = new QWidget(this);
+    setCentralWidget(mainWindow);
 
-    mainLayout = new QGridLayout(mainWindow);
-    const int Row = 10, Col = 10;
-    for (int row = 0; row < Row; ++row) {
-        mainLayout->setRowStretch(row, 1);
-        mainLayout->setRowMinimumHeight(row, 5);
-    }
-    for (int col = 0; col < Col; ++col) {
-        mainLayout->setColumnStretch(col, 1);
-        mainLayout->setColumnMinimumWidth(col, 5);
-    }
-    for (int row = 0; row < Row; ++row)
-        for (int col = 0; col < Col; ++col)
-            mainLayout->addWidget(new QWidget(this), row, col);
-
-    mainLayout->addWidget(outputResult, 0, 0, 9, 10);
-    mainLayout->addWidget(btnScanning, 9, 0, 1, 1);
-    mainLayout->addWidget(btnClearOutput, 9, 9, 1, 1);
+    mainLayout = new QVBoxLayout(mainWindow);
 }
 
-bool MainWindow::showMessage(const char* title, const char* msg, QMessageBox::Icon icon) {
-    QMessageBox msgBox(this);
+QWidget* MainWindow::createWidgetMenuMarket() {
+    QWidget* widgetMenuMarket = new QWidget(this);
+    QVBoxLayout* layoutMenuMarket = new QVBoxLayout(widgetMenuMarket);
 
-    msgBox.setWindowTitle(title);
-    msgBox.setText(msg);
-    msgBox.setIcon(icon);
+    QRadioButton* radioSpotMarket = new QRadioButton("Spot", this);
+    QRadioButton* radioFuturesMarket = new QRadioButton("Futures", this);
 
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    msgBox.setDefaultButton(QMessageBox::Yes);
+    layoutMenuMarket->addWidget(radioSpotMarket);
+    layoutMenuMarket->addWidget(radioFuturesMarket);
+    
+    groupMarkets = new QButtonGroup(this);
+    groupMarkets->addButton(radioSpotMarket, IDButtons::IdRadioSpotMarket);
+    groupMarkets->addButton(radioFuturesMarket, IDButtons::IdRadioFuturesMarket);
+    radioSpotMarket->setChecked(true);
 
-    msgBox.button(QMessageBox::Yes)->setText("Yes");
-    msgBox.button(QMessageBox::No)->setText("No");
-
-    int result = msgBox.exec();
-
-    return (result == QMessageBox::Yes) ? true : false;
-}
-
-void MainWindow::restartApplication() {
-    RestartManager::requestRestart();
-}
-
-void MainWindow::onClickedButtonScanning() {
-    DScanner->show();
-}
-
-void MainWindow::onClickedButtonClearOutput() {
-    outputResult->clear();
+    return widgetMenuMarket;
 }
 
 void MainWindow::onSetupMenuActivated() {
@@ -127,12 +102,9 @@ void MainWindow::onSetupMenuActivated() {
 }
 
 void MainWindow::onSaveSetupActivated() {
-    if (showMessage("Confirmation", "Save changes", QMessageBox::Question))
-        Settings::writeAllConfig();
-    if (showMessage("Confirmation", "Restart the progremm?", QMessageBox::Question))
-        restartApplication();
+    Settings::writeAllConfig();
 }
 
 void MainWindow::onDefaultResetActivated() {
-    ScannerConfig::instance().setDefaultConfig();
+    PlatformConfig::instance().setDefaultConfig();
 }

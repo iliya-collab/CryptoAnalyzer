@@ -25,11 +25,11 @@ void DialogSetupMenu::setupUI() {
     // stacked widget для страниц
     pagesWidget = new QStackedWidget(this);
 
-    setup_scaner_page = new SetupScanerPage(this);
-    setup_scaner_page->createPage();
+    setup_platform_page = new SetupPlatformPage(this);
+    setup_platform_page->createPage();
 
 
-    pagesWidget->addWidget(setup_scaner_page->getPage());
+    pagesWidget->addWidget(setup_platform_page->getPage());
 
     QListWidgetItem* scanerButton = new QListWidgetItem(contentsWidget);
     scanerButton->setText("Scaner");
@@ -63,7 +63,7 @@ void DialogSetupMenu::connectionSignals() {
 }
 
 void DialogSetupMenu::onClickedButtonApply() {
-    setup_scaner_page->readConfig();
+    setup_platform_page->readConfig();
 }
 
 

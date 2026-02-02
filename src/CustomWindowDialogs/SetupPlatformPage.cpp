@@ -1,6 +1,6 @@
-#include "CustomWindowDialogs/SetupScanerPage.hpp"
+#include "CustomWindowDialogs/SetupPlatformPage.hpp"
 
-void SetupScanerPage::createPage() {
+void SetupPlatformPage::createPage() {
     QVBoxLayout* layout = new QVBoxLayout(this);
 
     editCoinsPairs = new QTextEdit(this);
@@ -11,6 +11,6 @@ void SetupScanerPage::createPage() {
     layout->addWidget(editCoinsPairs);
 }
 
-void SetupScanerPage::readConfig() {
+void SetupPlatformPage::readConfig() {
     curConfig.pairs = editCoinsPairs->toPlainText().split('\n');
 }

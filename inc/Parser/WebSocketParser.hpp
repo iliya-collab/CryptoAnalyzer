@@ -71,9 +71,7 @@ protected:
     enum Channel {
         NONECHANNEL,
         TICKER = 1,
-        BOOKS5 = 2,
-        BOOKS10 = 4,
-        BOOKS20 = 8
+        BOOKS = 2
     };
     Q_ENUM(Channel)
 
@@ -84,9 +82,9 @@ protected:
     // Метод для отправки сообшения
     virtual void messageReceived(const QJsonObject &obj) = 0;
 
-    // Метод обновления для ticker
+    // Метод ticker
     virtual void updateTicker(const QJsonObject &json) = 0;
-    // Метод обновления для books
+    // Метод books
     virtual void updateOrderBooks(const QJsonObject &json) = 0;
 
     // Метод для подписки монеты на ticker
@@ -147,8 +145,7 @@ protected:
     // Используемые каналы
     int _Channels = 0;
 
-    int mxDepthBooks = 0;                           // Максимальная глубина стакана ордеров 
-
+    const int MAX_DEPTH_BOOKS = 50;                 // Максимальная глубина стакана ордеров 
     const int MAX_STREAMS_PER_SUBSCRIPTION = 10;    // Максимальное число подписок/отписок в одном сообщении
     const int ACTIVE_PING_INTERVAL = 10000;         // каждые 10 с
     const int MIN_CHANGE_TIME = 200;                // каждые 200 мс

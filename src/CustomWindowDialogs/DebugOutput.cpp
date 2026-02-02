@@ -32,10 +32,11 @@ void DebugOutput::setTextEdit(QTextEdit *textEdit) {
             default: color = "black"; break;
         }
         
-        QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss");
+        /*QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss");
         QString html = QString("<span style='color:%1'>[%2] %3</span><br>")
-                          .arg(color, timestamp, message.toHtmlEscaped());
+                          .arg(color, timestamp, message.toHtmlEscaped());*/
         
+        QString html = QString("<span style='color:%1'> %2</span><br>").arg(color, message.toHtmlEscaped());
         m_textEdit->append(html);
         
         QScrollBar *scrollBar = m_textEdit->verticalScrollBar();
@@ -57,10 +58,6 @@ void DebugOutput::write(const QString &message, QtMsgType type) {
 
 void DebugOutput::messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
     Q_UNUSED(context);
-    
     QString formattedMsg = qFormatLogMessage(type, context, msg);
-    
     instance()->write(formattedMsg, type);
-    
-    //fprintf(stderr, "%s\n", qPrintable(formattedMsg));
 }
