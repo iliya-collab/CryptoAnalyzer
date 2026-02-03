@@ -24,15 +24,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
         qDebug() << Settings::getLastError();
     qDebug() << "--- Configuration reading is completed ---";
 
-    m_scanner = std::make_unique<Scanner>();
-    m_scanner->setConfig(PlatformConfig::instance().getConfig());
+    //m_scanner = std::make_unique<Scanner>();
+    //m_scanner->setConfig(PlatformConfig::instance().getConfig());
 
 }
 
 void MainWindow::setupUI() {
-    mainWindow = new QWidget(this);
-    setCentralWidget(mainWindow);
-
     createUI();
     createMenu();
 }
@@ -42,9 +39,8 @@ void MainWindow::connectionSignals() {
     connect(actionSaveSetup, &QAction::triggered, this, &MainWindow::onSaveSetupActivated);
     connect(actionDefaultReset, &QAction::triggered, this, &MainWindow::onDefaultResetActivated);
 
-    connect(actionOrderBooks, &QAction::triggered, this, [this]() { 
-        m_crtl_ord_books->create();
-        m_crtl_ord_books->show();
+    connect(actionOrderBooks, &QAction::triggered, this, [this]() {
+        stackWidgets->setCurrentWidget(orderBooks);
     });
 }
 
@@ -61,8 +57,25 @@ void MainWindow::createMenu() {
     
     QMenu* menuMarket = menuBar->addMenu("Market");
     QWidgetAction* marketAction = new QWidgetAction(this);
-    marketAction->setDefaultWidget(createWidgetMenuMarket());    
+    markets = new MarketsWidget(this);
+    marketAction->setDefaultWidget(markets->widget());    
     menuMarket->addAction(marketAction);
+
+    QMenu* menuCoins = menuBar->addMenu("Coins");
+    QWidgetAction* coinsAction = new QWidgetAction(this);
+    coins = new CoinsWidget(this);
+    QStringList coinsData = {
+        "BTC/USDT",
+        "ETH/USDT",
+        "ADA/USDT",
+        "DOT/USDT",
+        "SOL/USDT", 
+        "XRP/USDT",
+        "DOGE/USDT"
+    };
+    coins->setList(coinsData);
+    coinsAction->setDefaultWidget(coins->widget());    
+    menuCoins->addAction(coinsAction);
 
     QMenu* menuMonitoring = menuBar->addMenu("Monitoring");
     actionTicker = new QAction("Ticker", this);
@@ -76,25 +89,21 @@ void MainWindow::createUI() {
     mainWindow = new QWidget(this);
     setCentralWidget(mainWindow);
 
+    stackWidgets = new QStackedWidget(this);
+    stackWidgets->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    //stackWidgets->setStyleSheet("QStackedWidget { background-color: #f0f0f0; border: 1px solid red; }");
+    setupPages();
+
     mainLayout = new QVBoxLayout(mainWindow);
+    mainLayout->addWidget(stackWidgets);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+
 }
 
-QWidget* MainWindow::createWidgetMenuMarket() {
-    QWidget* widgetMenuMarket = new QWidget(this);
-    QVBoxLayout* layoutMenuMarket = new QVBoxLayout(widgetMenuMarket);
+void MainWindow::setupPages() {
+    orderBooks = new OrderBooksWidget(this);
 
-    QRadioButton* radioSpotMarket = new QRadioButton("Spot", this);
-    QRadioButton* radioFuturesMarket = new QRadioButton("Futures", this);
-
-    layoutMenuMarket->addWidget(radioSpotMarket);
-    layoutMenuMarket->addWidget(radioFuturesMarket);
-    
-    groupMarkets = new QButtonGroup(this);
-    groupMarkets->addButton(radioSpotMarket, IDButtons::IdRadioSpotMarket);
-    groupMarkets->addButton(radioFuturesMarket, IDButtons::IdRadioFuturesMarket);
-    radioSpotMarket->setChecked(true);
-
-    return widgetMenuMarket;
+    stackWidgets->addWidget(orderBooks);
 }
 
 void MainWindow::onSetupMenuActivated() {

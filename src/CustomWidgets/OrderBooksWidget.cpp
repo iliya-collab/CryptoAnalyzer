@@ -1,74 +1,20 @@
-#include "CustomWindowDialogs/ViewerOrderBooks.hpp"
-#include "Parser/RegisterParsers.hpp"
+#include "CustomWidgets/OrderBooksWidget.hpp"
 
-ViewerOrderBooks::ViewerOrderBooks(QWidget* parent) : IDialog(parent) {
-    setModal(false);
-    setWindowTitle("Order Books");
-    setMinimumSize(300, 200);
-    resize(500, 400);
-    
-    setupUI();
-    setupConnection();
-   
-    updateChannelAvailability(comboStockMarkets->currentText());
+OrderBooksWidget::OrderBooksWidget(QWidget* parent) : CustomWidget(parent) {
+    setupWidget();   
 }
 
-void ViewerOrderBooks::setupUI() {
-    comboSubscribedCoins = new QComboBox(this);
-    comboStockMarkets = new QComboBox(this);
-    stackWidgets = new QStackedWidget(this);
-
-    QHBoxLayout* row1 = new QHBoxLayout;
-    row1->addWidget(comboStockMarkets);
-    row1->addWidget(comboSubscribedCoins);
-
-    mainLayout = new QVBoxLayout(this);
-    mainLayout->addLayout(row1);
-    mainLayout->addWidget(stackWidgets);
+void OrderBooksWidget::setupWidget() {
+    mainLayout = new QVBoxLayout(m_widget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+    setLayout(mainLayout);
 
     setupOrderBooksTable();
-    setupMessage();
 }
 
-void ViewerOrderBooks::setupConnection() {
-    connect(comboStockMarkets, &QComboBox::currentTextChanged, this, &ViewerOrderBooks::onComboTextChanged);
-}
-
-void ViewerOrderBooks::updateChannelAvailability(const QString& market) {
-    m_hasChannel = RegisterParsers::instanse().hasRegistered(market, "books");
-    if (m_hasChannel)
-        stackWidgets->setCurrentIndex(0);
-    else
-        stackWidgets->setCurrentIndex(1);
-}
-
-void ViewerOrderBooks::onComboTextChanged(const QString &text) {
-    updateChannelAvailability(text);
-}
-
-void ViewerOrderBooks::setStockMarkets(const QStringList& lst) {
-    comboStockMarkets->addItems(lst);
-}
-
-void ViewerOrderBooks::setPairs(const QStringList& lst) {
-    comboSubscribedCoins->addItems(lst);
-}
-
-QString ViewerOrderBooks::getCurrentStockMarkets() {
-    return comboStockMarkets->currentText();
-}
-
-QString ViewerOrderBooks::getCurrentPair() {
-    return comboSubscribedCoins->currentText();
-}
-
-void ViewerOrderBooks::setupOrderBooksTable() {
-    QWidget* tableContainer = new QWidget(this);
-    QVBoxLayout* containerLayout = new QVBoxLayout(tableContainer);
-    containerLayout->setContentsMargins(0, 0, 0, 0);
-    containerLayout->setSpacing(5);
-
-    lblSpread = new QLabel(tableContainer);
+void OrderBooksWidget::setupOrderBooksTable() {
+    lblSpread = new QLabel(m_widget);
 
     lblSpread->setStyleSheet(
         "border-radius: 3px;"
@@ -81,7 +27,10 @@ void ViewerOrderBooks::setupOrderBooksTable() {
     spreadFont.setBold(true);
     lblSpread->setFont(spreadFont);
 
-    orderBooksTable = new QTableWidget(tableContainer);
+    lblSpread->setText("ASK: -  |  BID: -  |  SPREAD: -");
+
+    orderBooksTable = new QTableWidget(m_widget);
+    orderBooksTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     orderBooksTable->setColumnCount(2);
     orderBooksTable->setHorizontalHeaderLabels({"Price", "Size"});
     
@@ -108,32 +57,12 @@ void ViewerOrderBooks::setupOrderBooksTable() {
         "}"
     );
     
-    containerLayout->addWidget(lblSpread);
-    containerLayout->addWidget(orderBooksTable);
+    mainLayout->addWidget(lblSpread);
+    mainLayout->addWidget(orderBooksTable);
     
-    stackWidgets->addWidget(tableContainer);
 }
 
-void ViewerOrderBooks::setupMessage() {
-    lblMessage = new QLabel(this);
-
-    lblMessage->setStyleSheet(
-        "border-radius: 3px;"
-        "qproperty-alignment: AlignCenter;"
-        "qproperty-wordWrap: true;"
-    );
-
-    QFont spreadFont = lblMessage->font();
-    spreadFont.setPointSize(9);
-    spreadFont.setBold(true);
-    lblMessage->setFont(spreadFont);
-
-    lblMessage->setText("You need to use the books channels");
-
-    stackWidgets->addWidget(lblMessage);
-}
-
-void ViewerOrderBooks::updateSpread(double bestAsk, double bestBid) {
+void OrderBooksWidget::updateSpread(double bestAsk, double bestBid) {
     double spread = bestAsk - bestBid;
     QString spreadText = QString("ASK: %1  |  BID: %2  |  SPREAD: %3")
                         .arg(bestAsk, 0, 'f', 2)
@@ -143,7 +72,7 @@ void ViewerOrderBooks::updateSpread(double bestAsk, double bestBid) {
     lblSpread->setText(spreadText);
 }
 
-void ViewerOrderBooks::updateAsks(const QList<WebSocketParser::Ask>& asks, double mxSize) {
+void OrderBooksWidget::updateAsks(const QList<Engine::Ask>& asks, double mxSize) {
     for (int i = 0; i < asks.size(); ++i) {
         int row = orderBooksTable->rowCount();
         orderBooksTable->insertRow(row);
@@ -178,7 +107,7 @@ void ViewerOrderBooks::updateAsks(const QList<WebSocketParser::Ask>& asks, doubl
     }
 }
 
-void ViewerOrderBooks::updateBids(const QList<WebSocketParser::Bid>& bids, double mxSize) {
+void OrderBooksWidget::updateBids(const QList<Engine::Bid>& bids, double mxSize) {
     for (int i = 0; i < bids.size(); ++i) {
         int row = orderBooksTable->rowCount();
         orderBooksTable->insertRow(row);
@@ -213,10 +142,7 @@ void ViewerOrderBooks::updateBids(const QList<WebSocketParser::Bid>& bids, doubl
     }
 }
 
-void ViewerOrderBooks::updateDisplay(const QList<WebSocketParser::Ask>& asks, const QList<WebSocketParser::Bid>& bids) {
-    if (!m_hasChannel)
-        return;
-
+void OrderBooksWidget::updateDisplay(const QList<Engine::Ask>& asks, const QList<Engine::Bid>& bids) {
     orderBooksTable->setRowCount(0);
 
     if (!asks.isEmpty() && !bids.isEmpty())

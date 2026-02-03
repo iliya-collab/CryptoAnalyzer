@@ -1,5 +1,5 @@
 #include "Parser/Scanner.hpp"
-#include "Parser/RegisterParsers.hpp"
+/*#include "Parser/RegisterParsers.hpp"
 #include "Parser/WebSocketParserBuilder.hpp"
 
 #include <memory>
@@ -80,4 +80,4 @@ void Scanner::updateTicker(const WebSocketParser::stTicker& _ticker){
 
 void Scanner::updateOrderBooks(const WebSocketParser::stOrderBooks& _orderBooks) {
     emit orderBooks(_orderBooks);
-}
+}*/

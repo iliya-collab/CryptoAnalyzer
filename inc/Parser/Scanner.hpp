@@ -2,7 +2,7 @@
 
 #include "Configs/PlatformConfig.hpp"
 
-#include "Parser/WebSocketParser.hpp"
+/*#include "Parser/WebSocketParser.hpp"
 #include "Parser/RegisterParsers.hpp"
 
 class Scanner : public QObject {
@@ -40,4 +40,4 @@ signals:
     void ticker(const WebSocketParser::stTicker& _ticker);
     void orderBooks(const WebSocketParser::stOrderBooks& _orderBooks);
 
-};
+};*/

@@ -1,13 +1,11 @@
-#include "Parser/BybitParser.hpp"
+#include "Engine/BybitWebSocket.hpp"
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <optional>
 
-//https://chat.deepseek.com/share/qpzt4nu5edyvbmz7ok
-
-std::expected<QUrl, QString> BybitParser::getURLMarketData() {
+/*std::expected<QUrl, QString> Engine::BybitWebSocket::getURLMarketData() {
     switch (t_market) {
         case TMarketData::SPOT:
             return QUrl("wss://stream.bybit.com/v5/public/spot");
@@ -16,13 +14,9 @@ std::expected<QUrl, QString> BybitParser::getURLMarketData() {
         default:
             return std::unexpected(QString("The name is incorrect : %1").arg(nameMarket));
     }
-}
+}*/
 
-QString BybitParser::formatCoin(const QString& coin) {
-    return coin;
-}
-
-void BybitParser::messageReceived(const QJsonObject &obj) {
+void Engine::BybitWebSocket::messageReceived(const QJsonObject &obj) {
     if (obj.contains("topic")) {
         QString channel = obj["topic"].toString();
         if (channel.startsWith("tickers."))
@@ -32,17 +26,16 @@ void BybitParser::messageReceived(const QJsonObject &obj) {
     }
 }
 
-void BybitParser::updateTicker(const QJsonObject &json) {
-    //qDebug() << QJsonDocument(json).toJson(QJsonDocument::Compact);
+void Engine::BybitWebSocket::updateTicker(const QJsonObject &json) {
     if (!json.contains("data") || !json["data"].isObject())
         return;
         
     QJsonObject data = json["data"].toObject();
-    QString coin = formatCoin(data["symbol"].toString());
+    QString coin = data["symbol"].toString();
 
     stTicker ticker = {};
 
-    ticker.namePair = QString("%1:%2").arg(getNameMarket()).arg(coin);
+    ticker.namePair = coin;
 
     if (data.contains("lastPrice"))
         ticker.curPrice = data["lastPrice"].toString().toDouble();
@@ -69,16 +62,16 @@ void BybitParser::updateTicker(const QJsonObject &json) {
     emit updatedTicker(ticker);
 }
 
-void BybitParser::updateOrderBooks(const QJsonObject &json) {
+void Engine::BybitWebSocket::updateOrderBooks(const QJsonObject &json) {
     if (!json.contains("data") || !json["data"].isObject())
         return;
         
     QJsonObject data = json["data"].toObject();
-    QString coin = formatCoin(data["symbol"].toString());
+    QString coin = data["symbol"].toString();
 
     stOrderBooks order_books = {};
 
-    order_books.namePair = QString("%1:%2").arg(getNameMarket()).arg(coin);
+    order_books.namePair = coin;
     
     QJsonArray bidsArray = data.value("b").toArray();
     for (int i = 0; i < bidsArray.size() && i < MAX_DEPTH_BOOKS; i++) {
@@ -114,7 +107,7 @@ void BybitParser::updateOrderBooks(const QJsonObject &json) {
     emit updatedOrderBooks(order_books);
 }
 
-void BybitParser::sendSubscriptionMessage(const QStringList &streams) {
+void Engine::BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
         QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
@@ -133,7 +126,7 @@ void BybitParser::sendSubscriptionMessage(const QStringList &streams) {
     }
 }
 
-void BybitParser::sendUnsubscriptionMessage(const QStringList &streams) {
+void Engine::BybitWebSocket::sendUnsubscriptionMessage(const QStringList &streams) {
     for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
         QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
@@ -153,12 +146,12 @@ void BybitParser::sendUnsubscriptionMessage(const QStringList &streams) {
 
 }
 
-QString BybitParser::tickerStream(const QString &coin) {
+QString Engine::BybitWebSocket::tickerStream(const QString &coin) {
     QString _coin = coin;
     return QString("tickers.%1").arg(_coin.replace("/", "").toUpper());
 }
 
-QString BybitParser::orderBooksStream(const QString &coin) {
+QString Engine::BybitWebSocket::orderBooksStream(const QString &coin) {
     QString _coin = coin;
     return QString("orderbook.50.%1").arg(_coin.replace("/", "").toUpper());
 }

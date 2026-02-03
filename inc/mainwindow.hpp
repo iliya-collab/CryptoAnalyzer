@@ -8,15 +8,17 @@
 #include <QAction>
 #include <QMessageBox>
 
-#include <QRadioButton>
-#include <QButtonGroup>
+#include <QStackedWidget>
 
 #include "Managers/Settings.hpp"
 
-#include "Parser/Scanner.hpp"
-#include "CustomWindowDialogs/ViewerOrderBooksController.hpp"
+//#include "Parser/Scanner.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "CustomWindowDialogs/DebugMonitor.hpp"
+
+#include "CustomWidgets/OrderBooksWidget.hpp"
+#include "CustomWidgets/MarketsWidget.hpp"
+#include "CustomWidgets/CoinsWidget.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -32,6 +34,8 @@ private:
     QWidget* mainWindow;
     QVBoxLayout* mainLayout;
 
+    QStackedWidget* stackWidgets;
+
     std::unique_ptr<DebugMonitor> debug;
 
     std::unique_ptr<DialogSetupMenu> DSetupMenu;
@@ -39,20 +43,12 @@ private:
     QAction* actionSaveSetup;
     QAction* actionDefaultReset;
 
-    std::unique_ptr<Scanner> m_scanner;
-    
-    enum IDButtons {
-        IdRadioSpotMarket,
-        IdRadioFuturesMarket
-    };
+    //std::unique_ptr<Scanner> m_scanner;
 
-    QButtonGroup* groupMarkets;
-    QWidget* createWidgetMenuMarket();
+    MarketsWidget* markets;
+    CoinsWidget* coins;
+    OrderBooksWidget* orderBooks;
 
-    QComboBox* comboCoins;
-    QWidget* createWidgetMenuCoins();
-
-    std::unique_ptr<ViewerOrderBooksController> m_crtl_ord_books;
     QAction* actionOrderBooks;
     QAction* actionTicker;
 
@@ -61,6 +57,8 @@ private:
 
     void createMenu();
     void createUI();
+
+    void setupPages();
 
 private slots:
 
