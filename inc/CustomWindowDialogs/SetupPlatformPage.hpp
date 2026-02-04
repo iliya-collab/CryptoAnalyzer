@@ -3,10 +3,7 @@
 #include "SetupPage.hpp"
 #include "Configs/PlatformConfig.hpp"
 
-#include <QLineEdit>
 #include <QTextEdit>
-#include <QCheckBox>
-#include <QPushButton>
 
 class SetupPlatformPage : public SetupPage {
 private:
@@ -22,6 +19,5 @@ public:
     void createPage() override;
 
     void readConfig() override;
-
-
+    
 };

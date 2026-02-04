@@ -5,12 +5,12 @@ void SetupPlatformPage::createPage() {
 
     editCoinsPairs = new QTextEdit(this);
 
-    for (auto i : curConfig.pairs)
-        editCoinsPairs->append(i);
+    /*for (auto i : curConfig.pairs)
+        editCoinsPairs->append(i);*/
 ;
     layout->addWidget(editCoinsPairs);
 }
 
 void SetupPlatformPage::readConfig() {
-    curConfig.pairs = editCoinsPairs->toPlainText().split('\n');
+    //curConfig.pairs = editCoinsPairs->toPlainText().split('\n');
 }

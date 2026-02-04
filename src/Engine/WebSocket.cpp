@@ -90,78 +90,39 @@ void Engine::WebSocket::disconnectFromStream() {
         pingTimer->stop();
 
     if (webSocket && webSocket->state() != QAbstractSocket::UnconnectedState) {
-        unsubscribeAllCoins();
+        unsubscribeFromCoin(subscribedCoin);
         webSocket->close();
         webSocket->abort();
     }
 }
 
-void Engine::WebSocket::subscribeToCoins(const QStringList &coins) {
+void Engine::WebSocket::subscribeToCoin(const QString& coin) {
     QWriteLocker locker(&dataLock);
-
-    if (coins.isEmpty())
-        return;
-
-    for (const QString& coin : coins) {
-        subscribedCoins.insert(coin.toUpper());
-        usedStreams.insert(tickerStream(coin));
-        usedStreams.insert(orderBooksStream(coin));
-    }
-
+    subscribedCoin = coin;
+    usedStreams.insert(tickerStream(coin));
+    usedStreams.insert(orderBooksStream(coin));
     locker.unlock();
 
     if (isConnected())
         sendSubscriptionMessage(usedStreams.values());
 }
 
-void Engine::WebSocket::unsubscribeFromCoins(const QStringList &coins) {
-    if (coins.isEmpty())
-        return;
-
+void Engine::WebSocket::unsubscribeFromCoin(const QString& coin) {
     QStringList streamsToUnsubscribe;
     QWriteLocker locker(&dataLock);
 
-    for (const QString& coin : coins) {
-        QString coinUpper = coin.toUpper();
-        if (subscribedCoins.contains(coinUpper)) {
-            subscribedCoins.remove(coinUpper);
+    QString stream = tickerStream(coin);
+    usedStreams.remove(stream);
+    streamsToUnsubscribe.append(stream);
 
-            QString stream = tickerStream(coin);
-            usedStreams.remove(stream);
-            streamsToUnsubscribe.append(stream);
+    stream = orderBooksStream(coin);
+    usedStreams.remove(stream);
+    streamsToUnsubscribe.append(stream);
 
-            stream = orderBooksStream(coin);
-            usedStreams.remove(stream);
-            streamsToUnsubscribe.append(stream);
-        }
-    }
     locker.unlock();
 
     if (isConnected() && !streamsToUnsubscribe.isEmpty())
         sendUnsubscriptionMessage(streamsToUnsubscribe);
-}
-
-void Engine::WebSocket::unsubscribeAllCoins() {
-    QWriteLocker locker(&dataLock);
-
-    if (usedStreams.isEmpty())
-        return;
-
-    QStringList listUsedStreams = usedStreams.values();
-
-    subscribedCoins.clear();
-    usedStreams.clear();
-
-    locker.unlock();
-
-
-    if (isConnected())
-        sendUnsubscriptionMessage(listUsedStreams);
-}
-
-QStringList Engine::WebSocket::getSubscribedCoins() {
-    QReadLocker locker(&dataLock);
-    return subscribedCoins.values();
 }
 
 bool Engine::WebSocket::isConnected() const {
@@ -184,7 +145,7 @@ void Engine::WebSocket::onConnected() {
 }
 
 void Engine::WebSocket::onTextMessageReceived(const QString &message) {
-    qDebug() << "ID : " << uniqueId << " Received : " << message;
+    //qDebug() << "ID : " << uniqueId << " Received : " << message;
     auto jsonObj = parseTextMessage(message);
     if (jsonObj.has_value()) {
         messageReceived(jsonObj.value());

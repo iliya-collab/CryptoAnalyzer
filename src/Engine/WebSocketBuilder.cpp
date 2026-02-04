@@ -3,6 +3,9 @@
 class BybitMarketBuilder : public Engine::WebSocketBuilder {
 public:
     BybitMarketBuilder(const QString& Market) {
+        if (m_webSocket)
+            m_webSocket.reset();
+            
         if (Market == "spot")
             m_webSocket = std::make_unique<Engine::BybitWebSocketSpot>();
         else if (Market == "futures")
@@ -17,5 +20,6 @@ Engine::WebSocket* Engine::WebSocketBuilder::get() {
 Engine::WebSocketBuilder* Engine::WebSocketBuilder::create(const QString& StockMarket, const QString& Market) {
     if (StockMarket == "Bybit")
         return new BybitMarketBuilder(Market);
+        
     return nullptr;
 }

@@ -8,6 +8,7 @@
 #include <QVBoxLayout>
 
 class CoinsWidget : public CustomWidget {
+    Q_OBJECT
 private:
 
     QStandardItemModel* model;
@@ -17,10 +18,17 @@ private:
 
     void setupWidget() override;
 
+private slots:
+
+    void selectedItem(const QModelIndex &index);
+
 public:
 
     void setList(const QStringList& _lst);
 
     explicit CoinsWidget(QWidget* parent = nullptr);
+
+signals:
+    void selected(const QString& item);
 
 };

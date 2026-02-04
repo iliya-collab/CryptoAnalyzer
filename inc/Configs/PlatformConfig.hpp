@@ -2,8 +2,13 @@
 
 #include "Configs/ConfigObject.hpp"
 
+struct APIKey {
+    QString api_key;
+    QString secret_key;
+};
+
 struct ParamsPlatformConfig {
-    QList<QString> pairs;
+    QHash<QString, APIKey> keys;
 };
 
 
@@ -18,10 +23,6 @@ public:
 
     QJsonObject toJson() override;
 
-    void setDefaultConfig() override;
-
     void fromJson(const QJsonObject& obj) override;
-
-    std::expected<QJsonObject, QString> isJsonObjectValid(const QJsonObject& obj) override;
 
 };

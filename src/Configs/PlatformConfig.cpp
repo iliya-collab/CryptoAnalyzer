@@ -3,27 +3,33 @@
 #include <QDebug>
 
 QJsonObject PlatformConfig::toJson() {
-    QJsonObject scanner;
+    QJsonObject platform;
 
-    QJsonArray arrPairs;
-    for (auto i : _config.pairs)
-        arrPairs.append(i);
-    scanner["Pairs"] = arrPairs;
+    QJsonObject objKeys;
+    for (auto [name, key] : _config.keys.asKeyValueRange()) {
+        QJsonObject objAPIKey;
+        objAPIKey["api_key"] = key.api_key;
+        objAPIKey["secret_key"] = key.secret_key;
+        objKeys[name] = objAPIKey;
+    }
+    platform["Keys"] = objKeys;
 
-    return scanner;
-}
-
-void PlatformConfig::setDefaultConfig() {
-    _config.pairs = { "BTCUSDT" };
+    return platform;
 }
 
 void PlatformConfig::fromJson(const QJsonObject& obj) {
-    QJsonArray arrPairs = obj.value("Pairs").toArray();
-    _config.pairs.clear();
-    for (int i = 0; i < arrPairs.size(); i++)
-        _config.pairs.append(arrPairs[i].toString());
-}
+    QJsonObject objKeys = obj.value("Keys").toObject();
 
-std::expected<QJsonObject, QString> PlatformConfig::isJsonObjectValid(const QJsonObject& obj) {
-    return obj;
+    _config.keys.clear();
+    for (auto it = objKeys.begin(); it != objKeys.end(); ++it) {
+        QString name = it.key();
+        
+        QJsonObject objAPIKey = it.value().toObject();
+        QString api_key = objAPIKey.value("api_key").toString();
+        QString secret_key = objAPIKey.value("secret_key").toString();
+
+        _config.keys[name] = {api_key, secret_key};
+
+        qDebug().noquote() << QString("The key '%1' has been detected\n\tapi_key : %2\n\tsecret_key : %3").arg(name).arg(api_key).arg(secret_key);
+    }
 }

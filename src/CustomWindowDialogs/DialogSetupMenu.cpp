@@ -26,15 +26,24 @@ void DialogSetupMenu::setupUI() {
     pagesWidget = new QStackedWidget(this);
 
     setup_platform_page = new SetupPlatformPage(this);
+    setup_api_key_page = new SetupAPIKeyPage(this);
+
     setup_platform_page->createPage();
+    setup_api_key_page->createPage();
 
 
     pagesWidget->addWidget(setup_platform_page->getPage());
+    pagesWidget->addWidget(setup_api_key_page->getPage());
 
-    QListWidgetItem* scanerButton = new QListWidgetItem(contentsWidget);
-    scanerButton->setText("Scaner");
-    scanerButton->setTextAlignment(Qt::AlignHCenter);
-    scanerButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    QListWidgetItem* platformButton = new QListWidgetItem(contentsWidget);
+    platformButton->setText("Platform");
+    platformButton->setTextAlignment(Qt::AlignHCenter);
+    platformButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+
+    QListWidgetItem* APIKeyButton = new QListWidgetItem(contentsWidget);
+    APIKeyButton->setText("API");
+    APIKeyButton->setTextAlignment(Qt::AlignHCenter);
+    APIKeyButton->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
 
     applyButton = new QPushButton("Apply");
     applyButton->setAutoDefault(false);
@@ -51,7 +60,6 @@ void DialogSetupMenu::setupUI() {
 
     mainLayout = new QHBoxLayout(this);
     mainLayout->addWidget(contentsWidget);
-    //mainLayout->addWidget(pagesWidget, 1);
     mainLayout->addLayout(rightLayout);
 
     contentsWidget->setCurrentRow(0);
@@ -64,6 +72,7 @@ void DialogSetupMenu::connectionSignals() {
 
 void DialogSetupMenu::onClickedButtonApply() {
     setup_platform_page->readConfig();
+    setup_api_key_page->readConfig();
 }
 
 

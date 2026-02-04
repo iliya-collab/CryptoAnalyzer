@@ -10,23 +10,14 @@
 
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    setWindowTitle("ByBit Trading Platform");
+    setWindowTitle("ByBit Platform");
     resize(800, 600);
 
     setupUI();
     connectionSignals();
 
-    debug = std::make_unique<DebugMonitor>(this);
-    debug->show();
-
-    qDebug() << "--- Reading the platform configuration ---";
-    if (!Settings::readAllConfig())
-        qDebug() << Settings::getLastError();
-    qDebug() << "--- Configuration reading is completed ---";
-
-    //m_scanner = std::make_unique<Scanner>();
-    //m_scanner->setConfig(PlatformConfig::instance().getConfig());
-
+    app_engine.initEngine("Bybit", "spot", "BTC/USDT");
+    app_engine.runWebSocket();
 }
 
 void MainWindow::setupUI() {
@@ -37,7 +28,12 @@ void MainWindow::setupUI() {
 void MainWindow::connectionSignals() {
     connect(actionSetupMenu, &QAction::triggered, this, &MainWindow::onSetupMenuActivated);
     connect(actionSaveSetup, &QAction::triggered, this, &MainWindow::onSaveSetupActivated);
-    connect(actionDefaultReset, &QAction::triggered, this, &MainWindow::onDefaultResetActivated);
+
+    connect(coins, &CoinsWidget::selected, this, [this] (const QString& coin) {
+        app_engine.stopWebSocket();
+        app_engine.changeCoin(coin);
+        app_engine.runWebSocket();
+    });
 
     connect(actionOrderBooks, &QAction::triggered, this, [this]() {
         stackWidgets->setCurrentWidget(orderBooks);
@@ -50,8 +46,6 @@ void MainWindow::createMenu() {
     QMenu* menuSetup = menuBar->addMenu("Settings");
     actionSetupMenu = new QAction("Setup", this);
     menuSetup->addAction(actionSetupMenu);
-    actionDefaultReset = new QAction("Default Reset", this);
-    menuSetup->addAction(actionDefaultReset);
     actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(actionSaveSetup);
     
@@ -60,6 +54,7 @@ void MainWindow::createMenu() {
     markets = new MarketsWidget(this);
     marketAction->setDefaultWidget(markets->widget());    
     menuMarket->addAction(marketAction);
+    markets->setAttribute(Qt::WA_TransparentForMouseEvents, true);
 
     QMenu* menuCoins = menuBar->addMenu("Coins");
     QWidgetAction* coinsAction = new QWidgetAction(this);
@@ -76,6 +71,7 @@ void MainWindow::createMenu() {
     coins->setList(coinsData);
     coinsAction->setDefaultWidget(coins->widget());    
     menuCoins->addAction(coinsAction);
+    coins->setAttribute(Qt::WA_TransparentForMouseEvents, true);
 
     QMenu* menuMonitoring = menuBar->addMenu("Monitoring");
     actionTicker = new QAction("Ticker", this);
@@ -91,7 +87,6 @@ void MainWindow::createUI() {
 
     stackWidgets = new QStackedWidget(this);
     stackWidgets->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    //stackWidgets->setStyleSheet("QStackedWidget { background-color: #f0f0f0; border: 1px solid red; }");
     setupPages();
 
     mainLayout = new QVBoxLayout(mainWindow);
@@ -112,8 +107,4 @@ void MainWindow::onSetupMenuActivated() {
 
 void MainWindow::onSaveSetupActivated() {
     Settings::writeAllConfig();
-}
-
-void MainWindow::onDefaultResetActivated() {
-    PlatformConfig::instance().setDefaultConfig();
 }

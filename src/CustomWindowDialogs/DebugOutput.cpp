@@ -19,8 +19,27 @@ DebugOutput* DebugOutput::instance() {
 void DebugOutput::setTextEdit(QTextEdit *textEdit) {
     m_textEdit = textEdit;
     
+     if (m_textEdit) {
+        // Важные настройки
+        m_textEdit->setAcceptRichText(false);  // Используем plain text
+        m_textEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        m_textEdit->setLineWrapMode(QTextEdit::WidgetWidth);
+        
+        // Установить моноширинный шрифт
+        QFont font("Monospace", 9);
+        font.setStyleHint(QFont::TypeWriter);
+        m_textEdit->setFont(font);
+        
+        // Настроить табуляцию
+        m_textEdit->setTabStopDistance(40);  // 40 пикселей
+        
+        // Остальные настройки
+        m_textEdit->setReadOnly(true);
+        m_textEdit->setUndoRedoEnabled(false);
+    }
+
     connect(this, &DebugOutput::newMessage, this, [this](const QString &message, int type) {
-        if (!m_textEdit) return;
+        /*if (!m_textEdit) return;
         
         QString color;
         switch (type) {
@@ -32,13 +51,41 @@ void DebugOutput::setTextEdit(QTextEdit *textEdit) {
             default: color = "black"; break;
         }
         
-        /*QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss");
+        QString htmlMessage = message.toHtmlEscaped()
+            .replace("\n", "<br>")
+            .replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
+
+        QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss");
         QString html = QString("<span style='color:%1'>[%2] %3</span><br>")
-                          .arg(color, timestamp, message.toHtmlEscaped());*/
+                          .arg(color, timestamp, htmlMessage);
         
-        QString html = QString("<span style='color:%1'> %2</span><br>").arg(color, message.toHtmlEscaped());
+        //QString html = QString("<span style='color:%1'> %2</span><br>").arg(color, message.toHtmlEscaped());
         m_textEdit->append(html);
         
+        QScrollBar *scrollBar = m_textEdit->verticalScrollBar();
+        scrollBar->setValue(scrollBar->maximum());*/
+        if (!m_textEdit) return;
+
+        QColor color;
+        switch (type) {
+            case QtDebugMsg: color = Qt::gray; break;
+            case QtInfoMsg: color = Qt::blue; break;
+            case QtWarningMsg: color = QColor(255, 165, 0); break;
+            case QtCriticalMsg: color = Qt::red; break;
+            case QtFatalMsg: color = Qt::darkRed; break;
+            default: color = Qt::black; break;
+        }
+
+        QString timestamp = QDateTime::currentDateTime().toString("HH:mm:ss");
+        QString formattedMessage = QString("[%1] %2\n").arg(timestamp, message);
+
+        QTextCharFormat format;
+        format.setForeground(color);
+
+        QTextCursor cursor(m_textEdit->document());
+        cursor.movePosition(QTextCursor::End);
+        cursor.insertText(formattedMessage, format);
+
         QScrollBar *scrollBar = m_textEdit->verticalScrollBar();
         scrollBar->setValue(scrollBar->maximum());
     });

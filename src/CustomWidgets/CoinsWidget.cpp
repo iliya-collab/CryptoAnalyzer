@@ -12,6 +12,12 @@ void CoinsWidget::setList(const QStringList& _lst) {
     }
 }
 
+void CoinsWidget::selectedItem(const QModelIndex &index) {
+    QString selectedCoin = index.data().toString();
+    qDebug() << "Selected:" << selectedCoin;
+    emit selected(selectedCoin);
+}
+
 void CoinsWidget::setupWidget() {
     model = new QStandardItemModel(m_widget);
 
@@ -25,27 +31,7 @@ void CoinsWidget::setupWidget() {
     listCoins->setMaximumHeight(300);
     listCoins->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-    connect(listCoins, &QListView::clicked, this, [this](const QModelIndex &index){
-        QString selectedCoin = index.data().toString();
-        qDebug() << "Selected:" << selectedCoin;
-    });
-
-    listCoins->setStyleSheet(R"(
-        QListView {
-            border: 1px solid #4a4a4a;
-            border-radius: 4px;
-            outline: none;
-            font-size: 10px;
-        }
-        QListView::item {
-            color: #ffffff;
-            padding: 8px;
-        }
-        QListView::item:selected {
-            background-color: #4a6fa5;
-            color: white;
-        }
-    )");
+    connect(listCoins, &QListView::clicked, this, &CoinsWidget::selectedItem);
 
     mainLayout = new QVBoxLayout(m_widget);
     mainLayout->setSpacing(0);

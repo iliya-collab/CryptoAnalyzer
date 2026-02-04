@@ -10,9 +10,6 @@ public:
 
     SetupPage(QWidget* parent = nullptr) : QWidget(parent) {}
 
-    SetupPage(const SetupPage&) = delete;
-    SetupPage& operator=(const SetupPage&) = delete;
-
     virtual void createPage() = 0;
     virtual void readConfig() = 0;
 

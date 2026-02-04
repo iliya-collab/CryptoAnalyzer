@@ -6,10 +6,6 @@ QJsonObject Settings::root = {};
 QString Settings::l_error = "";
 const char* Settings::configFile = "platform.json";
 
-void Settings::getDefaultConfig() {
-    PlatformConfig::instance().setDefaultConfig();
-}
-
 bool Settings::readAllConfig() {
     QJsonDocument doc;
     auto exp = JsonManager::readDocument(configFile);

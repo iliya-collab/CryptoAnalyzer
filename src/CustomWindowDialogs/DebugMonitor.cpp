@@ -2,7 +2,8 @@
 
 DebugMonitor::DebugMonitor(QWidget* parent) : IDialog(parent) {
     setWindowTitle("Debug");
-    resize(400, 300);
+    move(50, 50);
+    resize(600, 500);
 
     setupUI();
 

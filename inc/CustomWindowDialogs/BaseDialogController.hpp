@@ -53,7 +53,7 @@ protected:
     
     void onDialogFinished(int result) {
         Q_UNUSED(result);
-        m_dialog.release();
+        m_dialog.reset();
         m_dialog = nullptr;
         disconnect();
         emit dialogClosed();

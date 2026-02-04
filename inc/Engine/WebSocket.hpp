@@ -65,16 +65,17 @@ namespace Engine {
 
         QReadWriteLock dataLock;
 
-        QSet<QString> subscribedCoins;
+        // Подписываемая монета
+        QString subscribedCoin;
+        // Используемые каналы
         QSet<QString> usedStreams;
-
         // Адрес для подлючения
         QUrl Url;
         // Уникальный строковый индентификатор
         QString uniqueId;
 
         const int MAX_DEPTH_BOOKS = 50;                 // Максимальная глубина стакана ордеров 
-        const int MAX_STREAMS_PER_SUBSCRIPTION = 10;    // Максимальное число подписок/отписок в одном сообщении
+        const int MAX_STREAMS_PER_SUBSCRIPTION = 10;    // Максимальное кол-во каналов в 1ой подписке
         const int ACTIVE_PING_INTERVAL = 10000;         // каждые 10 с
         const int MIN_CHANGE_TIME = 200;                // каждые 200 мс
 
@@ -83,14 +84,11 @@ namespace Engine {
         explicit WebSocket(const QString& id, QObject* parent = nullptr);
         virtual ~WebSocket();
 
-        void subscribeToCoins(const QStringList &coins);
-        void unsubscribeFromCoins(const QStringList &coins);
-        void unsubscribeAllCoins();
+        void subscribeToCoin(const QString& coin);
+        void unsubscribeFromCoin(const QString& coin);
         void connectToStream();
         void disconnectFromStream();
         bool isConnected() const;
-
-        QStringList getSubscribedCoins();
 
     signals:
 

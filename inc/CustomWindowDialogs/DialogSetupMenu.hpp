@@ -3,6 +3,7 @@
 
 #include "CustomWindowDialogs/IDialog.hpp"
 #include "SetupPlatformPage.hpp"
+#include "SetupAPIKeyPage.hpp"
 
 #include <QListWidget>
 #include <QStackedWidget>
@@ -18,6 +19,7 @@ private:
     QPushButton* applyButton;
 
     SetupPlatformPage* setup_platform_page;
+    SetupAPIKeyPage* setup_api_key_page;
 
     QHBoxLayout* mainLayout;
 
