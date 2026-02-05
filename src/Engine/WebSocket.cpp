@@ -17,6 +17,10 @@ Engine::WebSocket::~WebSocket() {
     cleanup();
 }
 
+QString Engine::WebSocket::getUniqueID() {
+    return uniqueId;
+}
+
 void Engine::WebSocket::setupWebSocket() {
     QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
     sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
@@ -130,7 +134,7 @@ bool Engine::WebSocket::isConnected() const {
 }
 
 void Engine::WebSocket::onConnected() {
-    qDebug() << "ID : " << uniqueId << "Connected to WebSocket";
+    //qDebug() << "ID : " << uniqueId << "Connected to WebSocket";
     isConnecting = false;
     reconnectAttempts = 0;
 
@@ -156,7 +160,7 @@ void Engine::WebSocket::onTextMessageReceived(const QString &message) {
 }
 
 void Engine::WebSocket::onDisconnected() {
-    qDebug() << "ID : " << uniqueId << " Disconnected from WebSocket";
+    //qDebug() << "ID : " << uniqueId << " Disconnected from WebSocket";
     if (pingTimer && pingTimer->isActive())
         pingTimer->stop();
 
@@ -171,15 +175,14 @@ void Engine::WebSocket::onDisconnected() {
 
 void Engine::WebSocket::onError(QAbstractSocket::SocketError error) {
     isConnecting = false;
-    QString errorString = webSocket->errorString();
-    qDebug() << "ID : " << uniqueId << " WebSocket error:" << error << "-" << errorString;
-    emit errorOccurred(errorString);
+    //qDebug() << "ID : " << uniqueId << " WebSocket error:" << error << "-" << errorString;
+    emit errorOccurred(webSocket->errorString());
 }
 
 void Engine::WebSocket::onSslErrors(const QList<QSslError> &errors) {
-    qDebug() << "ID : " << uniqueId << " SSL errors occurred:";
-    for (const QSslError &error : errors)
-        qDebug() << " -" << error.errorString();
+    //qDebug() << "ID : " << uniqueId << " SSL errors occurred:";
+    /*for (const QSslError &error : errors)
+        qDebug() << " -" << error.errorString();*/
 
     webSocket->ignoreSslErrors();
 }

@@ -46,5 +46,6 @@ namespace Engine {
         SPOT,
         FUTURES
     };
+    
 
 } // namespace Engine

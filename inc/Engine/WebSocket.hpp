@@ -90,6 +90,8 @@ namespace Engine {
         void disconnectFromStream();
         bool isConnected() const;
 
+        QString getUniqueID();
+
     signals:
 
         void updatedTicker(const stTicker& _ticker);

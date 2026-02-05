@@ -16,8 +16,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupUI();
     connectionSignals();
 
-    app_engine.initEngine("Bybit", "spot", "BTC/USDT");
-    app_engine.runWebSocket();
+    /*app_engine.initEngine("Bybit", "spot", "BTC/USDT");
+    app_engine.runWebSocket();*/
 }
 
 void MainWindow::setupUI() {
@@ -30,9 +30,9 @@ void MainWindow::connectionSignals() {
     connect(actionSaveSetup, &QAction::triggered, this, &MainWindow::onSaveSetupActivated);
 
     connect(coins, &CoinsWidget::selected, this, [this] (const QString& coin) {
-        app_engine.stopWebSocket();
+        /*app_engine.stopWebSocket();
         app_engine.changeCoin(coin);
-        app_engine.runWebSocket();
+        app_engine.runWebSocket();*/
     });
 
     connect(actionOrderBooks, &QAction::triggered, this, [this]() {

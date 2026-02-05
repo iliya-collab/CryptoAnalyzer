@@ -5,6 +5,7 @@
 struct APIKey {
     QString api_key;
     QString secret_key;
+    bool testnet;
 };
 
 struct ParamsPlatformConfig {
