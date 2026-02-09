@@ -6,7 +6,7 @@
 #include <QComboBox>
 #include <QLabel>
 
-class SetupAPIKeyPage : public SetupPage {
+class SetupAPIPage : public SetupPage {
 private:
 
     QComboBox* select_key;
@@ -17,7 +17,7 @@ private:
 
 public:
 
-    SetupAPIKeyPage(QWidget* parent = nullptr) : SetupPage(parent), curConfig(PlatformConfig::instance().getConfig()) {}
+    SetupAPIPage(QWidget* parent = nullptr) : SetupPage(parent), curConfig(PlatformConfig::instance().getConfig()) {}
 
     void createPage() override;
 

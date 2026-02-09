@@ -4,7 +4,7 @@ CoinsWidget::CoinsWidget(QWidget* parent) : CustomWidget(parent) {
     setupWidget();
 }
 
-void CoinsWidget::setList(const QStringList& _lst) {
+void CoinsWidget::updateWidget(const QStringList& _lst) {
     model->clear();
     for (const QString& coin : _lst) {
         QStandardItem* item = new QStandardItem(coin);

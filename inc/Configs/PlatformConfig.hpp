@@ -1,15 +1,10 @@
 #pragma once
 
 #include "Configs/ConfigObject.hpp"
-
-struct APIKey {
-    QString api_key;
-    QString secret_key;
-    bool testnet;
-};
+#include "Engine/StdTypes.hpp"
 
 struct ParamsPlatformConfig {
-    QHash<QString, APIKey> keys;
+    QHash<QString, Engine::API> m_api;
 };
 
 

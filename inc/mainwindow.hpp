@@ -7,7 +7,6 @@
 #include <QAction>
 #include <QStackedWidget>
 
-#include "Managers/Settings.hpp"
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "CustomWidgets/OrderBooksWidget.hpp"
 #include "CustomWidgets/MarketsWidget.hpp"
@@ -21,39 +20,34 @@ class MainWindow : public QMainWindow
 public:
 
     ~MainWindow() = default;
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(std::unique_ptr<AppEngine> app_engine, QWidget *parent = nullptr);
 
 private:
 
-    QWidget* mainWindow;
-    QVBoxLayout* mainLayout;
+    QWidget* m_widgetMainWindow;
+    QVBoxLayout* m_mainLayout;
 
-    QStackedWidget* stackWidgets;
+    QStackedWidget* m_stackWidgets;
 
-    std::unique_ptr<DialogSetupMenu> DSetupMenu;
-    QAction* actionSetupMenu;
-    QAction* actionSaveSetup;
+    std::unique_ptr<DialogSetupMenu> m_setupMenu;
+    
+    MarketsWidget* m_widgetMarkets;
+    CoinsWidget* m_widgetCoins;
+    OrderBooksWidget* m_widgetOrderBooks;
+    
+    QAction* m_actionSetupMenu;
+    QAction* m_actionSaveSetup;
+    QAction* m_actionOrderBooks;
+    QAction* m_actionTicker;
 
-    MarketsWidget* markets;
-    CoinsWidget* coins;
-    OrderBooksWidget* orderBooks;
-
-    QAction* actionOrderBooks;
-    QAction* actionTicker;
-
-    AppEngine app_engine;
+    std::unique_ptr<AppEngine> m_engine;
 
     void setupUI();
-    void connectionSignals();
+    void setupConnection();
+    void setupEngine();
 
     void createMenu();
     void createUI();
-
-    void setupPages();
-
-private slots:
-
-    void onSetupMenuActivated();
-    void onSaveSetupActivated();
+    void createPages();
 
 };

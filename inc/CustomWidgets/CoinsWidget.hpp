@@ -24,7 +24,7 @@ private slots:
 
 public:
 
-    void setList(const QStringList& _lst);
+    void updateWidget(const QStringList& _lst);
 
     explicit CoinsWidget(QWidget* parent = nullptr);
 

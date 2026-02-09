@@ -26,14 +26,14 @@ void DialogSetupMenu::setupUI() {
     pagesWidget = new QStackedWidget(this);
 
     setup_platform_page = new SetupPlatformPage(this);
-    setup_api_key_page = new SetupAPIKeyPage(this);
+    setup_api_page = new SetupAPIPage(this);
 
     setup_platform_page->createPage();
-    setup_api_key_page->createPage();
+    setup_api_page->createPage();
 
 
     pagesWidget->addWidget(setup_platform_page->getPage());
-    pagesWidget->addWidget(setup_api_key_page->getPage());
+    pagesWidget->addWidget(setup_api_page->getPage());
 
     QListWidgetItem* platformButton = new QListWidgetItem(contentsWidget);
     platformButton->setText("Platform");
@@ -72,7 +72,7 @@ void DialogSetupMenu::connectionSignals() {
 
 void DialogSetupMenu::onClickedButtonApply() {
     setup_platform_page->readConfig();
-    setup_api_key_page->readConfig();
+    setup_api_page->readConfig();
 }
 
 

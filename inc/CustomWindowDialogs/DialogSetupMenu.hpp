@@ -1,9 +1,8 @@
-#ifndef DIALOG_SETUP_MENU_HPP
-#define DIALOG_SETUP_MENU_HPP
+#pragma once
 
 #include "CustomWindowDialogs/IDialog.hpp"
 #include "SetupPlatformPage.hpp"
-#include "SetupAPIKeyPage.hpp"
+#include "SetupAPIPage.hpp"
 
 #include <QListWidget>
 #include <QStackedWidget>
@@ -19,7 +18,7 @@ private:
     QPushButton* applyButton;
 
     SetupPlatformPage* setup_platform_page;
-    SetupAPIKeyPage* setup_api_key_page;
+    SetupAPIPage* setup_api_page;
 
     QHBoxLayout* mainLayout;
 
@@ -36,5 +35,3 @@ public:
     DialogSetupMenu(QWidget* parent = nullptr);
 
 };
-
-#endif

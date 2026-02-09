@@ -1,19 +1,19 @@
-#include "CustomWindowDialogs/SetupAPIKeyPage.hpp"
+#include "CustomWindowDialogs/SetupAPIPage.hpp"
 
-void SetupAPIKeyPage::createPage() {
+void SetupAPIPage::createPage() {
     QVBoxLayout* layout = new QVBoxLayout(this);
     select_key = new QComboBox(this);
-    select_key->addItems(curConfig.keys.keys());
+    select_key->addItems(curConfig.m_api.keys());
 
     QHBoxLayout* row1 = new QHBoxLayout;
     QLabel* lblAPIKey = new QLabel("API Key : ", this);
-    api_key = new QLabel(curConfig.keys.value(select_key->currentText()).api_key, this);
+    api_key = new QLabel(curConfig.m_api.value(select_key->currentText()).api_key, this);
     row1->addWidget(lblAPIKey);
     row1->addWidget(api_key);
 
     QHBoxLayout* row2 = new QHBoxLayout;
     QLabel* lblSecretKey = new QLabel("Secret Key : ", this);
-    secret_key = new QLabel(curConfig.keys.value(select_key->currentText()).secret_key, this);
+    secret_key = new QLabel(curConfig.m_api.value(select_key->currentText()).secret_key, this);
     row2->addWidget(lblSecretKey);
     row2->addWidget(secret_key);
 
@@ -23,5 +23,5 @@ void SetupAPIKeyPage::createPage() {
     layout->addStretch();
 }
 
-void SetupAPIKeyPage::readConfig() {
+void SetupAPIPage::readConfig() {
 }

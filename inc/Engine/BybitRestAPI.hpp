@@ -1,21 +1,16 @@
 #pragma once
 
-#include <QObject>
-#include <QNetworkAccessManager>
+#include "Engine/IRestAPI.hpp"
+
 #include <QNetworkRequest>
 #include <QNetworkReply>
-#include <QUrlQuery>
-
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include <expected>
-
-//https://chat.deepseek.com/share/9a3hp7aq92yfyt61wa
 
 namespace Engine {
     
-    class BybitRestAPI : public QObject {
+    class BybitRestAPI : public IRestAPI {
         Q_OBJECT
     private:
 
@@ -26,31 +21,19 @@ namespace Engine {
             QString X_BAPI_RECV_WINDOW;
         };
 
-        QNetworkAccessManager* m_manager;
+        API m_api;
 
-        std::expected<QJsonObject, QString> m_reply;
-
-        QString m_api_key;
-        QString m_secret_key;
-        bool m_testnet;
-
-        QString m_baseEndpoint;
-        
-        QString generateSignature(const QString& timestamp, const QString& recv_window, const QString& params = "");
+        QString generateSignature(const QString& timestamp, const QString& recv_window, const QString& queryString = "");
         void initBaseEndpoint();
-        APIHeaders initAPIHeaders(const QString& params = "");
-
-        std::expected<QJsonObject, QString> onRequestFinished(QNetworkReply* reply);
+        APIHeaders initAPIHeaders(const QString& queryString = "");
 
     public:
 
-        BybitRestAPI(const QString& apiKey, const QString& secretKey, bool testNet, QObject* parent = nullptr);
+        BybitRestAPI(const API& api, QObject* parent = nullptr);
         ~BybitRestAPI() = default;
 
-        void requestEndpoint(const QString& endpoint, const QString& params = "");
+        void requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) override;
 
-        std::expected<QJsonObject, QString> getReply();
-        
     };
     
 } // namespace Engine
