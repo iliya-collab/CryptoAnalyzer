@@ -18,27 +18,11 @@ namespace Engine {
         QNetworkAccessManager* m_manager;
         QString m_baseEndpoint;
 
-        void handleResponse() {
-            QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-
-            if (!reply) 
-                return;
-            
-            if (reply->error() == QNetworkReply::NoError) {
-                QByteArray response = reply->readAll();
-                QJsonDocument doc = QJsonDocument::fromJson(response);
-                if (!doc.isNull()) 
-                    emit dataReceived(doc.object());
-                else
-                    emit errorOccurred("Failed to parse JSON response");
-            }
-            else
-                emit errorOccurred(reply->errorString());
-            
-            reply->deleteLater();
-        }
+        void handleResponse();
 
     public:
+
+        static const qint64 TIMEOUT_REQUEST;
 
         IRestAPI(QObject* parent = nullptr) : QObject(parent) {
             m_manager = new QNetworkAccessManager(parent);

@@ -39,15 +39,50 @@ void MainWindow::setupConnection() {
     });
 }
 
+// https://chat.deepseek.com/share/ns4r93tvkt0h5z5rma
+
 void MainWindow::setupEngine() {
-    connect(m_engine.get(), &AppEngine::spotReady, this, [this] (const QStringList& coins) {
+    connect(m_engine.get(), &AppEngine::error, this, [this] (const QString& error) {
+        qCritical().noquote() << QString("AppEngine::errorEngine : %1").arg(error);
+    });
+
+    connect(m_engine.get(), &AppEngine::tradingPairsReady, this, [this] (Engine::TMarketData market, const QStringList& coins) {
+        QString category;
+        switch (market)
+        {
+        case Engine::TMarketData::SPOT:
+            category = "spot";
+            break;
+        case Engine::TMarketData::LINEAR:
+            category = "linear";
+            break;
+        case Engine::TMarketData::INVERSE:
+            category = "inverse";
+            break;
+        case Engine::TMarketData::OPTION:
+            category = "option";
+            break;
+        }
+        qInfo().noquote() << QString("AppEngine::tradingPairsReady : %1 ready").arg(category);
+    });
+
+    connect(m_engine.get(), &AppEngine::infoAboutCoinsReady, this, [this] (const QHash<QString, Engine::InfoAboutCoin>& lstCoins) {
+        qDebug() << "AppEngine::infoAboutCoinsReady";
+    });
+    connect(m_engine.get(), &AppEngine::infoAboutIconsReady, this, [this] (const QHash<QString, QString>& icons) {
+        qDebug() << "AppEngine::infoAboutIconsReady";
+    });
+
+    m_engine->startSequentialDownload();
+
+    /*connect(m_engine.get(), &AppEngine::spotReady, this, [this] (const QStringList& coins) {
         qDebug() << "AppEngine::spotReady";
-        m_widgetCoins->updateWidget(coins);
+        m_widgetCoins->updateListCoins(coins);
         m_engine->getInfoAboutCoins();
     });
     connect(m_engine.get(), &AppEngine::futuresReady, this, [this] (const QStringList& coins) {
         qDebug() << "AppEngine::futuresReady";
-        m_widgetCoins->updateWidget(coins);
+        m_widgetCoins->updateListCoins(coins);
         m_engine->getInfoAboutCoins();
     });
 
@@ -59,7 +94,12 @@ void MainWindow::setupEngine() {
         m_engine->downloadAllIcons(icons);
     });
 
-    m_engine->getSpotTradingPairs();
+    connect(m_engine.get(), &AppEngine::iconsReady, this, [this] (const QHash<QString, QByteArray>& icons) {
+        qDebug() << "AppEngine::iconsReady";
+        m_widgetCoins->updateIcons(icons);
+    });
+
+    m_engine->getTradingPairs(Engine::TMarketData::SPOT);*/
 }
 
 void MainWindow::createMenu() {

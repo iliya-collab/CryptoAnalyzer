@@ -15,45 +15,26 @@
 
 class AppEngine : public QObject {
     Q_OBJECT
-public:
-    
-    struct EngineLaunchParams {
-        QString m_stockMarket;
-        QString m_market;
-        QString m_coin;
-    };
-
 private:
 
-    std::unique_ptr<Engine::WebSocket> m_webSocket = nullptr;
 
     Engine::API m_api;
-    EngineLaunchParams m_launch;
 
     QSet<QString> m_usedCoins;
 
-    void processSymbols(const QJsonObject& data);
+    QStringList processSymbols(const QJsonObject& data);
     void processInfoAboutCoins(const QJsonObject& data);
 
-public: 
+    void runSequentialLoading();
 
-    AppEngine(QObject* parent = nullptr) : QObject(parent) {}
-
-    void init();
-
-    void setAPI(const Engine::API& api);
-    void setLaunchParams(const EngineLaunchParams& launch);
+    void loadTradingPairsSync(Engine::TMarketData type);
+    void loadCoinsInfoSync();
 
 // ---------------------- Requests ----------------------
 
-
-    // Получает доступные торговые пары на споте
-    // Вызывает сигнал spotReady
-    void getSpotTradingPairs();
-
-    // Получает доступные контракты на фьючерсах
-    // Вызывает сигнал futuresReady
-    void getFuturesContracts();
+    // Получает доступные торговые пары на рынке
+    // Вызывает сигнал spotReady или futuresReady
+    void getTradingPairs(Engine::TMarketData market);
 
     // Получаем общую информацию о монетах (полное имя, описание, иконку)
     // Вызывает сигналы infoAboutCoinsReady и infoAboutIconsReady
@@ -65,13 +46,30 @@ public:
 
 // ------------------------------------------------------
 
+public: 
+
+    AppEngine(QObject* parent = nullptr) : QObject(parent) {}
+
+    void init();
+
+    void startSequentialDownload();
+
+    void setAPI(const Engine::API& api);
+
 signals:
 
-    void infoAboutCoinsReady(const QHash<QString, Engine::InfoAboutCoin>& lstCoins);
-    void infoAboutIconsReady(const QHash<QString, QString>& icons);
+    // Отслеживания прогресса
+    void progressChanged(int current, int total);
+    // Окончание загрузки данных
+    void finished();
+    // Сообщения об ошибках
+    void error(const QString& error);
 
+    void loaded();
+
+    void infoAboutIconsReady(const QHash<QString, QString>& icons);
+    void infoAboutCoinsReady(const QHash<QString, Engine::InfoAboutCoin>& lstCoins);
     void iconsReady(const QHash<QString, QByteArray>& icons);
-    void spotReady(const QStringList& pairs);
-    void futuresReady(const QStringList& contracts);
+    void tradingPairsReady(Engine::TMarketData market, const QStringList& pairs);
 
 };

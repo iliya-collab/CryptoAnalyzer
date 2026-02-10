@@ -42,7 +42,11 @@ void Engine::LocalHash::startNextDownload() {
     QString url = pendingDownloads[currentIndex];
     QString hash = generateHash(url);
     
-    const QString path = QString("%1/static/%2").arg(QDir::currentPath()).arg(hash);
+    const QString path = QString("%1/static/%2.hash").arg(QDir::currentPath()).arg(hash);
+
+    // Создание нужных директорий по пути
+    QString directoryPath = QFileInfo(path).path();
+    QDir().mkpath(directoryPath);
     
     QFile localFile(path);
     if (localFile.exists() && localFile.size() > 0) {

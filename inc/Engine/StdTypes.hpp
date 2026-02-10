@@ -42,9 +42,11 @@ namespace Engine {
         double spread;                  // Спред
     };
 
-    enum TMarketData {
-        SPOT,
-        FUTURES
+    enum class TMarketData {
+        SPOT,                           // Спотовый рынок
+        LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
+        INVERSE,                        // Инверсные фьючерсы
+        OPTION                          // Опционов
     };
     
     struct API {

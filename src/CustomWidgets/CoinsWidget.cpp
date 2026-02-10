@@ -4,12 +4,21 @@ CoinsWidget::CoinsWidget(QWidget* parent) : CustomWidget(parent) {
     setupWidget();
 }
 
-void CoinsWidget::updateWidget(const QStringList& _lst) {
-    model->clear();
-    for (const QString& coin : _lst) {
+void CoinsWidget::updateListCoins(const QStringList& lst) {
+    QStandardItemModel* currentModel = qobject_cast<QStandardItemModel*>(listCoins->model());
+
+    if (!currentModel)
+        return;
+
+    currentModel->clear();
+    for (const QString& coin : lst) {
         QStandardItem* item = new QStandardItem(coin);
-        model->appendRow(item);
+        currentModel->appendRow(item);
     }
+}
+
+void CoinsWidget::updateIcons(const QHash<QString, QByteArray>& icons) {
+
 }
 
 void CoinsWidget::selectedItem(const QModelIndex &index) {
@@ -19,9 +28,16 @@ void CoinsWidget::selectedItem(const QModelIndex &index) {
 }
 
 void CoinsWidget::setupWidget() {
-    model = new QStandardItemModel(m_widget);
+    QStandardItemModel* model = new QStandardItemModel(m_widget);
 
     listCoins = new QListView(m_widget);
+    listCoins->setViewMode(QListView::ListMode);
+    listCoins->setIconSize(QSize(64, 64));          // Размер иконок
+    //listCoins->setGridSize(QSize(80, 80));          // Размер ячейки
+    listCoins->setSpacing(10);                      // Расстояние между элементами
+    listCoins->setMovement(QListView::Static);      // Неподвижные элементы
+    listCoins->setResizeMode(QListView::Adjust);    // Автоматическая подгонка
+
     listCoins->setModel(model);
 
     listCoins->setSelectionMode(QAbstractItemView::SingleSelection);

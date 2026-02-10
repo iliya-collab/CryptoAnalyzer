@@ -11,7 +11,6 @@ class CoinsWidget : public CustomWidget {
     Q_OBJECT
 private:
 
-    QStandardItemModel* model;
     QListView* listCoins;
 
     QVBoxLayout* mainLayout;
@@ -24,7 +23,8 @@ private slots:
 
 public:
 
-    void updateWidget(const QStringList& _lst);
+    void updateListCoins(const QStringList& lst);
+    void updateIcons(const QHash<QString, QByteArray>& icons);
 
     explicit CoinsWidget(QWidget* parent = nullptr);
 
