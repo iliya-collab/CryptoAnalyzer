@@ -10,13 +10,10 @@
 
 #include "Engine/Downloader.hpp"
 
-MainWindow::MainWindow(std::unique_ptr<AppEngine> app_engine, QWidget *parent) : 
-    QMainWindow(parent),
-    m_engine(std::move(app_engine))
-{
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+    setupEngine();
     setupUI();
     setupConnection();
-    setupEngine();
 }
 
 void MainWindow::setupUI() {
@@ -39,14 +36,16 @@ void MainWindow::setupConnection() {
     });
 }
 
-// https://chat.deepseek.com/share/ns4r93tvkt0h5z5rma
-
 void MainWindow::setupEngine() {
-    connect(m_engine.get(), &AppEngine::error, this, [this] (const QString& error) {
-        qCritical().noquote() << QString("AppEngine::errorEngine : %1").arg(error);
+    m_engine = std::make_unique<AppEngine>();
+
+    m_engine->init();
+
+    connect(m_engine.get(), &AppEngine::errorEngine, this, [this] (const QString& error) {
+        qCritical().noquote() << error;
     });
 
-    connect(m_engine.get(), &AppEngine::tradingPairsReady, this, [this] (Engine::TMarketData market, const QStringList& coins) {
+    /*connect(m_engine.get(), &AppEngine::tradingPairsReady, this, [this] (Engine::TMarketData market, const QStringList& coins) {
         QString category;
         switch (market)
         {
@@ -71,7 +70,7 @@ void MainWindow::setupEngine() {
     });
     connect(m_engine.get(), &AppEngine::infoAboutIconsReady, this, [this] (const QHash<QString, QString>& icons) {
         qDebug() << "AppEngine::infoAboutIconsReady";
-    });
+    });*/
 
     m_engine->startSequentialDownload();
 

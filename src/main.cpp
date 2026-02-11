@@ -72,10 +72,7 @@ int main(int argc, char *argv[])
     DebugMonitor debug;
     debug.show();
 
-    std::unique_ptr<AppEngine> engine = std::make_unique<AppEngine>();
-    engine->init();
-
-    MainWindow win(std::move(engine));
+    MainWindow win;
     win.show();
     
     return app.exec();

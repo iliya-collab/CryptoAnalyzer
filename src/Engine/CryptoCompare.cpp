@@ -25,6 +25,6 @@ void Engine::CryptoCompare::requestEndpoint(const QString& endpoint, const QUrlQ
     
     connect(reply, &QNetworkReply::finished, this, &Engine::CryptoCompare::handleResponse);
     connect(reply, &QNetworkReply::downloadProgress, this, [reply] (qint64 bytesReceived, qint64 bytesTotal) {
-        qDebug() << "Download progress:" << bytesReceived << "/" << bytesTotal << "URL:" << reply->url().toString();
+        qDebug() << "Download progress:" << bytesReceived << "/" << bytesTotal;
     });
 }

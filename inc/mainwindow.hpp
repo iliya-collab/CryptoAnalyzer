@@ -20,7 +20,7 @@ class MainWindow : public QMainWindow
 public:
 
     ~MainWindow() = default;
-    MainWindow(std::unique_ptr<AppEngine> app_engine, QWidget *parent = nullptr);
+    MainWindow(QWidget *parent = nullptr);
 
 private:
 

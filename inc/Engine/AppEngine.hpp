@@ -17,6 +17,9 @@ class AppEngine : public QObject {
     Q_OBJECT
 private:
 
+    struct LoadedData {
+        // TODO
+    };
 
     Engine::API m_api;
 
@@ -63,9 +66,7 @@ signals:
     // Окончание загрузки данных
     void finished();
     // Сообщения об ошибках
-    void error(const QString& error);
-
-    void loaded();
+    void errorEngine(const QString& error);
 
     void infoAboutIconsReady(const QHash<QString, QString>& icons);
     void infoAboutCoinsReady(const QHash<QString, Engine::InfoAboutCoin>& lstCoins);

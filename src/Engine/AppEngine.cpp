@@ -34,10 +34,11 @@ void AppEngine::runSequentialLoading() {
         });
         
         try {
+            qInfo().noquote() << steps[i].name;
             steps[i].action();
         } catch (const std::exception& e) {
             QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() {
-                emit error(msg);
+                emit errorEngine(msg);
             });
             return;
         }
@@ -47,31 +48,35 @@ void AppEngine::runSequentialLoading() {
 }
 
 void AppEngine::loadTradingPairsSync(Engine::TMarketData type) {
-    /*QEventLoop loop;
-    QTimer timer;
-    
-    connect(this, &AppEngine::loaded, &loop, &QEventLoop::quit);
-    
-    timer.setSingleShot(true);
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    timer.start(30000);
-    
-    getTradingPairs(type);
-    
-    loop.exec();
-    
-    if (!timer.isActive())
-        throw std::runtime_error("Timeout loading trading pairs");*/
-
     QDeadlineTimer deadline(30000);
     bool success = false;
     
-    auto conn = connect(this, &AppEngine::tradingPairsReady, [&success, type](Engine::TMarketData loadedType, const QStringList&) {
-        if (loadedType == type)
-            success = true;
+    auto conn = connect(this, &AppEngine::tradingPairsReady, [&success, type] (Engine::TMarketData loadedType, const QStringList&) {
+        if (loadedType != type)
+            return;
+
+        success = true;
+        
+        QString category;
+        switch (type)
+        {
+        case Engine::TMarketData::SPOT:
+            category = "Spot";
+            break;
+        case Engine::TMarketData::LINEAR:
+            category = "Linear";
+            break;
+        case Engine::TMarketData::INVERSE:
+            category = "Inverse";
+            break;
+        case Engine::TMarketData::OPTION:
+            category = "Option";
+            break;
+        }
+        qInfo().noquote() << QString("%1 pairs ready").arg(category);
     });
     
-    auto errorConn = connect(this, &AppEngine::error, [&success](const QString&) {
+    auto errorConn = connect(this, &AppEngine::errorEngine, [&success] (const QString&) {
         success = false;
     });
     
@@ -91,22 +96,6 @@ void AppEngine::loadTradingPairsSync(Engine::TMarketData type) {
 }
 
 void AppEngine::loadCoinsInfoSync() {
-    /*QEventLoop loop;
-    QTimer timer;
-    
-    connect(this, &AppEngine::loaded, &loop, &QEventLoop::quit);
-    
-    timer.setSingleShot(true);
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    timer.start(30000);
-    
-    getInfoAboutCoins();
-
-    loop.exec();
-    
-    if (!timer.isActive())
-        throw std::runtime_error("Timeout loading coins info");*/
-
     QDeadlineTimer deadline(30000);
     bool success = false;
     
@@ -114,7 +103,7 @@ void AppEngine::loadCoinsInfoSync() {
         success = true;
     });
     
-    auto errorConn = connect(this, &AppEngine::error, [&success](const QString&) {
+    auto errorConn = connect(this, &AppEngine::errorEngine, [&success](const QString&) {
         success = false;
     });
     
@@ -139,19 +128,15 @@ void AppEngine::setAPI(const Engine::API& api) {
 void AppEngine::getTradingPairs(Engine::TMarketData market) {
     Engine::BybitRestAPI* bybit_api = new Engine::BybitRestAPI(m_api);
 
-    bybit_api->moveToThread(this->thread());
-
     connect(bybit_api, &Engine::BybitRestAPI::dataReceived, this, [this, bybit_api, market] (const QJsonObject& data) {
-        emit loaded();
         emit tradingPairsReady(market, processSymbols(data));
         bybit_api->deleteLater();
-    });
+    }, Qt::QueuedConnection);
 
     connect(bybit_api, &Engine::BybitRestAPI::errorOccurred, this, [this, bybit_api] (const QString& error) {
-        emit loaded();
-        qDebug() << error;
+        emit errorEngine(error);
         bybit_api->deleteLater();
-    });
+    }, Qt::QueuedConnection);
 
     QString category;
     switch (market)
@@ -172,37 +157,25 @@ void AppEngine::getTradingPairs(Engine::TMarketData market) {
 
     QUrlQuery params;
     params.addQueryItem("category", category);
-
-    QMetaObject::invokeMethod(bybit_api, [bybit_api, params]() {
-        bybit_api->requestEndpoint("/v5/market/instruments-info", params, Engine::IRestAPI::TIMEOUT_REQUEST);
-    });
-    
-    //bybit_api->requestEndpoint("/v5/market/instruments-info", params, Engine::IRestAPI::TIMEOUT_REQUEST);
+    bybit_api->requestEndpoint("/v5/market/instruments-info", params, Engine::IRestAPI::TIMEOUT_REQUEST);
     
 }
 
 void AppEngine::getInfoAboutCoins() {
     Engine::CryptoCompare* crypto_compare = new Engine::CryptoCompare;
     
-    crypto_compare->moveToThread(this->thread());
-
     connect(crypto_compare, &Engine::CryptoCompare::dataReceived, this, [this, crypto_compare](const QJsonObject& data) {
-        emit loaded();
         processInfoAboutCoins(data);
         crypto_compare->deleteLater();
-    });
+    }, Qt::QueuedConnection);
 
     connect(crypto_compare, &Engine::CryptoCompare::errorOccurred, this, [this, crypto_compare](const QString& error) {
-        emit loaded();
-        qDebug() << error;
+        emit errorEngine(error);
         crypto_compare->deleteLater();
-    });
+    }, Qt::QueuedConnection);
 
     QUrlQuery params;
-    QMetaObject::invokeMethod(crypto_compare, [crypto_compare, params]() {
-        crypto_compare->requestEndpoint("/data/all/coinlist", params, Engine::IRestAPI::TIMEOUT_REQUEST);
-    });
-    //crypto_compare->requestEndpoint("/data/all/coinlist", params, Engine::IRestAPI::TIMEOUT_REQUEST);
+    crypto_compare->requestEndpoint("/data/all/coinlist", params, Engine::IRestAPI::TIMEOUT_REQUEST);
 }
 
 void AppEngine::downloadAllIcons(const QHash<QString, QString>& icons) {

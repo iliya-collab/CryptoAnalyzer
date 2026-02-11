@@ -14,7 +14,7 @@ Engine::BybitRestAPI::BybitRestAPI(const API& api, QObject* parent) :
 
 void Engine::BybitRestAPI::initBaseEndpoint() {
     m_baseEndpoint = m_api.testnet ? QString("https://api-testnet.bybit.com") : QString("https://api.bybit.com");
-    qDebug() << "Base endpoint set to:" << m_baseEndpoint;
+    //qDebug() << "Base endpoint set to:" << m_baseEndpoint;
 }
 
 Engine::BybitRestAPI::APIHeaders Engine::BybitRestAPI::initAPIHeaders(const QString& queryString) {
@@ -55,7 +55,7 @@ void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQu
     
     connect(reply, &QNetworkReply::finished, this, &Engine::BybitRestAPI::handleResponse);
     connect(reply, &QNetworkReply::downloadProgress, this, [reply] (qint64 bytesReceived, qint64 bytesTotal) {
-        qDebug() << "Download progress:" << bytesReceived << "/" << bytesTotal << "URL:" << reply->url().toString();
+        qDebug() << "Download progress:" << bytesReceived << "/" << bytesTotal;
     });
 }
 
