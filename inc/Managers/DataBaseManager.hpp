@@ -9,16 +9,27 @@
 
 class DataBaseManager {
 private:
-    QSqlDatabase m_db;
 
-public:
+    QSqlDatabase m_db;
+    QString m_lastError;
+    QString m_dbName;
+
     DataBaseManager();
     ~DataBaseManager();
 
-    bool existDBFile(const QString& name);
+public:
 
-    std::expected<bool, QString> open(const QString& name);
+    static DataBaseManager& instance();
+
+    DataBaseManager(const DataBaseManager&) = delete;
+    DataBaseManager& operator=(const DataBaseManager&) = delete;
+
+    QString error();
+    bool existDBFile(const QString& name);
+    bool open(const QString& name);
     void close();
-    
-    std::expected<bool, QString> request(const QString& query, std::function<void(const QSqlQuery&)> callback = nullptr);
+
+    bool executeInTransaction(const QStringList& queries);
+
+    bool request(const QString& query, std::function<void(const QSqlQuery&)> callback = nullptr);
 };

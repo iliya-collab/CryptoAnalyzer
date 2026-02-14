@@ -40,7 +40,7 @@ private:
 
     void runLoading();
 
-    void loadFromURLResources();
+    void loadFromURLResources(DBHash& db_hash);
     void loadFromDB(const DBHash& db_hash);
 
     void loadTradingPairsSync(Engine::TMarket market);

@@ -14,7 +14,7 @@ void AppEngine::startDownload() {
     });
 }
 
-void AppEngine::loadFromURLResources() {
+void AppEngine::loadFromURLResources(DBHash& db_hash) {
     QVector<LoadingStep> steps = {
         {"Loading SPOT pairs",      [this]() { loadTradingPairsSync(Engine::TMarket::SPOT); }},
         {"Loading LINEAR pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::LINEAR); }},
@@ -39,6 +39,8 @@ void AppEngine::loadFromURLResources() {
             return;
         }
     }
+
+    db_hash.create();
 }
 
 void AppEngine::loadFromDB(const DBHash& db_hash) {
@@ -49,7 +51,7 @@ void AppEngine::runLoading() {
     DBHash db;
     
     if (!db.dbExist())
-        loadFromURLResources();
+        loadFromURLResources(db);
     else
         loadFromDB(db);
 
