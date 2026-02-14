@@ -1,6 +1,5 @@
 #include "mainwindow.hpp"
 #include "CustomWindowDialogs/DebugMonitor.hpp"
-#include "Engine/AppEngine.hpp"
 
 #include <QImage>
 #include <QRect>

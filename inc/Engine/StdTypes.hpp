@@ -42,22 +42,31 @@ namespace Engine {
         double spread;                  // Спред
     };
 
-    enum class TMarketData {
+    enum class TMarket {
         SPOT,                           // Спотовый рынок
         LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
         INVERSE,                        // Инверсные фьючерсы
         OPTION                          // Опционов
     };
-    
+
+    QString marketToString(TMarket _market);
+
     struct API {
         QString api_key;
         QString secret_key;
         bool testnet;
     };
 
+    struct CoinIcon {
+        QString url;
+        QByteArray icon;
+    };
+
     struct InfoAboutCoin {
+        QString sym;
         QString fullName;
-        QString description;
+        QString description;   
+        CoinIcon coinIcon;
     };
 
 } // namespace Engine

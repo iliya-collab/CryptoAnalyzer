@@ -9,6 +9,7 @@
 #include "Engine/BybitRestAPI.hpp"
 #include "Engine/CryptoCompare.hpp"
 #include "Engine/LocalHash.hpp"
+#include "Engine/DBHash.hpp"
 
 #include <QHash>
 #include <memory>
@@ -18,36 +19,45 @@ class AppEngine : public QObject {
 private:
 
     struct LoadedData {
-        // TODO
+        QSet<QString> usedCoins;
+        QHash<Engine::TMarket, QStringList> tradingPairs;
+        QList<Engine::InfoAboutCoin> infoAboutCoins;
+    };
+
+    struct LoadingStep {
+        QString name;
+        std::function<void()> action;
     };
 
     Engine::API m_api;
 
-    QSet<QString> m_usedCoins;
+    LoadedData m_data;
+
+    const qint64 LOADING_TIMEOUT = 60000; 
 
     QStringList processSymbols(const QJsonObject& data);
     void processInfoAboutCoins(const QJsonObject& data);
 
-    void runSequentialLoading();
+    void runLoading();
 
-    void loadTradingPairsSync(Engine::TMarketData type);
+    void loadFromURLResources();
+    void loadFromDB(const DBHash& db_hash);
+
+    void loadTradingPairsSync(Engine::TMarket market);
     void loadCoinsInfoSync();
-
-// ---------------------- Requests ----------------------
+    void loadIconsCoinSync();
 
     // Получает доступные торговые пары на рынке
-    // Вызывает сигнал spotReady или futuresReady
-    void getTradingPairs(Engine::TMarketData market);
+    // tradingPairsReady
+    void getTradingPairs(Engine::TMarket market);
 
     // Получаем общую информацию о монетах (полное имя, описание, иконку)
-    // Вызывает сигналы infoAboutCoinsReady и infoAboutIconsReady
+    // infoAboutCoinsReady
     void getInfoAboutCoins();
 
     // Загружает все иконки
-    // Вызывает сигнал iconsReady
-    void downloadAllIcons(const QHash<QString, QString>& icons);
-
-// ------------------------------------------------------
+    // infoAboutIconsReady
+    void downloadAllIcons();
 
 public: 
 
@@ -55,7 +65,7 @@ public:
 
     void init();
 
-    void startSequentialDownload();
+    void startDownload();
 
     void setAPI(const Engine::API& api);
 
@@ -68,9 +78,8 @@ signals:
     // Сообщения об ошибках
     void errorEngine(const QString& error);
 
-    void infoAboutIconsReady(const QHash<QString, QString>& icons);
-    void infoAboutCoinsReady(const QHash<QString, Engine::InfoAboutCoin>& lstCoins);
-    void iconsReady(const QHash<QString, QByteArray>& icons);
-    void tradingPairsReady(Engine::TMarketData market, const QStringList& pairs);
+    void tradingPairsReady(Engine::TMarket market);
+    void infoAboutCoinsReady();
+    void infoAboutIconsReady();
 
 };

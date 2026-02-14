@@ -41,64 +41,11 @@ void MainWindow::setupEngine() {
 
     m_engine->init();
 
-    connect(m_engine.get(), &AppEngine::errorEngine, this, [this] (const QString& error) {
+    connect(m_engine.get(), &AppEngine::errorEngine, [&](const QString& error) {
         qCritical().noquote() << error;
     });
 
-    /*connect(m_engine.get(), &AppEngine::tradingPairsReady, this, [this] (Engine::TMarketData market, const QStringList& coins) {
-        QString category;
-        switch (market)
-        {
-        case Engine::TMarketData::SPOT:
-            category = "spot";
-            break;
-        case Engine::TMarketData::LINEAR:
-            category = "linear";
-            break;
-        case Engine::TMarketData::INVERSE:
-            category = "inverse";
-            break;
-        case Engine::TMarketData::OPTION:
-            category = "option";
-            break;
-        }
-        qInfo().noquote() << QString("AppEngine::tradingPairsReady : %1 ready").arg(category);
-    });
-
-    connect(m_engine.get(), &AppEngine::infoAboutCoinsReady, this, [this] (const QHash<QString, Engine::InfoAboutCoin>& lstCoins) {
-        qDebug() << "AppEngine::infoAboutCoinsReady";
-    });
-    connect(m_engine.get(), &AppEngine::infoAboutIconsReady, this, [this] (const QHash<QString, QString>& icons) {
-        qDebug() << "AppEngine::infoAboutIconsReady";
-    });*/
-
-    m_engine->startSequentialDownload();
-
-    /*connect(m_engine.get(), &AppEngine::spotReady, this, [this] (const QStringList& coins) {
-        qDebug() << "AppEngine::spotReady";
-        m_widgetCoins->updateListCoins(coins);
-        m_engine->getInfoAboutCoins();
-    });
-    connect(m_engine.get(), &AppEngine::futuresReady, this, [this] (const QStringList& coins) {
-        qDebug() << "AppEngine::futuresReady";
-        m_widgetCoins->updateListCoins(coins);
-        m_engine->getInfoAboutCoins();
-    });
-
-    connect(m_engine.get(), &AppEngine::infoAboutCoinsReady, this, [this] (const QHash<QString, Engine::InfoAboutCoin>& lstCoins) {
-        qDebug() << "AppEngine::infoAboutCoinsReady";
-    });
-    connect(m_engine.get(), &AppEngine::infoAboutIconsReady, this, [this] (const QHash<QString, QString>& icons) {
-        qDebug() << "AppEngine::infoAboutIconsReady";
-        m_engine->downloadAllIcons(icons);
-    });
-
-    connect(m_engine.get(), &AppEngine::iconsReady, this, [this] (const QHash<QString, QByteArray>& icons) {
-        qDebug() << "AppEngine::iconsReady";
-        m_widgetCoins->updateIcons(icons);
-    });
-
-    m_engine->getTradingPairs(Engine::TMarketData::SPOT);*/
+    m_engine->startDownload();
 }
 
 void MainWindow::createMenu() {

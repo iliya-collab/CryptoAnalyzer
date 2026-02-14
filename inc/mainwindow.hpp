@@ -11,7 +11,7 @@
 #include "CustomWidgets/OrderBooksWidget.hpp"
 #include "CustomWidgets/MarketsWidget.hpp"
 #include "CustomWidgets/CoinsWidget.hpp"
-#include "Engine/AppEngine.hpp"
+#include "Engine/App/AppEngine.hpp"
 
 class MainWindow : public QMainWindow
 {
