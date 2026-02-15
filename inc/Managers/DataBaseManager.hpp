@@ -29,7 +29,7 @@ public:
     bool open(const QString& name);
     void close();
 
-    bool executeInTransaction(const QStringList& queries);
+    bool execInTransaction(const QStringList& queries);
 
     bool request(const QString& query, std::function<void(const QSqlQuery&)> callback = nullptr);
 };

@@ -20,8 +20,7 @@ void AppEngine::loadFromURLResources(DBHash& db_hash) {
         {"Loading LINEAR pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::LINEAR); }},
         {"Loading INVERSE pairs",   [this]() { loadTradingPairsSync(Engine::TMarket::INVERSE); }},
         {"Loading OPTION pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::OPTION); }},
-        {"Loading coins info",      [this]() { loadCoinsInfoSync(); }},
-        {"Loading icons coin",      [this]() { loadIconsCoinSync(); }}
+        {"Loading coins info",      [this]() { loadCoinsInfoSync(); }}
     };
 
     for (int i = 0; i < steps.size(); ++i) {
@@ -54,6 +53,16 @@ void AppEngine::runLoading() {
         loadFromURLResources(db);
     else
         loadFromDB(db);
+
+    try {
+        qInfo().noquote() << "Loading icons coin";
+        loadIconsCoinSync();
+    } catch (const std::exception& e) {
+        QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() {
+            emit errorEngine(msg);
+        });
+        return;
+    }
 
     QMetaObject::invokeMethod(this, &AppEngine::finished);
 }
@@ -152,7 +161,7 @@ void AppEngine::getTradingPairs(Engine::TMarket market) {
     Engine::BybitRestAPI* bybit_api = new Engine::BybitRestAPI(m_api);
 
     connect(bybit_api, &Engine::BybitRestAPI::dataReceived, this, [this, bybit_api, market] (const QJsonObject& data) {
-        m_data.tradingPairs.insert(market, processSymbols(data));
+        processSymbols(data);
         emit tradingPairsReady(market);
         bybit_api->deleteLater();
     }, Qt::QueuedConnection);
@@ -173,6 +182,7 @@ void AppEngine::getInfoAboutCoins() {
     
     connect(crypto_compare, &Engine::CryptoCompare::dataReceived, this, [this, crypto_compare] (const QJsonObject& data) {
         processInfoAboutCoins(data);
+        emit infoAboutCoinsReady();
         crypto_compare->deleteLater();
     }, Qt::QueuedConnection);
 
@@ -212,33 +222,31 @@ void AppEngine::downloadAllIcons() {
     hasher->download(lstUrl);
 }
 
-QStringList AppEngine::processSymbols(const QJsonObject& data) {
+void AppEngine::processSymbols(const QJsonObject& data) {
     QJsonObject result = data["result"].toObject();
     QString category = result["category"].toString();
     QJsonArray list = result["list"].toArray();
-    QStringList coins;
 
     for (const auto& obj : list) {
         QJsonObject item = obj.toObject();
-        coins.append(item["symbol"].toString());
-        m_data.usedCoins.insert(item["baseCoin"].toString());
+
+        Engine::TradingInfo data;
+        data.market = category;
+        data.sym = item["baseCoin"].toString();
+        data.namePair = item["symbol"].toString();
+
+        m_data.tradingPairs.append(data);
+        m_data.loadedCoins.insert(data.sym);
     }
-
-    qDebug() << "Loaded" << m_data.usedCoins.size() << "coins from" << category << "market";
-
-    return coins;
 }
 
 void AppEngine::processInfoAboutCoins(const QJsonObject& data) {
     QJsonObject res_data = data["Data"].toObject();
 
-    qDebug() << "Total coins in CryptoCompare:" << res_data.size();
-    qDebug() << "Used coins count:" << m_data.usedCoins.size();
-
     for (auto iCoin = res_data.constBegin(); iCoin != res_data.constEnd(); ++iCoin) {
         QString key = iCoin.key();
 
-        if (!m_data.usedCoins.contains(key))
+        if (!m_data.loadedCoins.contains(key))
             continue;
 
         QJsonObject objCoin = iCoin.value().toObject();
@@ -254,6 +262,4 @@ void AppEngine::processInfoAboutCoins(const QJsonObject& data) {
 
         m_data.infoAboutCoins.append(info);
     }
-
-    emit infoAboutCoinsReady();
 }

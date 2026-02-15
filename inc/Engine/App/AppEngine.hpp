@@ -19,8 +19,8 @@ class AppEngine : public QObject {
 private:
 
     struct LoadedData {
-        QSet<QString> usedCoins;
-        QHash<Engine::TMarket, QStringList> tradingPairs;
+        QSet<QString> loadedCoins;
+        QList<Engine::TradingInfo> tradingPairs;
         QList<Engine::InfoAboutCoin> infoAboutCoins;
     };
 
@@ -35,7 +35,7 @@ private:
 
     const qint64 LOADING_TIMEOUT = 60000; 
 
-    QStringList processSymbols(const QJsonObject& data);
+    void processSymbols(const QJsonObject& data);
     void processInfoAboutCoins(const QJsonObject& data);
 
     void runLoading();

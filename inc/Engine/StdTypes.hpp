@@ -57,6 +57,14 @@ namespace Engine {
         bool testnet;
     };
 
+    
+    struct TradingInfo {
+        QString sym;
+        QString namePair;
+        QString stockMarket;
+        QString market;
+    };
+
     struct CoinIcon {
         QString url;
         QByteArray icon;

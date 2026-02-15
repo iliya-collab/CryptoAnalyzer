@@ -74,7 +74,7 @@ bool DataBaseManager::request(const QString& query, std::function<void(const QSq
     return true;
 }
 
-bool DataBaseManager::executeInTransaction(const QStringList& queries) {
+bool DataBaseManager::execInTransaction(const QStringList& queries) {
     if (!m_db.isOpen()) {
         m_lastError = "Database is not open";
         return false;

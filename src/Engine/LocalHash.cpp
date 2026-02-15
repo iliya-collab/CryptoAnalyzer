@@ -42,13 +42,12 @@ void Engine::LocalHash::startNextDownload() {
     QString url = pendingDownloads[currentIndex];
     QString hash = generateHash(url);
     
-    const QString path = QString("%1/static/%2.hash").arg(QDir::currentPath()).arg(hash);
+    const QString fullPath = QString("%1/static/%2.hash").arg(QDir::currentPath()).arg(hash);
 
-    // Создание нужных директорий по пути
-    QString directoryPath = QFileInfo(path).path();
+    QString directoryPath = QFileInfo(fullPath).path();
     QDir().mkpath(directoryPath);
     
-    QFile localFile(path);
+    QFile localFile(fullPath);
     if (localFile.exists() && localFile.size() > 0) {
         if (localFile.open(QIODevice::ReadOnly)) {
             completedDownloads.insert(url, localFile.readAll());
@@ -57,7 +56,7 @@ void Engine::LocalHash::startNextDownload() {
         } 
     } 
     else
-        singleDownload(url, path);
+        singleDownload(url, fullPath);
 
 }
 

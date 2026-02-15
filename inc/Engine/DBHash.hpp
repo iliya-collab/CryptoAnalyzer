@@ -76,12 +76,12 @@ private:
         QString full_name;
         QString description;
         QString url;
-        QString path_icon;
     };
 
     struct ItemTradingDB {
         QString sym;
         QString name_pair;
+        QString stock_market;
         QString market;
     };
 

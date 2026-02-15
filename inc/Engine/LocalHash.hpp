@@ -12,8 +12,8 @@ namespace Engine {
     private:
 
         QStringList pendingDownloads;
-        int currentIndex = 0;
         QHash<QString, QByteArray> completedDownloads;
+        int currentIndex = 0;
 
         void startNextDownload();
 

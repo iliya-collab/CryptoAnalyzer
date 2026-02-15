@@ -70,8 +70,7 @@ void DBHash::create() {
             sym TEXT UNIQUE NOT NULL,
             full_name TEXT,
             description TEXT,
-            url TEXT,
-            path_icon TEXT
+            url TEXT
         )
     )";
     
@@ -92,7 +91,7 @@ void DBHash::create() {
     queries << "CREATE INDEX IF NOT EXISTS idx_trading_sym ON trading_data(sym)";
     queries << "CREATE INDEX IF NOT EXISTS idx_crypto_sym ON crypto_data(sym)";
 
-    if (!db_manager.executeInTransaction(queries))
+    if (!db_manager.execInTransaction(queries))
         qWarning() << "Failed to create database structure:" << db_manager.error();
     else
         qInfo() << "Database structure created successfully";
