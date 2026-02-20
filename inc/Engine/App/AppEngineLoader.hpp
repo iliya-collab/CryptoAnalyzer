@@ -14,7 +14,7 @@
 #include <QHash>
 #include <memory>
 
-class AppEngine : public QObject {
+class AppEngineLoader : public QObject {
     Q_OBJECT
 private:
 
@@ -40,8 +40,9 @@ private:
 
     void runLoading();
 
-    void loadFromURLResources(DBHash& db_hash);
-    void loadFromDB(const DBHash& db_hash);
+    void loadFromURLResources();
+    void loadFromDB(const Engine::DBHash& db_hash);
+    void runStep(const LoadingStep& step);
 
     void loadTradingPairsSync(Engine::TMarket market);
     void loadCoinsInfoSync();
@@ -55,15 +56,13 @@ private:
     // infoAboutCoinsReady
     void getInfoAboutCoins();
 
-    // Загружает все иконки
+    // Получаем иконки
     // infoAboutIconsReady
-    void downloadAllIcons();
+    void downloadIcons();
 
 public: 
 
-    AppEngine(QObject* parent = nullptr) : QObject(parent) {}
-
-    void init();
+    AppEngineLoader(QObject* parent = nullptr) : QObject(parent) {}
 
     void startDownload();
 

@@ -57,7 +57,6 @@ namespace Engine {
         bool testnet;
     };
 
-    
     struct TradingInfo {
         QString sym;
         QString namePair;

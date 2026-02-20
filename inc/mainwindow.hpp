@@ -11,7 +11,7 @@
 #include "CustomWidgets/OrderBooksWidget.hpp"
 #include "CustomWidgets/MarketsWidget.hpp"
 #include "CustomWidgets/CoinsWidget.hpp"
-#include "Engine/App/AppEngine.hpp"
+#include "Engine/App/AppEngineLoader.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -40,7 +40,7 @@ private:
     QAction* m_actionOrderBooks;
     QAction* m_actionTicker;
 
-    std::unique_ptr<AppEngine> m_engine;
+    std::unique_ptr<AppEngineLoader> m_loader;
 
     void setupUI();
     void setupConnection();

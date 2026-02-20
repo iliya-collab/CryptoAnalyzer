@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Managers/DataBaseManager.hpp"
+#include "Engine/StdTypes.hpp"
 
 /*
 CREATE TABLE IF NOT EXISTS crypto_data (
@@ -68,29 +69,41 @@ WHERE c.sym IN ('BTC', 'ETH')
 ORDER BY c.sym, t.market;
 */
 
-class DBHash {
-private:
+namespace Engine {
 
-    struct ItemCryptoDB {
-        QString sym;
-        QString full_name;
-        QString description;
-        QString url;
-    };
-
-    struct ItemTradingDB {
-        QString sym;
-        QString name_pair;
-        QString stock_market;
-        QString market;
-    };
-
+    class DBHash {
+    private:
+    
     const QString m_crypto_db = "crypto_data.db";
     
-public:
-
-    bool dbExist();
+    public:
     
-    void create();
+        struct ItemCrypto {
+            QString sym;
+            QString full_name;
+            QString description;
+            QString url_icon;
+        };
+    
+        struct ItemTrading {
+            QString sym;
+            QString name_pair;
+            QString stock_market;
+            QString market;
+        };
+    
+        bool dbExist();    
+        void create();
+        
+        void addItem(const ItemCrypto& item);
+        void addItem(const ItemTrading& item);
+    };
 
-};
+    DBHash::ItemTrading convertTo(const TradingInfo& item);
+    DBHash::ItemCrypto convertTo(const InfoAboutCoin& item);
+    
+    TradingInfo convertFrom(const DBHash::ItemTrading& item);
+    InfoAboutCoin convertFrom(const DBHash::ItemCrypto& item);
+
+}
+

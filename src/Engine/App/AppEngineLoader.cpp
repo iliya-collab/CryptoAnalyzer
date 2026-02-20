@@ -1,20 +1,24 @@
-#include "Engine/App/AppEngine.hpp"
+#include "Engine/App/AppEngineLoader.hpp"
 
 #include <QtConcurrent/QtConcurrent>
 
-void AppEngine::init() {
-    qDebug() << "--- Reading the platform configuration ---";
-    if (!Settings::readAllConfig())
-        qDebug() << Settings::getLastError();
-}
-
-void AppEngine::startDownload() {
+void AppEngineLoader::startDownload() {
     QtConcurrent::run([this]() {
         runLoading();
     });
 }
 
-void AppEngine::loadFromURLResources(DBHash& db_hash) {
+void AppEngineLoader::runStep(const LoadingStep& step) {
+    try {
+        qInfo().noquote() << step.name;
+        step.action();
+    } catch (const std::exception& e) {
+        QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() { emit errorEngine(msg); });
+        return;
+    }
+}
+
+void AppEngineLoader::loadFromURLResources() {
     QVector<LoadingStep> steps = {
         {"Loading SPOT pairs",      [this]() { loadTradingPairsSync(Engine::TMarket::SPOT); }},
         {"Loading LINEAR pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::LINEAR); }},
@@ -24,61 +28,55 @@ void AppEngine::loadFromURLResources(DBHash& db_hash) {
     };
 
     for (int i = 0; i < steps.size(); ++i) {
-        QMetaObject::invokeMethod(this, [this, i, total = steps.size()]() {
-            emit progressChanged(i + 1, total);
-        });
-        
-        try {
-            qInfo().noquote() << steps[i].name;
-            steps[i].action();
-        } catch (const std::exception& e) {
-            QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() {
-                emit errorEngine(msg);
-            });
-            return;
-        }
+        QMetaObject::invokeMethod(this, [this, i, total = steps.size()]() { emit progressChanged(i + 1, total); });
+        runStep(steps[i]);
     }
-
-    db_hash.create();
 }
 
-void AppEngine::loadFromDB(const DBHash& db_hash) {
+void AppEngineLoader::loadFromDB(const Engine::DBHash& db_hash) {
 
 }
 
-void AppEngine::runLoading() {
-    DBHash db;
-    
-    if (!db.dbExist())
-        loadFromURLResources(db);
-    else
+void AppEngineLoader::runLoading() {
+    LoadingStep readConfig = { "Reading the platform configuration", [this]() {
+        if (!Settings::readAllConfig())
+            qDebug() << Settings::getLastError();
+    }};
+    runStep(readConfig);
+
+    Engine::DBHash db;
+    if (db.dbExist())
         loadFromDB(db);
+    else {
+        loadFromURLResources();
 
-    try {
-        qInfo().noquote() << "Loading icons coin";
-        loadIconsCoinSync();
-    } catch (const std::exception& e) {
-        QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() {
-            emit errorEngine(msg);
-        });
-        return;
+        db.create();
+        for (const auto& item : m_data.infoAboutCoins)
+            db.addItem(Engine::convertTo(item));
+        for (const auto& item : m_data.tradingPairs)
+            db.addItem(Engine::convertTo(item));
     }
 
-    QMetaObject::invokeMethod(this, &AppEngine::finished);
+    LoadingStep loadIcons = { "Loading icons coin", [this]() {
+        loadIconsCoinSync();
+    }};
+    runStep(loadIcons);
+
+    QMetaObject::invokeMethod(this, &AppEngineLoader::finished);
 }
 
-void AppEngine::loadTradingPairsSync(Engine::TMarket market) {
+void AppEngineLoader::loadTradingPairsSync(Engine::TMarket market) {
     QDeadlineTimer deadline(LOADING_TIMEOUT);
     bool success = false;
     
-    auto conn = connect(this, &AppEngine::tradingPairsReady, [&](Engine::TMarket loadedType) {
+    auto conn = connect(this, &AppEngineLoader::tradingPairsReady, [&](Engine::TMarket loadedType) {
         if (loadedType != market)
             return;
         success = true;
         qInfo().noquote() << QString("%1 pairs ready").arg(Engine::marketToString(market));
     });
     
-    auto errorConn = connect(this, &AppEngine::errorEngine, [&](const QString& error) {
+    auto errorConn = connect(this, &AppEngineLoader::errorEngine, [&](const QString& error) {
         success = false;
     });
     
@@ -97,16 +95,16 @@ void AppEngine::loadTradingPairsSync(Engine::TMarket market) {
         throw std::runtime_error("Error loading trading pairs");
 }
 
-void AppEngine::loadCoinsInfoSync() {
+void AppEngineLoader::loadCoinsInfoSync() {
     QDeadlineTimer deadline(LOADING_TIMEOUT);
     bool success = false;
     
-    auto conn = connect(this, &AppEngine::infoAboutCoinsReady, [&]() {
+    auto conn = connect(this, &AppEngineLoader::infoAboutCoinsReady, [&]() {
         success = true;
         qInfo().noquote() << "Coins info ready";
     });
     
-    auto errorConn = connect(this, &AppEngine::errorEngine, [&](const QString&) {
+    auto errorConn = connect(this, &AppEngineLoader::errorEngine, [&](const QString&) {
         success = false;
     });
     
@@ -125,20 +123,20 @@ void AppEngine::loadCoinsInfoSync() {
         throw std::runtime_error("Error loading coins info");
 }
 
-void AppEngine::loadIconsCoinSync() {
+void AppEngineLoader::loadIconsCoinSync() {
     QDeadlineTimer deadline(-1);
     bool success = false;
     
-    auto conn = connect(this, &AppEngine::infoAboutIconsReady, [&]() {
+    auto conn = connect(this, &AppEngineLoader::infoAboutIconsReady, [&]() {
         success = true;
         qInfo().noquote() << "Icons coin ready";
     });
     
-    auto errorConn = connect(this, &AppEngine::errorEngine, [&](const QString&) {
+    auto errorConn = connect(this, &AppEngineLoader::errorEngine, [&](const QString&) {
         success = false;
     });
     
-    downloadAllIcons();
+    downloadIcons();
     
     while (!success && !deadline.hasExpired())
         QCoreApplication::processEvents();
@@ -153,11 +151,11 @@ void AppEngine::loadIconsCoinSync() {
         throw std::runtime_error("Error loading icons coin");
 }
 
-void AppEngine::setAPI(const Engine::API& api) {
+void AppEngineLoader::setAPI(const Engine::API& api) {
     m_api = api;
 }
 
-void AppEngine::getTradingPairs(Engine::TMarket market) {
+void AppEngineLoader::getTradingPairs(Engine::TMarket market) {
     Engine::BybitRestAPI* bybit_api = new Engine::BybitRestAPI(m_api);
 
     connect(bybit_api, &Engine::BybitRestAPI::dataReceived, this, [this, bybit_api, market] (const QJsonObject& data) {
@@ -177,7 +175,7 @@ void AppEngine::getTradingPairs(Engine::TMarket market) {
     
 }
 
-void AppEngine::getInfoAboutCoins() {
+void AppEngineLoader::getInfoAboutCoins() {
     Engine::CryptoCompare* crypto_compare = new Engine::CryptoCompare;
     
     connect(crypto_compare, &Engine::CryptoCompare::dataReceived, this, [this, crypto_compare] (const QJsonObject& data) {
@@ -195,7 +193,7 @@ void AppEngine::getInfoAboutCoins() {
     crypto_compare->requestEndpoint("/data/all/coinlist", params, Engine::IRestAPI::TIMEOUT_REQUEST);
 }
 
-void AppEngine::downloadAllIcons() {
+void AppEngineLoader::downloadIcons() {
     Engine::LocalHash* hasher = new Engine::LocalHash;
 
     connect(hasher, &Engine::LocalHash::hashError, this, [this, hasher] (const QString& error) {
@@ -222,7 +220,7 @@ void AppEngine::downloadAllIcons() {
     hasher->download(lstUrl);
 }
 
-void AppEngine::processSymbols(const QJsonObject& data) {
+void AppEngineLoader::processSymbols(const QJsonObject& data) {
     QJsonObject result = data["result"].toObject();
     QString category = result["category"].toString();
     QJsonArray list = result["list"].toArray();
@@ -240,7 +238,7 @@ void AppEngine::processSymbols(const QJsonObject& data) {
     }
 }
 
-void AppEngine::processInfoAboutCoins(const QJsonObject& data) {
+void AppEngineLoader::processInfoAboutCoins(const QJsonObject& data) {
     QJsonObject res_data = data["Data"].toObject();
 
     for (auto iCoin = res_data.constBegin(); iCoin != res_data.constEnd(); ++iCoin) {

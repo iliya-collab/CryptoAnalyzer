@@ -37,15 +37,13 @@ void MainWindow::setupConnection() {
 }
 
 void MainWindow::setupEngine() {
-    m_engine = std::make_unique<AppEngine>();
+    m_loader = std::make_unique<AppEngineLoader>();
 
-    m_engine->init();
-
-    connect(m_engine.get(), &AppEngine::errorEngine, [&](const QString& error) {
+    connect(m_loader.get(), &AppEngineLoader::errorEngine, [&](const QString& error) {
         qCritical().noquote() << error;
     });
 
-    m_engine->startDownload();
+    m_loader->startDownload();
 }
 
 void MainWindow::createMenu() {
