@@ -55,6 +55,7 @@ void AppEngineLoader::runLoading() {
             db.addItem(Engine::convertTo(item));
         for (const auto& item : m_data.tradingPairs)
             db.addItem(Engine::convertTo(item));
+        qInfo() << "Database ready";
     }
 
     LoadingStep loadIcons = { "Loading icons coin", [this]() {

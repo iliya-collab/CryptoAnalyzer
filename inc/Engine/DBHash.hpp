@@ -94,6 +94,8 @@ namespace Engine {
     
         bool dbExist();    
         void create();
+        void close();
+        void open();
         
         void addItem(const ItemCrypto& item);
         void addItem(const ItemTrading& item);

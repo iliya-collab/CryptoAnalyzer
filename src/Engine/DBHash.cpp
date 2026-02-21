@@ -48,35 +48,50 @@ void Engine::DBHash::create() {
         qInfo() << "Database structure created successfully";
 }
 
+void Engine::DBHash::close() {
+    auto& db_manager = DataBaseManager::instance();
+    db_manager.close();
+}
+
+void Engine::DBHash::open() {
+    auto& db_manager = DataBaseManager::instance();
+    if (!db_manager.open(m_crypto_db))
+        qWarning() << "Failed to open database:" << db_manager.error();
+}
+
+
 void Engine::DBHash::addItem(const ItemCrypto& item) {
     auto& db_manager = DataBaseManager::instance();
+
+    if (!db_manager.open(m_crypto_db)) {
+        qWarning() << "Failed to open database for crypto item:" << db_manager.error();
+        return;
+    }
+
     if (!db_manager.requestPrepared("INSERT OR REPLACE INTO crypto_data (sym, full_name, description, url_icon) VALUES (?, ?, ?, ?)", {item.sym, item.full_name, item.description, item.url_icon})) 
         qWarning() << "Failed to add record to database:" << db_manager.error();
 
 }
 
 void Engine::DBHash::addItem(const ItemTrading& item) {
-    /*auto& db_manager = DataBaseManager::instance();
-    if (!db_manager.requestPrepared("INSERT OR REPLACE INTO trading_data (crypto_id, sym, name_pair, stock_market, market) VALUES (?, ?, ?, ?)", {item.sym, item.name_pair, item.stock_market, item.market}))
-        qWarning() << "Failed to add record to database:" << db_manager.error();*/
     auto& db_manager = DataBaseManager::instance();
     
-    // Сначала получаем crypto_id по sym
-    QSqlQuery query;
-    query.prepare("SELECT id FROM crypto_data WHERE sym = ?");
-    query.addBindValue(item.sym);
-    
-    if (!query.exec()) {
-        qWarning() << "Failed to get crypto_id:" << query.lastError().text();
+    if (!db_manager.open(m_crypto_db)) {
+        qWarning() << "Failed to open database for trading item:" << db_manager.error();
         return;
     }
-    
-    if (!query.next()) {
-        qWarning() << "Crypto not found for sym:" << item.sym;
-        return;
-    }
-    
-    int crypto_id = query.value(0).toInt();
+
+    int crypto_id = -1;
+    QString sym = item.sym;
+
+    db_manager.requestPrepared("SELECT id FROM crypto_data WHERE sym = ?", {item.sym}, [&crypto_id, sym] (QSqlQuery& query) {
+        if (!query.next()) {
+            qWarning() << "Crypto not found for sym:" << sym;
+            return;
+        }
+        
+        crypto_id = query.value(0).toInt();
+    });
     
     // Теперь вставляем в trading_data со всеми полями
     if (!db_manager.requestPrepared(

@@ -44,11 +44,10 @@ void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQu
     request.setRawHeader("X-BAPI-API-KEY", headers.X_BAPI_API_KEY.toUtf8());
     request.setRawHeader("X-BAPI-TIMESTAMP", headers.X_BAPI_TIMESTAMP.toUtf8());
     request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
-    request.setRawHeader("Accept-Encoding", "gzip, deflate, br");request.setRawHeader("Accept-Encoding", "gzip, deflate");
+
+    //request.setRawHeader("Accept-Encoding", "gzip, deflate");
     request.setRawHeader("Connection", "keep-alive");
-
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0");
 

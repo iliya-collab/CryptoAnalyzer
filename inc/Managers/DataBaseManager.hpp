@@ -30,6 +30,6 @@ public:
     void close();
 
     bool execInTransaction(const QStringList& queries);
-    bool request(const QString& query, std::function<void(const QSqlQuery&)> callback = nullptr);
-    bool requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(const QSqlQuery&)> callback = nullptr);
+    bool request(const QString& query, std::function<void(QSqlQuery&)> callback = nullptr);
+    bool requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(QSqlQuery&)> callback = nullptr);
 };

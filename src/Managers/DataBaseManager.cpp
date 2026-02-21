@@ -55,7 +55,7 @@ void DataBaseManager::close() {
     m_dbName.clear();
 }
 
-bool DataBaseManager::request(const QString& query, std::function<void(const QSqlQuery&)> callback) {
+bool DataBaseManager::request(const QString& query, std::function<void(QSqlQuery&)> callback) {
     if (!m_db.isOpen()) {
         m_lastError = "Database is not open";
         return false;
@@ -74,7 +74,7 @@ bool DataBaseManager::request(const QString& query, std::function<void(const QSq
     return true;
 }
 
-bool DataBaseManager::requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(const QSqlQuery&)> callback) {
+bool DataBaseManager::requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(QSqlQuery&)> callback) {
     if (!m_db.isOpen()) {
         m_lastError = "Database is not open";
         return false;
