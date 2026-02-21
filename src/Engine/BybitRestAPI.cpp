@@ -14,7 +14,6 @@ Engine::BybitRestAPI::BybitRestAPI(const API& api, QObject* parent) :
 
 void Engine::BybitRestAPI::initBaseEndpoint() {
     m_baseEndpoint = m_api.testnet ? QString("https://api-testnet.bybit.com") : QString("https://api.bybit.com");
-    //qDebug() << "Base endpoint set to:" << m_baseEndpoint;
 }
 
 Engine::BybitRestAPI::APIHeaders Engine::BybitRestAPI::initAPIHeaders(const QString& queryString) {

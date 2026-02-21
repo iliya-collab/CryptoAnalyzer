@@ -7,8 +7,6 @@
 #include "Engine/WebSocket.hpp"
 #include "Engine/WebSocketBuilder.hpp"
 #include "Engine/BybitRestAPI.hpp"
-#include "Engine/CryptoCompare.hpp"
-#include "Engine/LocalHash.hpp"
 #include "Engine/DBHash.hpp"
 
 #include <QHash>
@@ -21,7 +19,6 @@ private:
     struct LoadedData {
         QSet<QString> loadedCoins;
         QList<Engine::TradingInfo> tradingPairs;
-        QList<Engine::InfoAboutCoin> infoAboutCoins;
     };
 
     struct LoadingStep {
@@ -36,7 +33,6 @@ private:
     const qint64 LOADING_TIMEOUT = 60000; 
 
     void processSymbols(const QJsonObject& data);
-    void processInfoAboutCoins(const QJsonObject& data);
 
     void runLoading();
 
@@ -52,21 +48,11 @@ private:
     // tradingPairsReady
     void getTradingPairs(Engine::TMarket market);
 
-    // Получаем общую информацию о монетах (полное имя, описание, иконку)
-    // infoAboutCoinsReady
-    void getInfoAboutCoins();
-
-    // Получаем иконки
-    // infoAboutIconsReady
-    void downloadIcons();
-
 public: 
 
     AppEngineLoader(QObject* parent = nullptr) : QObject(parent) {}
 
     void startDownload();
-
-    void setAPI(const Engine::API& api);
 
 signals:
 
@@ -78,7 +64,5 @@ signals:
     void errorEngine(const QString& error);
 
     void tradingPairsReady(Engine::TMarket market);
-    void infoAboutCoinsReady();
-    void infoAboutIconsReady();
 
 };

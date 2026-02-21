@@ -58,22 +58,11 @@ namespace Engine {
     };
 
     struct TradingInfo {
-        QString sym;
-        QString namePair;
-        QString stockMarket;
-        QString market;
-    };
-
-    struct CoinIcon {
-        QString url;
-        QByteArray icon;
-    };
-
-    struct InfoAboutCoin {
-        QString sym;
-        QString fullName;
-        QString description;   
-        CoinIcon coinIcon;
+        QString symbol;
+        QString base_coin;
+        QString quote_coin;
+        QString status;
+        QString category;
     };
 
 } // namespace Engine

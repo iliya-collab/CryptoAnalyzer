@@ -8,8 +8,6 @@
 #include <QDate>
 #include <memory>
 
-#include "Engine/Downloader.hpp"
-
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupEngine();
     setupUI();

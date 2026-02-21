@@ -78,34 +78,12 @@ namespace Engine {
     
     public:
     
-        struct ItemCrypto {
-            QString sym;
-            QString full_name;
-            QString description;
-            QString url_icon;
-        };
-    
-        struct ItemTrading {
-            QString sym;
-            QString name_pair;
-            QString stock_market;
-            QString market;
-        };
-    
         bool dbExist();    
         void create();
         void close();
         void open();
         
-        void addItem(const ItemCrypto& item);
-        void addItem(const ItemTrading& item);
+        void addItem(const TradingInfo& trade_item);
     };
-
-    DBHash::ItemTrading convertTo(const TradingInfo& item);
-    DBHash::ItemCrypto convertTo(const InfoAboutCoin& item);
-    
-    TradingInfo convertFrom(const DBHash::ItemTrading& item);
-    InfoAboutCoin convertFrom(const DBHash::ItemCrypto& item);
-
 }
 
