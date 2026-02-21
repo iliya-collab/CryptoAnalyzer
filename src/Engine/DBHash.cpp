@@ -56,9 +56,35 @@ void Engine::DBHash::addItem(const ItemCrypto& item) {
 }
 
 void Engine::DBHash::addItem(const ItemTrading& item) {
+    /*auto& db_manager = DataBaseManager::instance();
+    if (!db_manager.requestPrepared("INSERT OR REPLACE INTO trading_data (crypto_id, sym, name_pair, stock_market, market) VALUES (?, ?, ?, ?)", {item.sym, item.name_pair, item.stock_market, item.market}))
+        qWarning() << "Failed to add record to database:" << db_manager.error();*/
     auto& db_manager = DataBaseManager::instance();
-    if (!db_manager.requestPrepared("INSERT OR REPLACE INTO trading_data (sym, name_pair, stock_market, market) VALUES (?, ?, ?, ?)", {item.sym, item.name_pair, item.stock_market, item.market}))
-        qWarning() << "Failed to add record to database:" << db_manager.error();
+    
+    // Сначала получаем crypto_id по sym
+    QSqlQuery query;
+    query.prepare("SELECT id FROM crypto_data WHERE sym = ?");
+    query.addBindValue(item.sym);
+    
+    if (!query.exec()) {
+        qWarning() << "Failed to get crypto_id:" << query.lastError().text();
+        return;
+    }
+    
+    if (!query.next()) {
+        qWarning() << "Crypto not found for sym:" << item.sym;
+        return;
+    }
+    
+    int crypto_id = query.value(0).toInt();
+    
+    // Теперь вставляем в trading_data со всеми полями
+    if (!db_manager.requestPrepared(
+        "INSERT OR REPLACE INTO trading_data (crypto_id, sym, name_pair, stock_market, market) VALUES (?, ?, ?, ?, ?)",
+        {crypto_id, item.sym, item.name_pair, item.stock_market, item.market}
+    )) {
+        qWarning() << "Failed to add trading record:" << db_manager.error();
+    }
 }
 
 Engine::DBHash::ItemTrading Engine::convertTo(const TradingInfo& item) {
