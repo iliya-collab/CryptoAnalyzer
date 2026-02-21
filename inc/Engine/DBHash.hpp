@@ -84,6 +84,7 @@ namespace Engine {
         void open();
         
         void addItem(const TradingInfo& trade_item);
+        QList<TradingInfo> getAllItems();
     };
 }
 

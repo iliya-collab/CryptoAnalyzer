@@ -32,10 +32,6 @@ void AppEngineLoader::loadFromURLResources() {
     }
 }
 
-void AppEngineLoader::loadFromDB(const Engine::DBHash& db_hash) {
-
-}
-
 void AppEngineLoader::runLoading() {
     LoadingStep readConfig = { "Reading the platform configuration", [this]() {
         if (!Settings::readAllConfig())
@@ -45,12 +41,19 @@ void AppEngineLoader::runLoading() {
     runStep(readConfig);
 
     Engine::DBHash db;
-    if (db.dbExist())
-        loadFromDB(db);
+    if (db.dbExist()) {
+        qInfo() << "Loading from database";
+        m_data.tradingPairs = db.getAllItems();
+        qInfo() << "Loading from the database is completed";
+    }
     else {
         loadFromURLResources();
 
+        qInfo() << "Creating a database";
         db.create();
+        qInfo() << "Database structure created successfully";
+
+        qInfo() << "Filling the database";
         for (const auto& item : m_data.tradingPairs)
             db.addItem(item);
         qInfo() << "Database ready";
@@ -125,6 +128,5 @@ void AppEngineLoader::processSymbols(const QJsonObject& data) {
         data.status = item["status"].toString(); 
 
         m_data.tradingPairs.append(data);
-        m_data.loadedCoins.insert(data.symbol);
     }
 }

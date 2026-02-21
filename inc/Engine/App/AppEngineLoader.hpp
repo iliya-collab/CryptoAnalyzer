@@ -17,7 +17,6 @@ class AppEngineLoader : public QObject {
 private:
 
     struct LoadedData {
-        QSet<QString> loadedCoins;
         QList<Engine::TradingInfo> tradingPairs;
     };
 
@@ -37,7 +36,6 @@ private:
     void runLoading();
 
     void loadFromURLResources();
-    void loadFromDB(const Engine::DBHash& db_hash);
     void runStep(const LoadingStep& step);
 
     void loadTradingPairsSync(Engine::TMarket market);

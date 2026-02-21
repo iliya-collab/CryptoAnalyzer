@@ -30,8 +30,6 @@ void Engine::DBHash::create() {
 
     if (!db_manager.execInTransaction(queries))
         qWarning() << "Failed to create database structure:" << db_manager.error();
-    else
-        qInfo() << "Database structure created successfully";
 }
 
 void Engine::DBHash::close() {
@@ -50,11 +48,35 @@ void Engine::DBHash::addItem(const TradingInfo& trade_item) {
     auto& db_manager = DataBaseManager::instance();
     
     if (!db_manager.open(m_crypto_db)) {
-        qWarning() << "Failed to open database for crypto item:" << db_manager.error();
+        qWarning() << "Failed to open database:" << db_manager.error();
         return;
     }
 
     if (!db_manager.requestPrepared("INSERT OR REPLACE INTO crypto_data (symbol, base_coin, quote_coin, status, category) VALUES (?, ?, ?, ?, ?)", 
         {trade_item.symbol, trade_item.base_coin, trade_item.quote_coin, trade_item.status, trade_item.category}))
         qWarning() << "Failed to add trading record:" << db_manager.error();
+}
+
+QList<Engine::TradingInfo> Engine::DBHash::getAllItems() {
+    auto& db_manager = DataBaseManager::instance();
+    QList<TradingInfo> items;
+    
+    if (!db_manager.open(m_crypto_db)) {
+        qWarning() << "Failed to open database:" << db_manager.error();
+        return items;
+    }
+    
+    db_manager.request("SELECT symbol, base_coin, quote_coin, status, category FROM crypto_data", [&items](QSqlQuery& query) {
+        while (query.next()) {
+            TradingInfo item;
+            item.symbol = query.value(0).toString();
+            item.base_coin = query.value(1).toString();
+            item.quote_coin = query.value(2).toString();
+            item.status = query.value(3).toString();
+            item.category = query.value(4).toString();
+            items.push_back(item);
+        }
+    });
+    
+    return items;
 }
