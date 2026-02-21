@@ -171,7 +171,7 @@ void AppEngineLoader::getTradingPairs(Engine::TMarket market) {
 
     QUrlQuery params;
     params.addQueryItem("category", Engine::marketToString(market).toLower());
-    bybit_api->requestEndpoint("/v5/market/instruments-info", params, Engine::IRestAPI::TIMEOUT_REQUEST);
+    bybit_api->requestEndpoint("/v5/market/instruments-info", params);
     
 }
 
@@ -190,7 +190,7 @@ void AppEngineLoader::getInfoAboutCoins() {
     }, Qt::QueuedConnection);
 
     QUrlQuery params;
-    crypto_compare->requestEndpoint("/data/all/coinlist", params, Engine::IRestAPI::TIMEOUT_REQUEST);
+    crypto_compare->requestEndpoint("/data/all/coinlist", params);
 }
 
 void AppEngineLoader::downloadIcons() {

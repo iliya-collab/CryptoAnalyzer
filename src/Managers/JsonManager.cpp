@@ -35,11 +35,6 @@ void JsonManager::writeDocument(const char* _file) {
 
 std::expected<QJsonDocument, QString> JsonManager::isDocumentValid(const QJsonDocument& _doc)
 {
-    // Документ считается валидным и непустым если:
-    // 1. Он не null
-    // 2. Он не пустой
-    // 3. Содержит либо непустой объект, либо непустой массив
-
     if (_doc.isNull())
         return std::unexpected(QString("Document isNull()"));
 

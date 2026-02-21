@@ -41,7 +41,6 @@ void PlatformConfig::fromJson(const QJsonObject& obj) {
             .arg(name)
             .arg(api_key)
             .arg(secret_key)
-            .arg(testnet)
-            << "------------------------------------------------------------------------------------------------------";
+            .arg(testnet);
     }
 }

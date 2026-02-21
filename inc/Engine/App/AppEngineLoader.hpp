@@ -33,7 +33,7 @@ private:
 
     LoadedData m_data;
 
-    const qint64 LOADING_TIMEOUT = 60000; 
+    const qint64 LOADING_TIMEOUT = -1; 
 
     void processSymbols(const QJsonObject& data);
     void processInfoAboutCoins(const QJsonObject& data);
