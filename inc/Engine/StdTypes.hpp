@@ -61,7 +61,6 @@ namespace Engine {
         QString symbol;
         QString base_coin;
         QString quote_coin;
-        QString status;
         QString category;
     };
 
