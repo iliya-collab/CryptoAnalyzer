@@ -74,6 +74,32 @@ bool DataBaseManager::request(const QString& query, std::function<void(QSqlQuery
     return true;
 }
 
+bool DataBaseManager::requestPrepared(const QString& query, const QVariant& value, std::function<void(QSqlQuery&)> callback) {
+    if (!m_db.isOpen()) {
+        m_lastError = "Database is not open";
+        return false;
+    }
+
+    QSqlQuery sqlQuery(m_db);
+    
+    if (!sqlQuery.prepare(query)) {
+        m_lastError = QString("Prepare error: %1").arg(sqlQuery.lastError().text());
+        return false;
+    }
+    
+    sqlQuery.addBindValue(value);
+    
+    if (!sqlQuery.exec()) {
+        m_lastError = QString("Processing error: %1").arg(sqlQuery.lastError().text());
+        return false;
+    }
+    
+    if (callback)
+        callback(sqlQuery);
+
+    return true;
+}
+
 bool DataBaseManager::requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(QSqlQuery&)> callback) {
     if (!m_db.isOpen()) {
         m_lastError = "Database is not open";

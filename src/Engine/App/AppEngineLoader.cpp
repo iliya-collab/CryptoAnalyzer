@@ -125,7 +125,6 @@ void AppEngineLoader::processSymbols(const QJsonObject& data) {
         data.symbol = item["symbol"].toString();
         data.base_coin = item["baseCoin"].toString();
         data.quote_coin = item["quoteCoin"].toString();
-        data.status = item["status"].toString(); 
 
         m_data.tradingPairs.append(data);
     }

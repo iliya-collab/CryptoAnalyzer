@@ -31,5 +31,6 @@ public:
 
     bool execInTransaction(const QStringList& queries);
     bool request(const QString& query, std::function<void(QSqlQuery&)> callback = nullptr);
+    bool requestPrepared(const QString& query, const QVariant& value, std::function<void(QSqlQuery&)> callback = nullptr);
     bool requestPrepared(const QString& query, const QList<QVariant>& values, std::function<void(QSqlQuery&)> callback = nullptr);
 };
