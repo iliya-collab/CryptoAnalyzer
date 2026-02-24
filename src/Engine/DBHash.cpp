@@ -44,16 +44,6 @@ void Engine::DBHash::open() {
 
 
 void Engine::DBHash::addItem(const TradingInfo& trade_item) {
-    /*auto& db_manager = DataBaseManager::instance();
-    
-    if (!db_manager.open(m_crypto_db)) {
-        qWarning() << "Failed to open database:" << db_manager.error();
-        return;
-    }
-
-    if (!db_manager.requestPrepared("INSERT OR REPLACE INTO crypto_data (symbol, base_coin, quote_coin, category) VALUES (?, ?, ?, ?)", 
-        {trade_item.symbol, trade_item.base_coin, trade_item.quote_coin, trade_item.category}))
-        qWarning() << "Failed to add trading record:" << db_manager.error();*/
 
     auto& db_manager = DataBaseManager::instance();
     
@@ -61,17 +51,7 @@ void Engine::DBHash::addItem(const TradingInfo& trade_item) {
         qWarning() << "Failed to open database:" << db_manager.error();
         return;
     }
-
-    bool exists = false;
-    db_manager.requestPrepared("SELECT id FROM crypto_data WHERE symbol = ?", trade_item.symbol, [&exists](QSqlQuery& query) {
-        exists = query.next();
-    });
     
-    /*if (exists)
-        db_manager.requestPrepared("UPDATE crypto_data SET base_coin = ?, quote_coin = ?, category = ? WHERE symbol = ?",
-            {trade_item.base_coin, trade_item.quote_coin, trade_item.category, trade_item.symbol}
-        );
-    else*/
     db_manager.requestPrepared("INSERT INTO crypto_data (symbol, base_coin, quote_coin, category) VALUES (?, ?, ?, ?)",
         {trade_item.symbol, trade_item.base_coin, trade_item.quote_coin, trade_item.category}
     );
