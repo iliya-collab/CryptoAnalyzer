@@ -1,10 +1,10 @@
-#include "CustomWidgets/CoinsWidget.hpp"
+#include "CustomWidgets/SpotWidget.hpp"
 
-CoinsWidget::CoinsWidget(QWidget* parent) : CustomWidget(parent) {
+SpotWidget::SpotWidget(QWidget* parent) : CustomWidget(parent) {
     setupWidget();
 }
 
-void CoinsWidget::updateListCoins(const QStringList& lst) {
+void SpotWidget::updateListCoins(const QStringList& lst) {
     QStandardItemModel* currentModel = qobject_cast<QStandardItemModel*>(listCoins->model());
 
     if (!currentModel)
@@ -17,23 +17,17 @@ void CoinsWidget::updateListCoins(const QStringList& lst) {
     }
 }
 
-void CoinsWidget::updateIcons(const QHash<QString, QByteArray>& icons) {
-
-}
-
-void CoinsWidget::selectedItem(const QModelIndex &index) {
+void SpotWidget::selectedItem(const QModelIndex &index) {
     QString selectedCoin = index.data().toString();
-    qDebug() << "Selected:" << selectedCoin;
+    //qDebug() << "Selected:" << selectedCoin;
     emit selected(selectedCoin);
 }
 
-void CoinsWidget::setupWidget() {
+void SpotWidget::setupWidget() {
     QStandardItemModel* model = new QStandardItemModel(m_widget);
 
     listCoins = new QListView(m_widget);
     listCoins->setViewMode(QListView::ListMode);
-    listCoins->setIconSize(QSize(64, 64));          // Размер иконок
-    //listCoins->setGridSize(QSize(80, 80));          // Размер ячейки
     listCoins->setSpacing(10);                      // Расстояние между элементами
     listCoins->setMovement(QListView::Static);      // Неподвижные элементы
     listCoins->setResizeMode(QListView::Adjust);    // Автоматическая подгонка
@@ -47,7 +41,7 @@ void CoinsWidget::setupWidget() {
     listCoins->setMaximumHeight(300);
     listCoins->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-    connect(listCoins, &QListView::clicked, this, &CoinsWidget::selectedItem);
+    connect(listCoins, &QListView::clicked, this, &SpotWidget::selectedItem);
 
     mainLayout = new QVBoxLayout(m_widget);
     mainLayout->setSpacing(0);

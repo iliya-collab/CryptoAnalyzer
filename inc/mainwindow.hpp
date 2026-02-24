@@ -8,9 +8,6 @@
 #include <QStackedWidget>
 
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
-#include "CustomWidgets/OrderBooksWidget.hpp"
-#include "CustomWidgets/MarketsWidget.hpp"
-#include "CustomWidgets/CoinsWidget.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
 
 class MainWindow : public QMainWindow
@@ -31,14 +28,8 @@ private:
 
     std::unique_ptr<DialogSetupMenu> m_setupMenu;
     
-    MarketsWidget* m_widgetMarkets;
-    CoinsWidget* m_widgetCoins;
-    OrderBooksWidget* m_widgetOrderBooks;
-    
     QAction* m_actionSetupMenu;
     QAction* m_actionSaveSetup;
-    QAction* m_actionOrderBooks;
-    QAction* m_actionTicker;
 
     std::unique_ptr<AppEngineLoader> m_loader;
 

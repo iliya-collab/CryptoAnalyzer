@@ -7,7 +7,7 @@
 #include <QStringList>
 #include <QVBoxLayout>
 
-class CoinsWidget : public CustomWidget {
+class SpotWidget : public CustomWidget {
     Q_OBJECT
 private:
 
@@ -24,11 +24,11 @@ private slots:
 public:
 
     void updateListCoins(const QStringList& lst);
-    void updateIcons(const QHash<QString, QByteArray>& icons);
 
-    explicit CoinsWidget(QWidget* parent = nullptr);
+    explicit SpotWidget(QWidget* parent = nullptr);
 
 signals:
+
     void selected(const QString& item);
 
 };

@@ -39,8 +39,6 @@ private:
     void runStep(const LoadingStep& step);
 
     void loadTradingPairsSync(Engine::TMarket market);
-    void loadCoinsInfoSync();
-    void loadIconsCoinSync();
 
     // Получает доступные торговые пары на рынке
     // tradingPairsReady
@@ -51,6 +49,8 @@ public:
     AppEngineLoader(QObject* parent = nullptr) : QObject(parent) {}
 
     void startDownload();
+
+    LoadedData getData();
 
 signals:
 

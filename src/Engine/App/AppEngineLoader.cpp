@@ -2,6 +2,10 @@
 
 #include <QtConcurrent/QtConcurrent>
 
+AppEngineLoader::LoadedData AppEngineLoader::getData() {
+    return m_data;
+}
+
 void AppEngineLoader::startDownload() {
     QtConcurrent::run([this]() {
         runLoading();

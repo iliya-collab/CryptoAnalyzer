@@ -29,16 +29,20 @@ void MainWindow::setupConnection() {
     connect(m_actionSaveSetup, &QAction::triggered, this, [this] () {
         Settings::writeAllConfig();
     });
-    connect(m_actionOrderBooks, &QAction::triggered, this, [this]() {
+    /*connect(m_actionOrderBooks, &QAction::triggered, this, [this]() {
         m_stackWidgets->setCurrentWidget(m_widgetOrderBooks);
-    });
+    });*/
 }
 
 void MainWindow::setupEngine() {
     m_loader = std::make_unique<AppEngineLoader>();
 
-    connect(m_loader.get(), &AppEngineLoader::errorEngine, [&](const QString& error) {
+    connect(m_loader.get(), &AppEngineLoader::errorEngine, this, [] (const QString& error) {
         qCritical().noquote() << error;
+    });
+
+    connect(m_loader.get(), &AppEngineLoader::finished, this, [] () {
+
     });
 
     m_loader->startDownload();
@@ -53,7 +57,7 @@ void MainWindow::createMenu() {
     m_actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(m_actionSaveSetup);
     
-    QMenu* menuMarket = menuBar->addMenu("Market");
+    /*QMenu* menuMarket = menuBar->addMenu("Market");
     QWidgetAction* marketAction = new QWidgetAction(this);
     m_widgetMarkets = new MarketsWidget(this);
     marketAction->setDefaultWidget(m_widgetMarkets->widget());    
@@ -71,7 +75,7 @@ void MainWindow::createMenu() {
     m_actionTicker = new QAction("Ticker", this);
     menuMonitoring->addAction(m_actionTicker);
     m_actionOrderBooks = new QAction("Order books", this);
-    menuMonitoring->addAction(m_actionOrderBooks);
+    menuMonitoring->addAction(m_actionOrderBooks);*/
 
 }
 
@@ -83,28 +87,14 @@ void MainWindow::createUI() {
     m_stackWidgets->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     createPages();
-/*
-    // Загружаем изображение
-    QPixmap pixmap("btc.png");
-    
-    // Создаем QLabel и устанавливаем в него изображение
-    QLabel *imageLabel = new QLabel(this);
-    imageLabel->setPixmap(pixmap);
-    
-    // Опционально: масштабирование
-    imageLabel->setPixmap(pixmap.scaled(50, 50, Qt::KeepAspectRatio));
-    
-    // Центрируем изображение
-    imageLabel->setAlignment(Qt::AlignCenter);*/
 
     m_mainLayout = new QVBoxLayout(m_widgetMainWindow);
-    //m_mainLayout->addWidget(imageLabel);
     m_mainLayout->addWidget(m_stackWidgets);
     m_mainLayout->setContentsMargins(0, 0, 0, 0);
 
 }
 
 void MainWindow::createPages() {
-    m_widgetOrderBooks = new OrderBooksWidget(this);
-    m_stackWidgets->addWidget(m_widgetOrderBooks);
+    /*m_widgetOrderBooks = new OrderBooksWidget(this);
+    m_stackWidgets->addWidget(m_widgetOrderBooks);*/
 }
