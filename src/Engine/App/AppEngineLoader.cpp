@@ -55,9 +55,6 @@ void AppEngineLoader::runLoading() {
 
         qInfo() << "Creating a database";
         db.create();
-        qInfo() << "Database structure created successfully";
-
-        qInfo() << "Filling the database";
         for (const auto& item : m_data.tradingPairs)
             db.addItem(item);
         qInfo() << "Database ready";
@@ -67,33 +64,29 @@ void AppEngineLoader::runLoading() {
 }
 
 void AppEngineLoader::loadTradingPairsSync(Engine::TMarket market) {
-    QDeadlineTimer deadline(LOADING_TIMEOUT);
+    QEventLoop loop;
     bool success = false;
     
     auto conn = connect(this, &AppEngineLoader::tradingPairsReady, [&](Engine::TMarket loadedType) {
-        if (loadedType != market)
+        if (loadedType != market) 
             return;
         success = true;
-        qInfo().noquote() << QString("%1 pairs ready").arg(Engine::marketToString(market));
+        loop.quit();
     });
     
     auto errorConn = connect(this, &AppEngineLoader::errorEngine, [&](const QString& error) {
         success = false;
+        loop.quit();
     });
-    
+
     getTradingPairs(market);
+
+    QTimer::singleShot(LOADING_TIMEOUT, &loop, &QEventLoop::quit);
     
-    while (!success && !deadline.hasExpired())
-        QCoreApplication::processEvents();
-    
-    disconnect(conn);
-    disconnect(errorConn);
-    
-    if (deadline.hasExpired())
-        throw std::runtime_error("Timeout loading coins info");
+    loop.exec();
 
     if (!success)
-        throw std::runtime_error("Error loading trading pairs");
+        throw std::runtime_error("Error or Timeout loading pairs");
 }
 
 void AppEngineLoader::getTradingPairs(Engine::TMarket market) {

@@ -29,9 +29,6 @@ void MainWindow::setupConnection() {
     connect(m_actionSaveSetup, &QAction::triggered, this, [this] () {
         Settings::writeAllConfig();
     });
-    /*connect(m_actionOrderBooks, &QAction::triggered, this, [this]() {
-        m_stackWidgets->setCurrentWidget(m_widgetOrderBooks);
-    });*/
 }
 
 void MainWindow::setupEngine() {
