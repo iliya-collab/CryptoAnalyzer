@@ -1,6 +1,7 @@
 #include "CustomWidgets/SpotWidget.hpp"
 
 SpotWidget::SpotWidget(QWidget* parent) : QWidget(parent) {
+    setWindowFlags(Qt::Popup | Qt::FramelessWindowHint);
     setupWidget();
 }
 
@@ -33,8 +34,7 @@ void SpotWidget::setupWidget() {
     listCoins->setSelectionMode(QAbstractItemView::SingleSelection);
     listCoins->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    listCoins->setMinimumHeight(150);
-    listCoins->setMaximumHeight(300);
+    listCoins->setFixedSize(300, 300);
     listCoins->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     connect(listCoins, &QListView::clicked, this, &SpotWidget::selectedItem);

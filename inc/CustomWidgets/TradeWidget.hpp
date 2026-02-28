@@ -8,13 +8,15 @@ class TradeWidget : public QWidget {
     Q_OBJECT
 private:
 
-    enum class idButtons {
+    enum {
         idSpotBtn,
         idFuturesBtn,
         idOptionsBtn
     };
 
     void setupWidget();
+
+    void setupConnection();
 
     QButtonGroup* m_btnGroup;
     QVBoxLayout* m_mainLayout;

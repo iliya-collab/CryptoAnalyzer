@@ -8,7 +8,7 @@
 #include <QDate>
 #include <memory>
 
-#include "CustomWidgets/TradeMenu.hpp"
+#include "CustomWidgets/TradeWidget.hpp"
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupEngine();
@@ -56,9 +56,11 @@ void MainWindow::createMenu() {
     m_actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(m_actionSaveSetup);
 
-    TradeMenu *tradingMenu = new TradeMenu(this);
-    tradingMenu->setTitle("Trading");
-    m_menuBar->addMenu(tradingMenu);
+    QMenu* menuTrade = m_menuBar->addMenu("Trading");
+    QWidgetAction* widgetAction = new QWidgetAction(this);
+    TradeWidget* tradeWidget = new TradeWidget;
+    widgetAction->setDefaultWidget(tradeWidget);
+    menuTrade->addAction(widgetAction);
 
 }
 
