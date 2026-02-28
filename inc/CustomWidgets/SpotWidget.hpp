@@ -1,13 +1,12 @@
 #pragma once
 
-#include "CustomWidgets/CustomWidget.hpp"
-
+#include <QWidget>
 #include <QStandardItemModel>
 #include <QListView>
 #include <QStringList>
 #include <QVBoxLayout>
 
-class SpotWidget : public CustomWidget {
+class SpotWidget : public QWidget {
     Q_OBJECT
 private:
 
@@ -15,7 +14,7 @@ private:
 
     QVBoxLayout* mainLayout;
 
-    void setupWidget() override;
+    void setupWidget();
 
 private slots:
 

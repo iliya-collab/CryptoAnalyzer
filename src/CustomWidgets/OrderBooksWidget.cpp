@@ -1,11 +1,11 @@
 #include "CustomWidgets/OrderBooksWidget.hpp"
 
-OrderBooksWidget::OrderBooksWidget(QWidget* parent) : CustomWidget(parent) {
+OrderBooksWidget::OrderBooksWidget(QWidget* parent) : QWidget(parent) {
     setupWidget();   
 }
 
 void OrderBooksWidget::setupWidget() {
-    mainLayout = new QVBoxLayout(m_widget);
+    mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
     setLayout(mainLayout);
@@ -14,7 +14,7 @@ void OrderBooksWidget::setupWidget() {
 }
 
 void OrderBooksWidget::setupOrderBooksTable() {
-    lblSpread = new QLabel(m_widget);
+    lblSpread = new QLabel(this);
 
     lblSpread->setStyleSheet(
         "border-radius: 3px;"
@@ -29,7 +29,7 @@ void OrderBooksWidget::setupOrderBooksTable() {
 
     lblSpread->setText("ASK: -  |  BID: -  |  SPREAD: -");
 
-    orderBooksTable = new QTableWidget(m_widget);
+    orderBooksTable = new QTableWidget(this);
     orderBooksTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     orderBooksTable->setColumnCount(2);
     orderBooksTable->setHorizontalHeaderLabels({"Price", "Size"});

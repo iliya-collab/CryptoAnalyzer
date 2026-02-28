@@ -1,16 +1,26 @@
 #pragma once
 
-#include "CustomWidgets/CustomWidget.hpp"
+#include <QWidget>
+#include <QButtonGroup>
+#include <QVBoxLayout>
 
-#include <QListWidget>
-
-class TradeWidget : public CustomWidget {
+class TradeWidget : public QWidget {
+    Q_OBJECT
 private:
 
-    void setupWidget() override;
+    enum class idButtons {
+        idSpotBtn,
+        idFuturesBtn,
+        idOptionsBtn
+    };
+
+    void setupWidget();
+
+    QButtonGroup* m_btnGroup;
+    QVBoxLayout* m_mainLayout;
 
 public:
 
-    TradeWidget(QWidget* parent = nullptr);
+    explicit TradeWidget(QWidget* parent = nullptr);
     ~TradeWidget() = default;
 };

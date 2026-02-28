@@ -8,6 +8,8 @@
 #include <QDate>
 #include <memory>
 
+#include "CustomWidgets/TradeMenu.hpp"
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setupEngine();
     setupUI();
@@ -24,7 +26,7 @@ void MainWindow::setupUI() {
 
 void MainWindow::setupConnection() {
     connect(m_actionSetupMenu, &QAction::triggered, this, [this] () {
-        m_setupMenu = std::make_unique<DialogSetupMenu>(this);
+        m_dlgSetupMenu = new DialogSetupMenu(this);
     });
     connect(m_actionSaveSetup, &QAction::triggered, this, [this] () {
         Settings::writeAllConfig();
@@ -46,33 +48,17 @@ void MainWindow::setupEngine() {
 }
 
 void MainWindow::createMenu() {
-    QMenuBar* menuBar = this->menuBar();
+    m_menuBar = this->menuBar();
 
-    QMenu* menuSetup = menuBar->addMenu("Settings");
+    QMenu* menuSetup = m_menuBar->addMenu("General");
     m_actionSetupMenu = new QAction("Setup", this);
     menuSetup->addAction(m_actionSetupMenu);
     m_actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(m_actionSaveSetup);
-    
-    /*QMenu* menuMarket = menuBar->addMenu("Market");
-    QWidgetAction* marketAction = new QWidgetAction(this);
-    m_widgetMarkets = new MarketsWidget(this);
-    marketAction->setDefaultWidget(m_widgetMarkets->widget());    
-    menuMarket->addAction(marketAction);
-    m_widgetMarkets->setAttribute(Qt::WA_TransparentForMouseEvents, true);
 
-    QMenu* menuCoins = menuBar->addMenu("Coins");
-    QWidgetAction* coinsAction = new QWidgetAction(this);
-    m_widgetCoins = new CoinsWidget(this);
-    coinsAction->setDefaultWidget(m_widgetCoins->widget());    
-    menuCoins->addAction(coinsAction);
-    m_widgetCoins->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-
-    QMenu* menuMonitoring = menuBar->addMenu("Monitoring");
-    m_actionTicker = new QAction("Ticker", this);
-    menuMonitoring->addAction(m_actionTicker);
-    m_actionOrderBooks = new QAction("Order books", this);
-    menuMonitoring->addAction(m_actionOrderBooks);*/
+    TradeMenu *tradingMenu = new TradeMenu(this);
+    tradingMenu->setTitle("Trading");
+    m_menuBar->addMenu(tradingMenu);
 
 }
 
@@ -92,6 +78,4 @@ void MainWindow::createUI() {
 }
 
 void MainWindow::createPages() {
-    /*m_widgetOrderBooks = new OrderBooksWidget(this);
-    m_stackWidgets->addWidget(m_widgetOrderBooks);*/
 }

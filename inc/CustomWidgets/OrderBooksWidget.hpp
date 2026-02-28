@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CustomWidgets/CustomWidget.hpp"
-
 #include "Engine/StdTypes.hpp"
 
 #include <QBoxLayout>
@@ -10,7 +8,7 @@
 #include <QHeaderView>
 #include <QLabel>
 
-class OrderBooksWidget : public CustomWidget {
+class OrderBooksWidget : public QWidget {
     Q_OBJECT
 protected:
 
@@ -19,7 +17,7 @@ protected:
     QTableWidget* orderBooksTable;
     QLabel* lblSpread;
 
-    void setupWidget() override;
+    void setupWidget();
 
     void setupOrderBooksTable();
 

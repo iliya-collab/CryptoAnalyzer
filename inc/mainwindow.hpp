@@ -10,10 +10,8 @@
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
-
 public:
 
     ~MainWindow() = default;
@@ -26,10 +24,12 @@ private:
 
     QStackedWidget* m_stackWidgets;
 
-    std::unique_ptr<DialogSetupMenu> m_setupMenu;
+    DialogSetupMenu* m_dlgSetupMenu;
     
     QAction* m_actionSetupMenu;
     QAction* m_actionSaveSetup;
+
+    QMenuBar* m_menuBar;
 
     std::unique_ptr<AppEngineLoader> m_loader;
 

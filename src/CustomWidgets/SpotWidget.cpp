@@ -1,6 +1,6 @@
 #include "CustomWidgets/SpotWidget.hpp"
 
-SpotWidget::SpotWidget(QWidget* parent) : CustomWidget(parent) {
+SpotWidget::SpotWidget(QWidget* parent) : QWidget(parent) {
     setupWidget();
 }
 
@@ -19,18 +19,14 @@ void SpotWidget::updateListCoins(const QStringList& lst) {
 
 void SpotWidget::selectedItem(const QModelIndex &index) {
     QString selectedCoin = index.data().toString();
-    //qDebug() << "Selected:" << selectedCoin;
     emit selected(selectedCoin);
 }
 
 void SpotWidget::setupWidget() {
-    QStandardItemModel* model = new QStandardItemModel(m_widget);
+    QStandardItemModel* model = new QStandardItemModel(this);
 
-    listCoins = new QListView(m_widget);
+    listCoins = new QListView(this);
     listCoins->setViewMode(QListView::ListMode);
-    listCoins->setSpacing(10);                      // Расстояние между элементами
-    listCoins->setMovement(QListView::Static);      // Неподвижные элементы
-    listCoins->setResizeMode(QListView::Adjust);    // Автоматическая подгонка
 
     listCoins->setModel(model);
 
@@ -43,7 +39,7 @@ void SpotWidget::setupWidget() {
 
     connect(listCoins, &QListView::clicked, this, &SpotWidget::selectedItem);
 
-    mainLayout = new QVBoxLayout(m_widget);
+    mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(0);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->addWidget(listCoins);
