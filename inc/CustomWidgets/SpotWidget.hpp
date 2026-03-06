@@ -1,18 +1,30 @@
 #pragma once
 
-#include <QWidget>
-#include <QStandardItemModel>
-#include <QListView>
-#include <QStringList>
+#include "CustomWidgets/ListWidget.hpp"
+#include "Engine/StdTypes.hpp"
+
 #include <QVBoxLayout>
+#include <QPushButton>
+#include <QButtonGroup>
+#include <QHash>
 
 class SpotWidget : public QWidget {
     Q_OBJECT
 private:
 
-    QListView* listCoins;
+    enum {
+        USDC_FILTER,
+        USDT_FILTER,
+        USDE_FILTER,
+        MNT_FILTER,
+        OTHER_FILTER
+    };
 
-    QVBoxLayout* mainLayout;
+    QHash<QString, QStringList> m_filtredLists;
+
+    ListWidget* m_widgetList;
+    QButtonGroup* m_btnGroup;
+    QVBoxLayout* m_mainLayout;
 
     void setupWidget();
 
@@ -20,11 +32,13 @@ private slots:
 
     void selectedItem(const QModelIndex &index);
 
+    void changeFilter(int idBtn);
+
 public:
 
-    void updateListCoins(const QStringList& lst);
-
     explicit SpotWidget(QWidget* parent = nullptr);
+
+    void setTradingPairs(const QList<Engine::TradingInfo>& pairs);
 
 signals:
 

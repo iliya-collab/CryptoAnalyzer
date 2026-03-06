@@ -40,8 +40,6 @@ private:
 
     void loadTradingPairsSync(Engine::TMarket market);
 
-    // Получает доступные торговые пары на рынке
-    // tradingPairsReady
     void getTradingPairs(Engine::TMarket market);
 
 public: 

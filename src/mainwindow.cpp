@@ -8,12 +8,10 @@
 #include <QDate>
 #include <memory>
 
-#include "CustomWidgets/TradeWidget.hpp"
-
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    setupEngine();
     setupUI();
     setupConnection();
+    setupEngine();
 }
 
 void MainWindow::setupUI() {
@@ -40,8 +38,10 @@ void MainWindow::setupEngine() {
         qCritical().noquote() << error;
     });
 
-    connect(m_loader.get(), &AppEngineLoader::finished, this, [] () {
-
+    connect(m_loader.get(), &AppEngineLoader::finished, this, [this] () {
+        const auto& Data = m_loader->getData();
+        m_widgetSpot->setTradingPairs(Data.tradingPairs);
+        
     });
 
     m_loader->startDownload();
@@ -57,11 +57,16 @@ void MainWindow::createMenu() {
     menuSetup->addAction(m_actionSaveSetup);
 
     QMenu* menuTrade = m_menuBar->addMenu("Trading");
-    QWidgetAction* widgetAction = new QWidgetAction(this);
-    TradeWidget* tradeWidget = new TradeWidget;
-    widgetAction->setDefaultWidget(tradeWidget);
-    menuTrade->addAction(widgetAction);
+    menuTrade->setFixedWidth(100);
 
+    QMenu* menuSpot = menuTrade->addMenu("Spot");
+    QWidgetAction* widgetAction = new QWidgetAction(this);
+    m_widgetSpot = new SpotWidget;
+    widgetAction->setDefaultWidget(m_widgetSpot);
+    menuSpot->addAction(widgetAction);
+
+    QMenu* menuFutures = menuTrade->addMenu("Futures");
+    QMenu* menuOptions = menuTrade->addMenu("Options");
 }
 
 void MainWindow::createUI() {

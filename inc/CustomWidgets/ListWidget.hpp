@@ -2,8 +2,11 @@
 
 #include <QWidget>
 #include <QListView>
+#include <QStandardItemModel>
+#include <QStringList>
+#include <QVBoxLayout>
 
-class IListWidget : public QWidget {
+class ListWidget : public QWidget {
     Q_OBJECT
 private:
 
@@ -17,7 +20,7 @@ public:
 
     void updateView(const QStringList& listItems);
 
-    explicit IListWidget(QWidget* parent = nullptr);
+    explicit ListWidget(QWidget* parent = nullptr);
 
 signals:
 

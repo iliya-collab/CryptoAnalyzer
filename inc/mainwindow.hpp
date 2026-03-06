@@ -10,6 +10,8 @@
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
 
+#include "CustomWidgets/SpotWidget.hpp"
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -28,6 +30,8 @@ private:
     
     QAction* m_actionSetupMenu;
     QAction* m_actionSaveSetup;
+
+    SpotWidget* m_widgetSpot;
 
     QMenuBar* m_menuBar;
 
