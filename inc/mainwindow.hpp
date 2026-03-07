@@ -9,6 +9,7 @@
 
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
+#include "Managers/Settings.hpp"
 
 #include "CustomWidgets/SpotWidget.hpp"
 
@@ -34,8 +35,6 @@ private:
     SpotWidget* m_widgetSpot;
 
     QMenuBar* m_menuBar;
-
-    std::unique_ptr<AppEngineLoader> m_loader;
 
     void setupUI();
     void setupConnection();

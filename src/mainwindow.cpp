@@ -32,19 +32,33 @@ void MainWindow::setupConnection() {
 }
 
 void MainWindow::setupEngine() {
-    m_loader = std::make_unique<AppEngineLoader>();
+    Engine::AppEngineLoader* loader = new Engine::AppEngineLoader(this);
 
-    connect(m_loader.get(), &AppEngineLoader::errorEngine, this, [] (const QString& error) {
-        qCritical().noquote() << error;
+    connect(loader, &Engine::AppEngineLoader::stepStarted, [](const QString& step) {
+        qInfo() << "▶️" << step;
     });
 
-    connect(m_loader.get(), &AppEngineLoader::finished, this, [this] () {
-        const auto& Data = m_loader->getData();
-        m_widgetSpot->setTradingPairs(Data.tradingPairs);
+    connect(loader, &Engine::AppEngineLoader::progressChanged, [](int current, int total) {
+        qInfo() << "📊 Progress:" << current << "/" << total;
+    });
+
+    connect(loader, &Engine::AppEngineLoader::errorEngine, [](const QString& error) {
+        qCritical() << "❌ Error:" << error;
+    });
+
+    connect(loader, &Engine::AppEngineLoader::finished, [loader](bool success) {
+        if (success) {
+            qInfo() << "✅ Loading completed successfully";
+            
+            auto spotPairs = loader->getData("spot");
+            qInfo() << "Spot pairs count:" << spotPairs.size();
+        } else
+            qInfo() << "❌ Loading failed";
         
+        loader->deleteLater();
     });
 
-    m_loader->startDownload();
+    loader->startLoading();
 }
 
 void MainWindow::createMenu() {

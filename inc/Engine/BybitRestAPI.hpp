@@ -37,12 +37,10 @@ namespace Engine {
 
     public:
 
-        static qint64 TIMEOUT;
-
         BybitRestAPI(const API& api, QObject* parent = nullptr);
         ~BybitRestAPI() = default;
 
-        void requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery());
+        void requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1);
 
     signals:
     

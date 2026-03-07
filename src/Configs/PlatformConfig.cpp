@@ -36,11 +36,5 @@ void PlatformConfig::fromJson(const QJsonObject& obj) {
             secret_key,
             testnet
         };
-
-        qDebug().noquote() << QString("Key found\n\tName : '%1'\n\tapi_key : %2\n\tsecret_key : %3\n\ttestnet : %4\n")
-            .arg(name)
-            .arg(api_key)
-            .arg(secret_key)
-            .arg(testnet);
     }
 }

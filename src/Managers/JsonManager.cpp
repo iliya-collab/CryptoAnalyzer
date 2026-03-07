@@ -7,7 +7,7 @@ std::expected<QJsonDocument, QString> JsonManager::readDocument(const char* _fil
     QFile jsonFile(_file);
 
     if (!jsonFile.open(QIODevice::ReadOnly | QIODevice::Text))
-        return std::unexpected(QString("Cannot open file: %1").arg(jsonFile.errorString()));
+        return std::unexpected(jsonFile.errorString());
 
 
     QByteArray jsonData = jsonFile.readAll();
@@ -17,7 +17,7 @@ std::expected<QJsonDocument, QString> JsonManager::readDocument(const char* _fil
     doc = QJsonDocument::fromJson(jsonData, &parseError);
 
     if (parseError.error != QJsonParseError::NoError)
-        return std::unexpected(QString("JSON parse error: %1").arg(parseError.errorString()));
+        return std::unexpected(parseError.errorString());
 
     if (!doc.isObject())
         return std::unexpected(QString("Invalid JSON structure"));

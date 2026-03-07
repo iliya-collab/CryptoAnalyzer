@@ -5,8 +5,6 @@
 #include <QDate>
 #include <QTimer>
 
-qint64 Engine::BybitRestAPI::TIMEOUT = 30000;
-
 Engine::BybitRestAPI::BybitRestAPI(const API& api, QObject* parent) : m_api(api), QObject(parent) {
     m_manager = new QNetworkAccessManager(parent);
     initBaseEndpoint();
@@ -54,7 +52,7 @@ void Engine::BybitRestAPI::addAPIHeaders(const QUrl& url,QNetworkRequest& reques
     request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
 }
 
-void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params) {
+void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout) {
     QString urlString = m_baseEndpoint + endpoint;
     QUrl url(urlString);
     
@@ -72,8 +70,8 @@ void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQu
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0");
 
-    if (TIMEOUT > 0)
-        request.setTransferTimeout(TIMEOUT);
+    if (timeout > 0)
+        request.setTransferTimeout(timeout);
     
     QNetworkReply* reply = m_manager->get(request);
     

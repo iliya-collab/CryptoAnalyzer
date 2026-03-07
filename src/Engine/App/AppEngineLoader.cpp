@@ -1,128 +1,267 @@
 #include "Engine/App/AppEngineLoader.hpp"
+#include "Engine/BybitRestAPI.hpp"
+#include "Engine/DBHash.hpp"
+#include "Managers/Settings.hpp"
+#include "Configs/PlatformConfig.hpp"
 
-#include <QtConcurrent/QtConcurrent>
+#include <QEventLoop>
+#include <QUrlQuery>
+#include <QTimer>
+#include <QThread>
+#include <QDebug>
 
-AppEngineLoader::LoadedData AppEngineLoader::getData() {
-    return m_data;
-}
+namespace Engine {
 
-void AppEngineLoader::startDownload() {
-    QtConcurrent::run([this]() {
-        runLoading();
-    });
-}
+    const int LOADING_TIMEOUT = 30000; // 30 секунд
 
-void AppEngineLoader::runStep(const LoadingStep& step) {
-    try {
-        qInfo().noquote() << step.name;
-        step.action();
-    } catch (const std::exception& e) {
-        QMetaObject::invokeMethod(this, [this, msg = QString(e.what())]() { emit errorEngine(msg); });
-        return;
-    }
-}
-
-void AppEngineLoader::loadFromURLResources() {
-    QVector<LoadingStep> steps = {
-        {"Loading SPOT pairs",      [this]() { loadTradingPairsSync(Engine::TMarket::SPOT); }},
-        {"Loading LINEAR pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::LINEAR); }},
-        {"Loading INVERSE pairs",   [this]() { loadTradingPairsSync(Engine::TMarket::INVERSE); }},
-        {"Loading OPTION pairs",    [this]() { loadTradingPairsSync(Engine::TMarket::OPTION); }}
-    };
-
-    for (int i = 0; i < steps.size(); ++i) {
-        QMetaObject::invokeMethod(this, [this, i, total = steps.size()]() { emit progressChanged(i + 1, total); });
-        runStep(steps[i]);
-    }
-}
-
-void AppEngineLoader::runLoading() {
-    LoadingStep readConfig = { "Reading the platform configuration", [this]() {
-        if (!Settings::readAllConfig())
-            qDebug() << Settings::getLastError();
-        m_api = PlatformConfig::instance().getConfig().m_api[0];
-    }};
-    runStep(readConfig);
-
-    Engine::DBHash db;
-    if (db.dbExist()) {
-        qInfo() << "Loading from database";
-        m_data.tradingPairs = db.getAllItems();
-        qInfo() << "Loading from the database is completed";
-    }
-    else {
-        loadFromURLResources();
-
-        qInfo() << "Creating a database";
-        db.create();
-        for (const auto& item : m_data.tradingPairs)
-            db.addItem(item);
-        qInfo() << "Database ready";
+    AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent), m_futureWatcher(new QFutureWatcher<bool>(this)) {
+        connect(m_futureWatcher, &QFutureWatcher<bool>::finished, this, [this]() {
+            bool success = m_futureWatcher->result();
+            emit finished(success);
+        });
     }
 
-    QMetaObject::invokeMethod(this, &AppEngineLoader::finished);
-}
+    AppEngineLoader::~AppEngineLoader() {
+        if (m_futureWatcher && m_futureWatcher->isRunning()) {
+            m_futureWatcher->cancel();
+            m_futureWatcher->waitForFinished();
+        }
+    }
 
-void AppEngineLoader::loadTradingPairsSync(Engine::TMarket market) {
-    QEventLoop loop;
-    bool success = false;
-    
-    auto conn = connect(this, &AppEngineLoader::tradingPairsReady, [&](Engine::TMarket loadedType) {
-        if (loadedType != market) 
+    void AppEngineLoader::startLoading() {
+        if (m_futureWatcher && m_futureWatcher->isRunning()) {
+            emit errorEngine("Loading already in progress");
             return;
-        success = true;
-        loop.quit();
-    });
-    
-    auto errorConn = connect(this, &AppEngineLoader::errorEngine, [&](const QString& error) {
-        success = false;
-        loop.quit();
-    });
+        }
 
-    getTradingPairs(market);
+        {
+            QMutexLocker locker(&m_mutex);
+            m_tradingPairs.clear();
+        }
 
-    QTimer::singleShot(LOADING_TIMEOUT, &loop, &QEventLoop::quit);
-    
-    loop.exec();
+        m_loadSteps = {
+            { "Loading the platform configuration", [this]() { return loadConfigSync(); }},
+            { "Loading SPOT pairs", [this]() { return loadTradingPairsSync(TMarket::SPOT); }},
+            { "Loading LINEAR pairs", [this]() { return loadTradingPairsSync(TMarket::LINEAR); }},
+            { "Loading INVERSE pairs", [this]() { return loadTradingPairsSync(TMarket::INVERSE); }},
+            { "Loading OPTION pairs", [this]() { return loadTradingPairsSync(TMarket::OPTION); }}
+        };
 
-    if (!success)
-        throw std::runtime_error("Error or Timeout loading pairs");
-}
+        m_progressTotal = m_loadSteps.size();
 
-void AppEngineLoader::getTradingPairs(Engine::TMarket market) {
-    Engine::BybitRestAPI* bybit_api = new Engine::BybitRestAPI(m_api);
-
-    connect(bybit_api, &Engine::BybitRestAPI::dataReceived, this, [this, bybit_api, market] (const QJsonObject& data) {
-        processSymbols(data);
-        emit tradingPairsReady(market);
-        bybit_api->deleteLater();
-    }, Qt::QueuedConnection);
-
-    connect(bybit_api, &Engine::BybitRestAPI::errorOccurred, this, [this, bybit_api] (const QString& error) {
-        emit errorEngine(error);
-        bybit_api->deleteLater();
-    }, Qt::QueuedConnection);
-
-    QUrlQuery params;
-    params.addQueryItem("category", Engine::marketToString(market).toLower());
-    bybit_api->requestEndpoint("/v5/market/instruments-info", params);
-    
-}
-
-void AppEngineLoader::processSymbols(const QJsonObject& data) {
-    QJsonObject result = data["result"].toObject();
-    QString category = result["category"].toString();
-    QJsonArray list = result["list"].toArray();
-
-    for (const auto& obj : list) {
-        QJsonObject item = obj.toObject();
-
-        Engine::TradingInfo data;
-        data.category = category;
-        data.symbol = item["symbol"].toString();
-        data.base_coin = item["baseCoin"].toString();
-        data.quote_coin = item["quoteCoin"].toString();
-
-        m_data.tradingPairs.append(data);
+        QFuture<bool> future = QtConcurrent::run([this]() {
+            return runLoadingThread();
+        });
+        
+        m_futureWatcher->setFuture(future);
     }
+
+    bool AppEngineLoader::runLoadingThread() {
+        for (int i = 0; i < m_loadSteps.size(); ++i) {
+            if (QThread::currentThread()->isInterruptionRequested()) {
+                handleError("Loading was cancelled");
+                return false;
+            }
+
+            emitStepStarted(m_loadSteps[i].name);
+            
+            bool stepSuccess = m_loadSteps[i].action();
+            
+            if (!stepSuccess) 
+                return false;
+
+            emitProgress(i + 1, m_loadSteps.size());
+        }
+
+        if (!saveToDatabase())
+            return false;
+
+        return true;
+    }
+
+    bool AppEngineLoader::loadConfigSync() {
+        if (!Settings::readAllConfig()) {
+            handleError(Settings::getLastError());
+            return false;
+        }
+
+        auto config = PlatformConfig::instance().getConfig();
+        
+        if (config.m_api.isEmpty()) {
+            handleError("No API configuration found");
+            return false;
+        }
+
+        m_api = config.m_api.values()[0];
+    
+        if (m_api.api_key.isEmpty()) {
+            handleError("API key is empty");
+            return false;
+        }
+
+        return true;
+    }
+
+    bool AppEngineLoader::loadTradingPairsSync(TMarket market) {
+        QEventLoop loop;
+        bool success = false;
+        bool timeout = false;
+        QString marketStr = marketToString(market);
+
+        QTimer* timer = new QTimer();
+        timer->setSingleShot(true);
+        timer->setInterval(LOADING_TIMEOUT);
+        
+        auto timeoutConn = connect(timer, &QTimer::timeout, this, [&, timer]() {
+            if (!success && !timeout) {
+                timeout = true;
+                handleError(QString("Timeout loading %1 pairs").arg(marketStr));
+                
+                timer->stop();
+                timer->deleteLater();
+                
+                if (loop.isRunning())
+                    QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
+            }
+        });
+
+        auto readyConn = connect(this, &AppEngineLoader::tradingPairsReady, this, [&, timer](TMarket loadedMarket) {
+            if (loadedMarket == market) {
+                success = true;
+                
+                if (timer) {
+                    timer->stop();
+                    timer->deleteLater();
+                }
+                
+                if (loop.isRunning())
+                    QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
+            }
+        });
+
+        auto errorConn = connect(this, &AppEngineLoader::errorEngine, this, [&, timer](const QString& error) {
+            if (!timeout)
+                handleError(QString("Error loading %1: %2").arg(marketStr).arg(error));
+            
+            if (timer) {
+                timer->stop();
+                timer->deleteLater();
+            }
+            
+            if (loop.isRunning())
+                QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
+        });
+
+        timer->start();
+        loop.exec();
+
+        disconnect(timeoutConn);
+        disconnect(readyConn);
+        disconnect(errorConn);
+
+        return success && !timeout;
+    }
+
+    void AppEngineLoader::getTradingPairs(TMarket market) {
+        BybitRestAPI* bybit_api = new BybitRestAPI(m_api);
+
+        connect(bybit_api, &BybitRestAPI::dataReceived, this, [this, bybit_api, market](const QJsonObject& data) {
+            processSymbols(data);
+            emit tradingPairsReady(market);
+            bybit_api->deleteLater();
+        }, Qt::QueuedConnection);
+
+        connect(bybit_api, &BybitRestAPI::errorOccurred, this, [this, bybit_api](const QString& error) {
+            handleError(error);
+            bybit_api->deleteLater();
+        }, Qt::QueuedConnection);
+
+        QUrlQuery params;
+        params.addQueryItem("category", marketToString(market).toLower());
+        bybit_api->requestEndpoint("/v5/market/instruments-info", params, LOADING_TIMEOUT);
+    }
+
+    void AppEngineLoader::processSymbols(const QJsonObject& data) {
+        QJsonObject result = data["result"].toObject();
+        QString category = result["category"].toString();
+        QJsonArray list = result["list"].toArray();
+
+        QList<TradingInfo> lst;
+
+        for (const auto& obj : list) {
+            QJsonObject item = obj.toObject();
+
+            TradingInfo info;
+            info.category = category;
+            info.symbol = item["symbol"].toString();
+            info.base_coin = item["baseCoin"].toString();
+            info.quote_coin = item["quoteCoin"].toString();
+
+            lst.append(info);
+        }
+
+        {
+            QMutexLocker locker(&m_mutex);
+            m_tradingPairs.insert(category, lst);
+        }
+
+        qInfo().noquote() << QString("Loaded %1 %2 pairs").arg(lst.size()).arg(category);
+    }
+
+    bool AppEngineLoader::saveToDatabase() {
+        DBHash db;
+        
+        if (db.dbExist()) {
+            qInfo() << "Loading from database";
+            QMutexLocker locker(&m_mutex);
+            if (!db.getAllItems(m_tradingPairs)) {
+                handleError(db.error());
+                return false;
+            }
+            qInfo() << "Loading from the database is completed";
+        } else {
+            qInfo() << "Creating a database";
+            if (!db.create()) {
+                handleError(db.error());
+                return false;
+            }
+
+            QMutexLocker locker(&m_mutex);
+            for (const auto& items : m_tradingPairs) {
+                for (const auto& item : items) {
+                    if (!db.addItem(item)) {
+                        handleError(db.error());
+                        return false;
+                    }
+                }
+            }
+            qInfo() << "Database ready";
+        }
+
+        return true;
+    }
+
+    void AppEngineLoader::handleError(const QString& error) {
+        QMetaObject::invokeMethod(this, [this, error]() {
+            emit errorEngine(error);
+        }, Qt::QueuedConnection);
+    }
+
+    void AppEngineLoader::emitProgress(int current, int total) {
+        QMetaObject::invokeMethod(this, [this, current, total]() {
+            emit progressChanged(current, total);
+        }, Qt::QueuedConnection);
+    }
+
+    void AppEngineLoader::emitStepStarted(const QString& step) {
+        QMetaObject::invokeMethod(this, [this, step]() {
+            emit stepStarted(step);
+        }, Qt::QueuedConnection);
+    }
+
+    QList<TradingInfo> AppEngineLoader::getData(const QString& category) const {
+        QMutexLocker locker(&m_mutex);
+        return m_tradingPairs.value(category);
+    }
+
 }

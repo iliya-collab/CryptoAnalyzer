@@ -71,17 +71,16 @@ void SpotWidget::setTradingPairs(const QList<Engine::TradingInfo>& pairs) {
     QStringList usdcPairs, usdtPairs, usdePairs, mntPairs, otherPairs;
 
     for (const auto& next_pair : pairs)
-        if (next_pair.category == "spot")
-            if (next_pair.quote_coin == "USDC")
-                usdcPairs.append(next_pair.symbol);
-            else if (next_pair.quote_coin == "USDT")
-                usdtPairs.append(next_pair.symbol);
-            else if (next_pair.quote_coin == "USDE")
-                usdePairs.append(next_pair.symbol);
-            else if (next_pair.quote_coin == "MNT")
-                mntPairs.append(next_pair.symbol);
-            else
-                otherPairs.append(next_pair.symbol);
+        if (next_pair.quote_coin == "USDC")
+            usdcPairs.append(next_pair.symbol);
+        else if (next_pair.quote_coin == "USDT")
+            usdtPairs.append(next_pair.symbol);
+        else if (next_pair.quote_coin == "USDE")
+            usdePairs.append(next_pair.symbol);
+        else if (next_pair.quote_coin == "MNT")
+            mntPairs.append(next_pair.symbol);
+        else
+            otherPairs.append(next_pair.symbol);
 
     m_filtredLists["USDC"] = usdcPairs;
     m_filtredLists["USDT"] = usdtPairs;
