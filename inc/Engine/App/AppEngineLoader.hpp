@@ -1,7 +1,7 @@
 #pragma once
 
 #include <QObject>
-#include <QList>
+#include <QQueue>
 #include <QString>
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrent>
@@ -39,15 +39,17 @@ namespace Engine {
         // Метод выполняющийся в отдельном потоке
         bool runLoadingThread();
 
-        // Методы загрузки
+        // Вспомогательные методы загрузки
         bool loadConfigSync();
         bool loadTradingPairsSync(TMarket market);
         void getTradingPairs(TMarket market);
         void processSymbols(const QJsonObject& data);
+        // Методы загрузки
+        bool loadFromDatabase();
         bool saveToDatabase();
 
         // Вспомогательные методы
-        void handleError(const QString& error);
+        void emitError(const QString& error);
         void emitProgress(int current, int total);
         void emitStepStarted(const QString& step);
 
@@ -61,7 +63,5 @@ namespace Engine {
         
         // Управление асинхронностью
         QFutureWatcher<bool>* m_futureWatcher;
-        QAtomicInt m_progressCurrent;
-        QAtomicInt m_progressTotal;
     };
 }
