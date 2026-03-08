@@ -35,25 +35,24 @@ void MainWindow::setupEngine() {
     Engine::AppEngineLoader* loader = new Engine::AppEngineLoader(this);
 
     connect(loader, &Engine::AppEngineLoader::stepStarted, [](const QString& step) {
-        qInfo() << "▶️" << step;
+        qDebug().noquote() << step;
     });
 
     connect(loader, &Engine::AppEngineLoader::progressChanged, [](int current, int total) {
-        qInfo() << "📊 Progress:" << current << "/" << total;
+        qDebug().noquote() << "Progress:" << current << "/" << total;
     });
 
     connect(loader, &Engine::AppEngineLoader::errorEngine, [](const QString& error) {
-        qCritical() << "❌ Error:" << error;
+        qDebug().noquote() << "Error:" << error;
     });
 
     connect(loader, &Engine::AppEngineLoader::finished, [loader](bool success) {
-        if (success) {
-            qInfo() << "✅ Loading completed successfully";
+        if (!success) {
+            qDebug().noquote() << "Loading completed successfully";
             
             auto spotPairs = loader->getData("spot");
-            qInfo() << "Spot pairs count:" << spotPairs.size();
         } else
-            qInfo() << "❌ Loading failed";
+            qDebug().noquote() << "Loading failed";
         
         loader->deleteLater();
     });
