@@ -47,7 +47,7 @@ void MainWindow::setupEngine() {
     });
 
     connect(loader, &Engine::AppEngineLoader::finished, [loader](bool success) {
-        if (!success) {
+        if (success) {
             qDebug().noquote() << "Loading completed successfully";
             
             auto spotPairs = loader->getData("spot");
