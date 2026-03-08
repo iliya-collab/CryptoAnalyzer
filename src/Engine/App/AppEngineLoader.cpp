@@ -207,8 +207,6 @@ namespace Engine {
             QMutexLocker locker(&m_mutex);
             m_tradingPairs.insert(category, lst);
         }
-
-        qInfo().noquote() << QString("Loaded %1 %2 pairs").arg(lst.size()).arg(category);
     }
 
     bool AppEngineLoader::loadFromDatabase() {

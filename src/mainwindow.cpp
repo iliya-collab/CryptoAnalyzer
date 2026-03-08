@@ -20,6 +20,7 @@ void MainWindow::setupUI() {
 
     createUI();
     createMenu();
+    createStatusBar();
 }
 
 void MainWindow::setupConnection() {
@@ -34,25 +35,36 @@ void MainWindow::setupConnection() {
 void MainWindow::setupEngine() {
     Engine::AppEngineLoader* loader = new Engine::AppEngineLoader(this);
 
-    connect(loader, &Engine::AppEngineLoader::stepStarted, [](const QString& step) {
-        qDebug().noquote() << step;
+    // Запущенный шаг
+    connect(loader, &Engine::AppEngineLoader::stepStarted, [this](const QString& step) {
+        statusBar()->showMessage(step);
     });
 
-    connect(loader, &Engine::AppEngineLoader::progressChanged, [](int current, int total) {
-        qDebug().noquote() << "Progress:" << current << "/" << total;
+    // Прогресс загрузки
+    connect(loader, &Engine::AppEngineLoader::progressChanged, [this](int current, int total) {
+        m_progressBar->setVisible(true);
+        m_progressBar->setRange(0, total);
+        m_progressBar->setValue(current);
+        
+        statusBar()->showMessage(QString("Loading... %1/%2").arg(current).arg(total));
     });
 
-    connect(loader, &Engine::AppEngineLoader::errorEngine, [](const QString& error) {
+    // Ошибки при загрузки
+    connect(loader, &Engine::AppEngineLoader::errorEngine, [this](const QString& error) {
         qDebug().noquote() << "Error:" << error;
     });
 
-    connect(loader, &Engine::AppEngineLoader::finished, [loader](bool success) {
+    // Окончание загрузки
+    connect(loader, &Engine::AppEngineLoader::finished, [this, loader](bool success) {
         if (success) {
-            qDebug().noquote() << "Loading completed successfully";
-            
+            statusBar()->showMessage("Ready", 3000);
             auto spotPairs = loader->getData("spot");
-        } else
-            qDebug().noquote() << "Loading failed";
+            m_widgetSpot->setTradingPairs(spotPairs);
+        } else {
+            statusBar()->showMessage("Loading failed", 3000);
+        }
+        
+        m_progressBar->setVisible(false);
         
         loader->deleteLater();
     });
@@ -98,4 +110,15 @@ void MainWindow::createUI() {
 }
 
 void MainWindow::createPages() {
+}
+
+void MainWindow::createStatusBar() {
+    QStatusBar* statusBar = new QStatusBar(this);
+    setStatusBar(statusBar);
+    
+    m_progressBar = new QProgressBar(this);
+    m_progressBar->setFixedWidth(200);
+    m_progressBar->setVisible(false);
+    
+    statusBar->addPermanentWidget(m_progressBar);
 }

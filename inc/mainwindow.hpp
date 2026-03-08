@@ -6,6 +6,8 @@
 #include <QMenu>
 #include <QAction>
 #include <QStackedWidget>
+#include <QProgressBar>
+#include <QStatusBar>
 
 #include "CustomWindowDialogs/DialogSetupMenu.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
@@ -24,6 +26,7 @@ private:
 
     QWidget* m_widgetMainWindow;
     QVBoxLayout* m_mainLayout;
+    QProgressBar* m_progressBar;
 
     QStackedWidget* m_stackWidgets;
 
@@ -39,9 +42,10 @@ private:
     void setupUI();
     void setupConnection();
     void setupEngine();
-
+    
     void createMenu();
     void createUI();
+    void createStatusBar();
     void createPages();
 
 };
