@@ -1,8 +1,7 @@
 #include "Engine/StdTypes.hpp"
 
 QString Engine::marketToString(TMarket _market) {
-    switch (_market)
-    {
+    switch (_market) {
     case TMarket::SPOT:
         return "SPOT";
     case TMarket::LINEAR:

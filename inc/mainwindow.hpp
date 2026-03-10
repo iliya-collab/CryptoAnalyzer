@@ -14,6 +14,7 @@
 #include "Managers/Settings.hpp"
 
 #include "CustomWidgets/SpotWidget.hpp"
+#include "CustomWidgets/FuturesWidget.hpp"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -36,6 +37,7 @@ private:
     QAction* m_actionSaveSetup;
 
     SpotWidget* m_widgetSpot;
+    FuturesWidget* m_widgetFutures;
 
     QMenuBar* m_menuBar;
 

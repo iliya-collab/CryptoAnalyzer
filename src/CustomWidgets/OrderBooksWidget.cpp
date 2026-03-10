@@ -72,7 +72,7 @@ void OrderBooksWidget::updateSpread(double bestAsk, double bestBid) {
     lblSpread->setText(spreadText);
 }
 
-void OrderBooksWidget::updateAsks(const QList<Engine::Ask>& asks, double mxSize) {
+/*void OrderBooksWidget::updateAsks(const QList<Engine::Ask>& asks, double mxSize) {
     for (int i = 0; i < asks.size(); ++i) {
         int row = orderBooksTable->rowCount();
         orderBooksTable->insertRow(row);
@@ -105,9 +105,9 @@ void OrderBooksWidget::updateAsks(const QList<Engine::Ask>& asks, double mxSize)
         );
         orderBooksTable->setCellWidget(row, 1, bar);
     }
-}
+}*/
 
-void OrderBooksWidget::updateBids(const QList<Engine::Bid>& bids, double mxSize) {
+/*void OrderBooksWidget::updateBids(const QList<Engine::Bid>& bids, double mxSize) {
     for (int i = 0; i < bids.size(); ++i) {
         int row = orderBooksTable->rowCount();
         orderBooksTable->insertRow(row);
@@ -140,9 +140,9 @@ void OrderBooksWidget::updateBids(const QList<Engine::Bid>& bids, double mxSize)
         );
         orderBooksTable->setCellWidget(row, 1, bar);
     }
-}
+}*/
 
-void OrderBooksWidget::updateDisplay(const QList<Engine::Ask>& asks, const QList<Engine::Bid>& bids) {
+/*void OrderBooksWidget::updateDisplay(const QList<Engine::Ask>& asks, const QList<Engine::Bid>& bids) {
     orderBooksTable->setRowCount(0);
 
     if (!asks.isEmpty() && !bids.isEmpty())
@@ -158,4 +158,4 @@ void OrderBooksWidget::updateDisplay(const QList<Engine::Ask>& asks, const QList
 
     updateAsks(asks, maxSize);
     updateBids(bids, maxSize);
-}
+}*/

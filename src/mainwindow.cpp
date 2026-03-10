@@ -58,8 +58,14 @@ void MainWindow::setupEngine() {
     connect(loader, &Engine::AppEngineLoader::finished, [this, loader](bool success) {
         if (success) {
             statusBar()->showMessage("Ready", 3000);
+
             auto spotPairs = loader->getData("spot");
             m_widgetSpot->setTradingPairs(spotPairs);
+
+            auto linearPairs = loader->getData("linear");
+            auto inversePairs = loader->getData("inverse");
+            m_widgetFutures->setTradingPairs(linearPairs, inversePairs);
+
         } else {
             statusBar()->showMessage("Loading failed", 3000);
         }
@@ -81,16 +87,21 @@ void MainWindow::createMenu() {
     m_actionSaveSetup = new QAction("Save", this);
     menuSetup->addAction(m_actionSaveSetup);
 
-    QMenu* menuTrade = m_menuBar->addMenu("Trading");
+    QMenu* menuTrade = m_menuBar->addMenu("Trade");
     menuTrade->setFixedWidth(100);
 
     QMenu* menuSpot = menuTrade->addMenu("Spot");
-    QWidgetAction* widgetAction = new QWidgetAction(this);
+    QWidgetAction* widgetActionSpot = new QWidgetAction(this);
     m_widgetSpot = new SpotWidget;
-    widgetAction->setDefaultWidget(m_widgetSpot);
-    menuSpot->addAction(widgetAction);
+    widgetActionSpot->setDefaultWidget(m_widgetSpot);
+    menuSpot->addAction(widgetActionSpot);
 
     QMenu* menuFutures = menuTrade->addMenu("Futures");
+    QWidgetAction* widgetActionFutures = new QWidgetAction(this);
+    m_widgetFutures = new FuturesWidget;
+    widgetActionFutures->setDefaultWidget(m_widgetFutures);
+    menuFutures->addAction(widgetActionFutures);
+
     QMenu* menuOptions = menuTrade->addMenu("Options");
 }
 
@@ -106,7 +117,6 @@ void MainWindow::createUI() {
     m_mainLayout = new QVBoxLayout(m_widgetMainWindow);
     m_mainLayout->addWidget(m_stackWidgets);
     m_mainLayout->setContentsMargins(0, 0, 0, 0);
-
 }
 
 void MainWindow::createPages() {

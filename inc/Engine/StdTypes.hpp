@@ -2,44 +2,29 @@
 
 #include <QString>
 #include <QList>
+#include <QMap>
 
 namespace Engine {
 
-    struct Ask {
-        double askPrice;                // Цена продажи
-        double askSize;                 // Объем продажи 
-    };
-
-    struct Bid {
-        double bidPrice;                // Цена покупки
-        double bidSize;                 // Объем покупки
-    };
-
     struct stOrderBooks {
-        QString namePair;               // Название монетной пары (Binance/spot:BTCUSDT)
+        QString symbol;                 // Название монетной пары (Binance/spot:BTCUSDT)
 
-        QList<Bid> bids;                // Покупки
-        QList<Ask> asks;                // Продажи
+        QMap<double, double> bids;      // Покупки (пара цена, объем)
+        QMap<double, double> asks;      // Продажи (пара цена, объем)
 
-        double spread;                  // Спред
-
-        double totalBidVolume;          // Общий обЪем покупки
-        double totalAskVolume;          // Общий обЪем продажи
+        quint64 lastUpdateId;
+        quint64 lastSeq;
     };
 
     struct stTicker {
-        QString namePair;               // Название монетной пары (BTCUSDT)
+        QString symbol;                 // Название монетной пары
 
-        double curPrice;                // Последняя цена сделки
+        double lastPrice;               // Последняя цена сделки
 
         double high24h;                 // Максимальная цена за 24 часа
         double low24h;                  // Минимальная цена за 24 часа
         double volCcy24h;               // Объем торгов в котируемой валюте за 24ч (USDT)
         double vol24h;                  // Объем торгов в базовой валюте за 24ч (BTC)
-
-        Ask bestAsk;                    // Лучшая продажа
-        Bid bestBid;                    // Лучшая покупка
-        double spread;                  // Спред
     };
 
     enum class TMarket {
