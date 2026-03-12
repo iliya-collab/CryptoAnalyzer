@@ -86,8 +86,8 @@ namespace Engine {
 
     signals:
 
-        void updatedTicker(const stTicker& _ticker);
-        void updatedOrderbook(const stOrderBooks& _orderBooks);
+        void updatedTicker(const stTicker& ticker);
+        void updatedOrderbook(const stOrderBooks& orderBooks);
 
         void connected();
         void disconnected();

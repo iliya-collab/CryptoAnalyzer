@@ -25,7 +25,7 @@ namespace Engine {
 
     void BybitWebSocket::setupWebSocket() {
         QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-        sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
+        sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
         sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
 
         m_reconnectTimer = new QTimer(this);
@@ -178,8 +178,24 @@ namespace Engine {
         emit errorOccurred(m_webSocket->errorString());
     }
 
-    void BybitWebSocket::onSslErrors(const QList<QSslError> &errors) {
-        m_webSocket->ignoreSslErrors();
+    void BybitWebSocket::onSslErrors(const QList<QSslError>& errors) {
+        QStringList errorStrings;
+        bool fatal = false;
+
+        for (const QSslError& error : errors) {
+            errorStrings << error.errorString();
+            if (error.error() == QSslError::CertificateExpired ||
+                error.error() == QSslError::CertificateNotYetValid ||
+                error.error() == QSslError::CertificateUntrusted ||
+                error.error() == QSslError::HostNameMismatch) {
+                fatal = true;
+            }
+        }
+
+        emit errorOccurred("SSL errors: " + errorStrings.join(", "));
+
+        if (fatal)
+            m_webSocket->abort();
     }
 
     void BybitWebSocket::reconnect() {
@@ -335,13 +351,11 @@ namespace Engine {
     }
 
     QString BybitWebSocket::createTickerStream(const QString &coin) {
-        QString _coin = coin;
-        return QString("tickers.%1").arg(_coin.replace("/", "").toUpper());
+        return QString("tickers.%1").arg(coin);
     }
 
     QString BybitWebSocket::createOrderbookStream(const QString &coin) {
-        QString _coin = coin;
-        return QString("orderbook.50.%1").arg(_coin.replace("/", "").toUpper());
+        return QString("orderbook.50.%1").arg(coin);
     }
 
 }
