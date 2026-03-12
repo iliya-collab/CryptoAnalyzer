@@ -52,8 +52,6 @@ namespace Engine {
 
         bool m_autoReconnect;
         int m_reconnectAttempts;
-        bool m_isConnecting;
-        bool m_isCorrectInit;
 
         QReadWriteLock m_dataLock;
 
@@ -82,7 +80,6 @@ namespace Engine {
 
         void connectToStream();
         void disconnectFromStream();
-        bool isConnected() const;
 
     signals:
 

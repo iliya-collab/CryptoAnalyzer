@@ -8,8 +8,6 @@ namespace Engine {
 
     BybitWebSocket::BybitWebSocket(TMarket market, QObject* parent) : QObject(parent), m_webSocket(nullptr), m_reconnectTimer(nullptr), m_pingTimer(nullptr) {
         m_autoReconnect = true; 
-        m_isConnecting = false; 
-        m_isCorrectInit = true; 
         m_reconnectAttempts = 0; 
 
         setupWebSocket();
@@ -53,7 +51,6 @@ namespace Engine {
 
     void BybitWebSocket::cleanup() {
         m_autoReconnect = false;
-        m_isConnecting = false;
 
         if (m_reconnectTimer) {
             m_reconnectTimer->blockSignals(true);
@@ -91,17 +88,14 @@ namespace Engine {
     }
 
     void BybitWebSocket::connectToStream() {
-        if (m_isConnecting || m_webSocket->state() == QAbstractSocket::ConnectedState)
+        if (m_webSocket->state() == QAbstractSocket::ConnectedState)
             return;
-
-        m_isConnecting = true;
 
         m_webSocket->open(m_url);
     }
 
     void BybitWebSocket::disconnectFromStream() {
         m_autoReconnect = false;
-        m_isConnecting = false;
 
         if (m_reconnectTimer && m_reconnectTimer->isActive())
             m_reconnectTimer->stop();
@@ -130,14 +124,7 @@ namespace Engine {
         }
     }
 
-
-
-    bool BybitWebSocket::isConnected() const {
-        return m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState;
-    }
-
     void BybitWebSocket::onConnected() {
-        m_isConnecting = false;
         m_reconnectAttempts = 0;
 
         m_pingTimer->start(30000);
@@ -174,7 +161,6 @@ namespace Engine {
     }
 
     void BybitWebSocket::onError(QAbstractSocket::SocketError error) {
-        m_isConnecting = false;
         emit errorOccurred(m_webSocket->errorString());
     }
 
@@ -194,14 +180,12 @@ namespace Engine {
 
         emit errorOccurred("SSL errors: " + errorStrings.join(", "));
 
-        if (fatal) {
-            m_isConnecting = false;
+        if (fatal)
             m_webSocket->abort();
-        }
     }
 
     void BybitWebSocket::reconnect() {
-        if (m_autoReconnect && !m_isConnecting)
+        if (m_autoReconnect && m_webSocket->state() != QAbstractSocket::ConnectedState)
             connectToStream();
     }
 
