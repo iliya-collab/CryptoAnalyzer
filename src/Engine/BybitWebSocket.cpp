@@ -194,8 +194,10 @@ namespace Engine {
 
         emit errorOccurred("SSL errors: " + errorStrings.join(", "));
 
-        if (fatal)
+        if (fatal) {
+            m_isConnecting = false;
             m_webSocket->abort();
+        }
     }
 
     void BybitWebSocket::reconnect() {
