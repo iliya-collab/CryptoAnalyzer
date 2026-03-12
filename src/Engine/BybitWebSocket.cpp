@@ -28,24 +28,24 @@ namespace Engine {
         sslConfig.setPeerVerifyMode(QSslSocket::VerifyNone);
         sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
 
-        m_reconnectTimer = std::make_unique<QTimer>();
-        m_pingTimer = std::make_unique<QTimer>();
-        m_webSocket = std::make_unique<QWebSocket>("", QWebSocketProtocol::VersionLatest);
+        m_reconnectTimer = new QTimer(this);
+        m_pingTimer = new QTimer(this);
+        m_webSocket = new QWebSocket("", QWebSocketProtocol::VersionLatest, this);
 
         m_webSocket->setSslConfiguration(sslConfig);
         m_reconnectTimer->setSingleShot(true);
     }
 
     void BybitWebSocket::setupConnections() {
-        connect(m_webSocket.get(), &QWebSocket::connected, this, &BybitWebSocket::onConnected);
-        connect(m_webSocket.get(), &QWebSocket::disconnected, this, &BybitWebSocket::onDisconnected);
-        connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, &BybitWebSocket::onTextMessageReceived);
-        connect(m_webSocket.get(), &QWebSocket::errorOccurred, this, &BybitWebSocket::onError);
-        connect(m_webSocket.get(), &QWebSocket::sslErrors, this, &BybitWebSocket::onSslErrors);
+        connect(m_webSocket, &QWebSocket::connected, this, &BybitWebSocket::onConnected);
+        connect(m_webSocket, &QWebSocket::disconnected, this, &BybitWebSocket::onDisconnected);
+        connect(m_webSocket, &QWebSocket::textMessageReceived, this, &BybitWebSocket::onTextMessageReceived);
+        connect(m_webSocket, &QWebSocket::errorOccurred, this, &BybitWebSocket::onError);
+        connect(m_webSocket, &QWebSocket::sslErrors, this, &BybitWebSocket::onSslErrors);
 
-        connect(m_reconnectTimer.get(), &QTimer::timeout, this, &BybitWebSocket::reconnect);
+        connect(m_reconnectTimer, &QTimer::timeout, this, &BybitWebSocket::reconnect);
 
-        connect(m_pingTimer.get(), &QTimer::timeout, this, [this]() {
+        connect(m_pingTimer, &QTimer::timeout, this, [this]() {
             if (m_webSocket->state() == QAbstractSocket::ConnectedState)
                 m_webSocket->ping();
         });
@@ -110,40 +110,27 @@ namespace Engine {
             m_pingTimer->stop();
 
         if (m_webSocket && m_webSocket->state() != QAbstractSocket::UnconnectedState) {
-            unsubscribeFromCoin(m_subscribedCoin);
+            sendUnsubscriptionMessage(m_usedStreams.values());
+            m_usedStreams.clear();
             m_webSocket->close();
             m_webSocket->abort();
         }
     }
 
-    void BybitWebSocket::subscribeToCoin(const QString& coin) {
-        QWriteLocker locker(&m_dataLock);
-        m_subscribedCoin = coin;
-        m_usedStreams.insert(tickerStream(coin));
-        m_usedStreams.insert(orderBooksStream(coin));
-        locker.unlock();
-
-        if (isConnected())
-            sendSubscriptionMessage(m_usedStreams.values());
+    void BybitWebSocket::subscribeToStream(const QString& coin, Stream stream) {
+        switch (stream)
+        {
+        case Stream::Ticker:
+            m_usedStreams.insert(createTickerStream(coin));
+            break;
+        case Stream::Orderbook:
+            m_usedStreams.insert(createOrderbookStream(coin));
+        default:
+            break;
+        }
     }
 
-    void BybitWebSocket::unsubscribeFromCoin(const QString& coin) {
-        QStringList streamsToUnsubscribe;
-        QWriteLocker locker(&m_dataLock);
 
-        QString stream = tickerStream(coin);
-        m_usedStreams.remove(stream);
-        streamsToUnsubscribe.append(stream);
-
-        stream = orderBooksStream(coin);
-        m_usedStreams.remove(stream);
-        streamsToUnsubscribe.append(stream);
-
-        locker.unlock();
-
-        if (isConnected() && !streamsToUnsubscribe.isEmpty())
-            sendUnsubscriptionMessage(streamsToUnsubscribe);
-    }
 
     bool BybitWebSocket::isConnected() const {
         return m_webSocket && m_webSocket->state() == QAbstractSocket::ConnectedState;
@@ -226,7 +213,7 @@ namespace Engine {
             if (channel.startsWith("tickers."))
                 updateTicker(obj);
             else if (channel.startsWith("orderbook."))
-                updateOrderBooks(obj);
+                updateOrderbook(obj);
         }
     }
 
@@ -254,7 +241,7 @@ namespace Engine {
         emit updatedTicker(ticker);
     }
 
-    void BybitWebSocket::updateOrderBooks(const QJsonObject &json) {
+    void BybitWebSocket::updateOrderbook(const QJsonObject &json) {
         if (!json.contains("data") || !json["data"].isObject())
             return;
             
@@ -305,7 +292,7 @@ namespace Engine {
                 orderBooks.asks[price] = size;
         }
 
-        emit updatedOrderBooks(orderBooks);
+        emit updatedOrderbook(orderBooks);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {
@@ -347,12 +334,12 @@ namespace Engine {
 
     }
 
-    QString BybitWebSocket::tickerStream(const QString &coin) {
+    QString BybitWebSocket::createTickerStream(const QString &coin) {
         QString _coin = coin;
         return QString("tickers.%1").arg(_coin.replace("/", "").toUpper());
     }
 
-    QString BybitWebSocket::orderBooksStream(const QString &coin) {
+    QString BybitWebSocket::createOrderbookStream(const QString &coin) {
         QString _coin = coin;
         return QString("orderbook.50.%1").arg(_coin.replace("/", "").toUpper());
     }
