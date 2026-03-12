@@ -170,12 +170,10 @@ namespace Engine {
 
         for (const QSslError& error : errors) {
             errorStrings << error.errorString();
-            if (error.error() == QSslError::CertificateExpired ||
-                error.error() == QSslError::CertificateNotYetValid ||
-                error.error() == QSslError::CertificateUntrusted ||
-                error.error() == QSslError::HostNameMismatch) {
-                fatal = true;
-            }
+            fatal = error.error() == QSslError::CertificateExpired ||
+                    error.error() == QSslError::CertificateNotYetValid ||
+                    error.error() == QSslError::CertificateUntrusted ||
+                    error.error() == QSslError::HostNameMismatch;
         }
 
         emit errorOccurred("SSL errors: " + errorStrings.join(", "));
