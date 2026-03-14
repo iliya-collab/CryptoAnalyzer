@@ -6,13 +6,9 @@
 
 namespace Engine {
 
-    BybitWebSocket::BybitWebSocket(TMarket market, QObject* parent) : QObject(parent), m_webSocket(nullptr), m_reconnectTimer(nullptr), m_pingTimer(nullptr) {
-        m_autoReconnect = true; 
-        m_reconnectAttempts = 0; 
-
+    BybitWebSocket::BybitWebSocket(QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
         setupWebSocket();
         setupConnections();
-        setupUrl(market);
 
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
     }
@@ -26,12 +22,10 @@ namespace Engine {
         sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
         sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
 
-        m_reconnectTimer = new QTimer(this);
         m_pingTimer = new QTimer(this);
         m_webSocket = new QWebSocket("", QWebSocketProtocol::VersionLatest, this);
 
         m_webSocket->setSslConfiguration(sslConfig);
-        m_reconnectTimer->setSingleShot(true);
     }
 
     void BybitWebSocket::setupConnections() {
@@ -41,7 +35,6 @@ namespace Engine {
         connect(m_webSocket, &QWebSocket::errorOccurred, this, &BybitWebSocket::onError);
         connect(m_webSocket, &QWebSocket::sslErrors, this, &BybitWebSocket::onSslErrors);
 
-        connect(m_reconnectTimer, &QTimer::timeout, this, &BybitWebSocket::reconnect);
 
         connect(m_pingTimer, &QTimer::timeout, this, [this]() {
             if (m_webSocket->state() == QAbstractSocket::ConnectedState)
@@ -50,15 +43,6 @@ namespace Engine {
     }
 
     void BybitWebSocket::cleanup() {
-        m_autoReconnect = false;
-
-        if (m_reconnectTimer) {
-            m_reconnectTimer->blockSignals(true);
-            if (m_reconnectTimer->isActive())
-                m_reconnectTimer->stop();
-            m_reconnectTimer->disconnect(this);
-        }
-
         if (m_pingTimer) {
             m_pingTimer->blockSignals(true);
             if (m_pingTimer->isActive())
@@ -73,33 +57,14 @@ namespace Engine {
         }
     }
 
-    void BybitWebSocket::setupUrl(TMarket market) {
-        switch (market)
-        {
-        case TMarket::SPOT:
-            m_url = QUrl("wss://stream.bybit.com/v5/public/spot");
-            break;
-        case TMarket::LINEAR:
-            m_url = QUrl("wss://stream.bybit.com/v5/public/linear");
-            break;
-        default:
-            break;
-        }
-    }
-
-    void BybitWebSocket::connectToStream() {
+    void BybitWebSocket::connectToStream(const QUrl& base_endpont) {
         if (m_webSocket->state() == QAbstractSocket::ConnectedState)
             return;
 
-        m_webSocket->open(m_url);
+        m_webSocket->open(base_endpont);
     }
 
     void BybitWebSocket::disconnectFromStream() {
-        m_autoReconnect = false;
-
-        if (m_reconnectTimer && m_reconnectTimer->isActive())
-            m_reconnectTimer->stop();
-
         if (m_pingTimer && m_pingTimer->isActive())
             m_pingTimer->stop();
 
@@ -125,8 +90,6 @@ namespace Engine {
     }
 
     void BybitWebSocket::onConnected() {
-        m_reconnectAttempts = 0;
-
         m_pingTimer->start(30000);
 
         if (!m_usedStreams.isEmpty())
@@ -152,12 +115,6 @@ namespace Engine {
             m_pingTimer->stop();
 
         emit disconnected();
-
-        if (m_autoReconnect && m_reconnectAttempts < 10) {
-            int delay = qMin(60000, (1 << m_reconnectAttempts) * 1000);
-            m_reconnectTimer->start(delay);
-            m_reconnectAttempts++;
-        }
     }
 
     void BybitWebSocket::onError(QAbstractSocket::SocketError error) {
@@ -180,11 +137,6 @@ namespace Engine {
 
         if (fatal)
             m_webSocket->abort();
-    }
-
-    void BybitWebSocket::reconnect() {
-        if (m_autoReconnect && m_webSocket->state() != QAbstractSocket::ConnectedState)
-            connectToStream();
     }
 
     std::expected<QJsonObject, QString> BybitWebSocket::parseTextMessage(const QString &message) {

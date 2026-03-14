@@ -39,26 +39,18 @@ namespace Engine {
         // Методы настройки веб-сокета
         void setupWebSocket();
         void setupConnections();
-        void setupUrl(TMarket market);
         // Метод для правильного закрытия веб-сокеты
         void cleanup();
 
         // Веб-сокет
         QWebSocket* m_webSocket;
-        // Таймер для повторного переподключения
-        QTimer* m_reconnectTimer;
         // Таймер проверки доступности соединения (активный ping)
         QTimer* m_pingTimer;
-
-        bool m_autoReconnect;
-        int m_reconnectAttempts;
 
         QReadWriteLock m_dataLock;
 
         // Используемые каналы
         QSet<QString> m_usedStreams;
-        // Адрес для подлючения
-        QUrl m_url;
 
         // Максимальное кол-во каналов в 1ой подписке
         const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
@@ -67,7 +59,7 @@ namespace Engine {
 
     public:
 
-        explicit BybitWebSocket(TMarket market, QObject* parent = nullptr);
+        explicit BybitWebSocket(QObject* parent = nullptr);
         ~BybitWebSocket();
 
         enum class Stream {
@@ -78,7 +70,7 @@ namespace Engine {
 
         void subscribeToStream(const QString& coin, Stream stream);
 
-        void connectToStream();
+        void connectToStream(const QUrl& base_endpont);
         void disconnectFromStream();
 
     signals:
@@ -90,14 +82,14 @@ namespace Engine {
         void disconnected();
         void errorOccurred(const QString& error);
 
-    protected slots:
+    private slots:
 
         void onConnected();
         void onDisconnected();
         void onError(QAbstractSocket::SocketError error);
         void onSslErrors(const QList<QSslError>& errors);
-        void reconnect();
         void onTextMessageReceived(const QString& message);
 
     };
+    
 }

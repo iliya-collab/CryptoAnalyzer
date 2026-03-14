@@ -25,8 +25,8 @@ namespace Engine {
     signals:
         void progressChanged(int current, int total);
         void stepStarted(const QString& stepName);
-        void errorEngine(const QString& error);
-        void tradingPairsReady(TMarket market);
+        void errorOccurred(const QString& error);
+        void tradingPairsReady(TypesTrade t_trade);
         void finished(bool success);
 
     private:
@@ -41,8 +41,8 @@ namespace Engine {
 
         // Вспомогательные методы загрузки
         bool loadConfigSync();
-        bool loadTradingPairsSync(TMarket market);
-        void getTradingPairs(TMarket market);
+        bool loadTradingPairsSync(TypesTrade t_trade);
+        void getTradingPairs(TypesTrade t_trade);
         void processSymbols(const QJsonObject& data);
         // Методы загрузки
         bool loadFromDatabase();

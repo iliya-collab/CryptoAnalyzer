@@ -30,7 +30,7 @@ namespace Engine {
 
     void AppEngineLoader::startLoading() {
         if (m_futureWatcher && m_futureWatcher->isRunning()) {
-            emit errorEngine("Loading already in progress");
+            emit errorOccurred("Loading already in progress");
             return;
         }
 
@@ -59,10 +59,10 @@ namespace Engine {
             m_loadSteps.append({"Loading from database", [this]() { return loadFromDatabase(); }});
         else {
             // Если БД нет - добавляем шаги загрузки из сети
-            m_loadSteps.append({"Loading SPOT pairs", [this]() { return loadTradingPairsSync(TMarket::SPOT); }});
-            m_loadSteps.append({"Loading LINEAR pairs", [this]() { return loadTradingPairsSync(TMarket::LINEAR); }});
-            m_loadSteps.append({"Loading INVERSE pairs", [this]() { return loadTradingPairsSync(TMarket::INVERSE); }});
-            m_loadSteps.append({"Loading OPTION pairs", [this]() { return loadTradingPairsSync(TMarket::OPTION); }});
+            m_loadSteps.append({"Loading SPOT pairs", [this]() { return loadTradingPairsSync(TypesTrade::SPOT); }});
+            m_loadSteps.append({"Loading LINEAR pairs", [this]() { return loadTradingPairsSync(TypesTrade::LINEAR); }});
+            m_loadSteps.append({"Loading INVERSE pairs", [this]() { return loadTradingPairsSync(TypesTrade::INVERSE); }});
+            m_loadSteps.append({"Loading OPTION pairs", [this]() { return loadTradingPairsSync(TypesTrade::OPTION); }});
             m_loadSteps.append({"Saving to database", [this]() { return saveToDatabase(); }});
         }
         
@@ -106,11 +106,11 @@ namespace Engine {
         return true;
     }
 
-    bool AppEngineLoader::loadTradingPairsSync(TMarket market) {
+    bool AppEngineLoader::loadTradingPairsSync(TypesTrade t_trade) {
         QEventLoop loop;
         bool success = false;
         bool timeout = false;
-        QString marketStr = marketToString(market);
+        QString tradeStr = tradeToString(t_trade);
 
         QTimer timer;
         timer.setSingleShot(true);
@@ -126,15 +126,15 @@ namespace Engine {
             if (!success && !timeout) {
                 timeout = true;
 
-                emitError(QString("Timeout loading %1 pairs").arg(marketStr));
+                emitError(QString("Timeout loading %1 pairs").arg(tradeStr));
                 
                 if (loop.isRunning())
                     QMetaObject::invokeMethod(&loop, "quit", Qt::QueuedConnection);
             }
         }, Qt::DirectConnection);
 
-        auto readyConn = connect(this, &AppEngineLoader::tradingPairsReady, this, [&](TMarket loadedMarket) {
-            if (loadedMarket == market) {
+        auto readyConn = connect(this, &AppEngineLoader::tradingPairsReady, this, [&](TypesTrade loadedTrade) {
+            if (t_trade == loadedTrade) {
                 success = true;
 
                 stopTimer();
@@ -144,9 +144,9 @@ namespace Engine {
             }
         }, Qt::QueuedConnection);
 
-        auto errorConn = connect(this, &AppEngineLoader::errorEngine, this, [&](const QString& error) {
+        auto errorConn = connect(this, &AppEngineLoader::errorOccurred, this, [&](const QString& error) {
             if (!timeout)
-                emitError(QString("Error loading %1: %2").arg(marketStr).arg(error));
+                emitError(QString("Error loading %1: %2").arg(tradeStr).arg(error));
             
             stopTimer();
             
@@ -155,7 +155,7 @@ namespace Engine {
         }, Qt::QueuedConnection);
 
         timer.start();
-        getTradingPairs(market);
+        getTradingPairs(t_trade);
         loop.exec();
 
         disconnect(timeoutConn);
@@ -165,12 +165,12 @@ namespace Engine {
         return success && !timeout;
     }
 
-    void AppEngineLoader::getTradingPairs(TMarket market) {
+    void AppEngineLoader::getTradingPairs(TypesTrade t_trade) {
         BybitRestAPI* bybit_api = new BybitRestAPI(m_api);
 
-        connect(bybit_api, &BybitRestAPI::dataReceived, this, [this, bybit_api, market](const QJsonObject& data) {
+        connect(bybit_api, &BybitRestAPI::dataReceived, this, [this, bybit_api, t_trade](const QJsonObject& data) {
             processSymbols(data);
-            emit tradingPairsReady(market);
+            emit tradingPairsReady(t_trade);
             bybit_api->deleteLater();
         }, Qt::QueuedConnection);
 
@@ -180,7 +180,7 @@ namespace Engine {
         }, Qt::QueuedConnection);
 
         QUrlQuery params;
-        params.addQueryItem("category", marketToString(market).toLower());
+        params.addQueryItem("category", tradeToString(t_trade).toLower());
         bybit_api->requestEndpoint("/v5/market/instruments-info", params, LOADING_TIMEOUT);
     }
 
@@ -247,7 +247,7 @@ namespace Engine {
 
     void AppEngineLoader::emitError(const QString& error) {
         QMetaObject::invokeMethod(this, [this, error]() {
-            emit errorEngine(error);
+            emit errorOccurred(error);
         }, Qt::QueuedConnection);
     }
 

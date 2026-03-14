@@ -50,7 +50,7 @@ void MainWindow::setupEngine() {
     });
 
     // Ошибки при загрузки
-    connect(loader, &Engine::AppEngineLoader::errorEngine, [this](const QString& error) {
+    connect(loader, &Engine::AppEngineLoader::errorOccurred, [this](const QString& error) {
         qDebug().noquote() << "Error:" << error;
     });
 
