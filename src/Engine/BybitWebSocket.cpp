@@ -7,13 +7,14 @@
 namespace Engine {
 
     BybitWebSocket::BybitWebSocket(QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
+        // Настраиваем websocket
         setupWebSocket();
+        // Настраивием соединения с websocket
         setupConnections();
-
-        m_pingTimer->start(ACTIVE_PING_INTERVAL);
     }
 
     BybitWebSocket::~BybitWebSocket() {
+        // Корректное закрытие websocket с отключением всех соединений и таймеров
         cleanup();
     }
 
@@ -37,7 +38,7 @@ namespace Engine {
 
 
         connect(m_pingTimer, &QTimer::timeout, this, [this]() {
-            if (m_webSocket->state() == QAbstractSocket::ConnectedState)
+            if (isOpen())
                 m_webSocket->ping();
         });
     }
@@ -51,53 +52,66 @@ namespace Engine {
         }
 
         if (m_webSocket) {
-            m_webSocket->disconnect(this);
-            if (m_webSocket->state() != QAbstractSocket::UnconnectedState)
+            if (isOpen()) {
+                disconnectFromStream();
                 m_webSocket->close();
+            }
+            m_webSocket->disconnect(this);
         }
     }
 
-    void BybitWebSocket::connectToStream(const QUrl& base_endpont) {
-        if (m_webSocket->state() == QAbstractSocket::ConnectedState)
-            return;
-
-        m_webSocket->open(base_endpont);
+    bool BybitWebSocket::isOpen() {
+        return m_webSocket->state() == QAbstractSocket::ConnectedState;
     }
 
-    void BybitWebSocket::disconnectFromStream() {
+    void BybitWebSocket::open(const QUrl& baseEndpont) {
+        m_webSocket->open(baseEndpont);
+    }
+
+    void BybitWebSocket::close() {
         if (m_pingTimer && m_pingTimer->isActive())
             m_pingTimer->stop();
 
-        if (m_webSocket && m_webSocket->state() != QAbstractSocket::UnconnectedState) {
+        if (m_webSocket && isOpen())
+            m_webSocket->close();
+    }
+
+    void BybitWebSocket::connectToStream() {    
+        if (!m_usedStreams.isEmpty())
+            sendSubscriptionMessage(m_usedStreams.values());
+    }
+
+    void BybitWebSocket::disconnectFromStream() {
+        if (!m_usedStreams.isEmpty()) {
             sendUnsubscriptionMessage(m_usedStreams.values());
             m_usedStreams.clear();
-            m_webSocket->close();
-            m_webSocket->abort();
         }
     }
 
-    void BybitWebSocket::subscribeToStream(const QString& coin, Stream stream) {
-        switch (stream)
-        {
-        case Stream::Ticker:
-            m_usedStreams.insert(createTickerStream(coin));
-            break;
-        case Stream::Orderbook:
-            m_usedStreams.insert(createOrderbookStream(coin));
-        default:
-            break;
-        }
+    void BybitWebSocket::subscribeToStream(const QString& coin, QSet<Stream> streams) {
+        for (auto stream : streams)
+            switch (stream) {
+            case Stream::Ticker:
+                m_usedStreams.insert(createTickerStream(coin));
+                break;
+            case Stream::Orderbook:
+                m_usedStreams.insert(createOrderbookStream(coin));
+            default:
+                break;
+            }
     }
 
     void BybitWebSocket::onConnected() {
-        m_pingTimer->start(30000);
-
-        if (!m_usedStreams.isEmpty())
-            QTimer::singleShot(100, this, [this]() {
-                sendSubscriptionMessage(m_usedStreams.values());
-            });
-
+        // Запускаем таймер ping
+        m_pingTimer->start(ACTIVE_PING_INTERVAL);
         emit connected();
+    }
+
+    void BybitWebSocket::onDisconnected() {
+        // Отключаем таймер ping
+        if (m_pingTimer && m_pingTimer->isActive())
+            m_pingTimer->stop();
+        emit disconnected();
     }
 
     void BybitWebSocket::onTextMessageReceived(const QString &message) {
@@ -108,13 +122,6 @@ namespace Engine {
         }
         else
             emit errorOccurred(jsonObj.error());
-    }
-
-    void BybitWebSocket::onDisconnected() {
-        if (m_pingTimer && m_pingTimer->isActive())
-            m_pingTimer->stop();
-
-        emit disconnected();
     }
 
     void BybitWebSocket::onError(QAbstractSocket::SocketError error) {

@@ -1,9 +1,9 @@
 #pragma once
 
 //#include "Configs/PlatformConfig.hpp"
-#include "Engine/BybitWebSocket.hpp"
-
 #include <QObject>
+
+#include "Engine/BybitWebSocket.hpp"
  
 namespace Engine {
 
@@ -17,9 +17,15 @@ namespace Engine {
 
         AppEngine(QObject* parent = nullptr);
 
-        void run(const QString& coin, QList<BybitWebSocket::Stream> streams);
+        void run(const QUrl& baseEndpont);
 
         void stop();
+
+    private slots:
+    
+        void onConnected();
+        void onDisconnected();
+        void onError(const QString& error);
 
     signals:
 

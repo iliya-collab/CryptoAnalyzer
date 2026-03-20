@@ -68,9 +68,17 @@ namespace Engine {
             Kline
         };
 
-        void subscribeToStream(const QString& coin, Stream stream);
-
-        void connectToStream(const QUrl& base_endpont);
+        // Открывает websocket по указанному адресу
+        void open(const QUrl& baseEndpont);
+        // Закрывает websocket
+        void close();
+        // Проверяет открыт ли websocket
+        bool isOpen();
+        // Подписывает монету на каналы
+        void subscribeToStream(const QString& coin, QSet<Stream> streams);
+        // Подключается ко всем каналам
+        void connectToStream();
+        // Отключается от всех каналов
         void disconnectFromStream();
 
     signals:
@@ -78,16 +86,24 @@ namespace Engine {
         void updatedTicker(const stTicker& ticker);
         void updatedOrderbook(const stOrderBooks& orderBooks);
 
+        // Испускается, когда websocket успешно открылся
         void connected();
+        // Испускается, когда websocket закрылся
         void disconnected();
+        // Испускается, когда появилась ошибка или при подключении websocket, или при ssl ошибках
         void errorOccurred(const QString& error);
 
     private slots:
 
+        // Обработка подключения
         void onConnected();
+        // Обработка отключения
         void onDisconnected();
+        // Обработка ошибок при подключении
         void onError(QAbstractSocket::SocketError error);
+        // Обработка ssl ошибок
         void onSslErrors(const QList<QSslError>& errors);
+        // Обработка принятого сообщения
         void onTextMessageReceived(const QString& message);
 
     };
