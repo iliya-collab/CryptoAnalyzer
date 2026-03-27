@@ -16,20 +16,22 @@ namespace Engine {
     }
 
     void AppEngine::stop() {
-        m_webSocket->disconnectFromStream();
-        m_webSocket->close();
+        if (m_webSocket->isOpen()) {
+            m_webSocket->disconnectFromStream();
+            m_webSocket->close();
+        }
     }
 
     void AppEngine::onConnected() {
-
+        emit started();
     }
 
     void AppEngine::onDisconnected() {
-
+        emit stopped();
     }
 
     void AppEngine::onError(const QString& error) {
-
+        emit errorOccurred(error);
     }
 
 }

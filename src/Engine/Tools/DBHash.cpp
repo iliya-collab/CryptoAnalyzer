@@ -1,4 +1,4 @@
-#include "Engine/DBHash.hpp"
+#include "Engine/Tools/DBHash.hpp"
 
 bool Engine::DBHash::dbExist() {
     auto& db_manager = DataBaseManager::instance();

@@ -1,13 +1,17 @@
-#include "Engine/BybitRestAPI.hpp"
+#include "Engine/Tools/BybitRestAPI.hpp"
 
 #include <QCryptographicHash>
 #include <QMessageAuthenticationCode>
 #include <QDate>
 #include <QTimer>
 
-Engine::BybitRestAPI::BybitRestAPI(const API& api, QObject* parent) : m_api(api), QObject(parent) {
+Engine::BybitRestAPI::BybitRestAPI(const QString& api_key, const QString& secret_key, bool is_testnet, QObject* parent) : 
+    m_apiKey(api_key), 
+    m_secretKey(secret_key),
+    QObject(parent) 
+{
     m_manager = new QNetworkAccessManager(parent);
-    initBaseEndpoint();
+    initBaseEndpoint(is_testnet);
 }
 
 void Engine::BybitRestAPI::handleResponse() {
@@ -30,13 +34,13 @@ void Engine::BybitRestAPI::handleResponse() {
     reply->deleteLater();
 }
 
-void Engine::BybitRestAPI::initBaseEndpoint() {
-    m_baseEndpoint = m_api.testnet ? QString("https://api-testnet.bybit.com") : QString("https://api.bybit.com");
+void Engine::BybitRestAPI::initBaseEndpoint(bool is_testnet) {
+    m_baseEndpoint = is_testnet ? QString("https://api-testnet.bybit.com") : QString("https://api.bybit.com");
 }
 
 Engine::BybitRestAPI::APIHeaders Engine::BybitRestAPI::initAPIHeaders(const QString& queryString) {
     APIHeaders headers;
-    headers.X_BAPI_API_KEY = m_api.api_key;
+    headers.X_BAPI_API_KEY = m_apiKey;
     headers.X_BAPI_TIMESTAMP = QString::number(QDateTime::currentMSecsSinceEpoch());
     headers.X_BAPI_RECV_WINDOW = "500";
     headers.X_BAPI_SIGN = generateSignature(headers.X_BAPI_TIMESTAMP, headers.X_BAPI_RECV_WINDOW, queryString);
@@ -76,16 +80,14 @@ void Engine::BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQu
     QNetworkReply* reply = m_manager->get(request);
     
     connect(reply, &QNetworkReply::finished, this, &Engine::BybitRestAPI::handleResponse);
-    /*connect(reply, &QNetworkReply::downloadProgress, this, [reply] (qint64 bytesReceived, qint64 bytesTotal) {
-        qDebug() << "Download progress:" << bytesReceived << "/" << bytesTotal;
-    });*/
+    connect(reply, &QNetworkReply::downloadProgress, this, &Engine::BybitRestAPI::downloadProgress);
 }
 
 QString Engine::BybitRestAPI::generateSignature(const QString& timestamp, const QString& recv_window, const QString& queryString) {
-    QString dataForSign = timestamp + m_api.api_key + recv_window + queryString;
+    QString dataForSign = timestamp + m_apiKey + recv_window + queryString;
 
     QMessageAuthenticationCode hmac(QCryptographicHash::Sha256);
-    hmac.setKey(m_api.secret_key.toUtf8());
+    hmac.setKey(m_secretKey.toUtf8());
     hmac.addData(dataForSign.toUtf8());
 
     return QString(hmac.result().toHex());

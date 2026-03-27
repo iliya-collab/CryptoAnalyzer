@@ -1,13 +1,14 @@
 #pragma once
 
 #include <QObject>
-#include <QQueue>
+#include <QList>
 #include <QString>
-#include <QFutureWatcher>
-#include <QtConcurrent/QtConcurrent>
 #include <QMutex>
+#include <QTimer>
+#include <functional>
 
 #include "Engine/StdTypes.hpp"
+#include "Engine/Tools/BybitRestAPI.hpp"
 
 namespace Engine {
 
@@ -18,50 +19,51 @@ namespace Engine {
         explicit AppEngineLoader(QObject* parent = nullptr);
         ~AppEngineLoader();
 
-        // Основные методы
+        // Запускает асинхронную загрузку
         void startLoading();
+
+        // Возвращает загруженные данные для указанной категории
         QList<TradingInfo> getData(const QString& category) const;
 
     signals:
-        void progressChanged(int current, int total);
-        void stepStarted(const QString& stepName);
+        void progressChanged(const QString& stepName, int current, int total);
         void errorOccurred(const QString& error);
-        void tradingPairsReady(TypesTrade t_trade);
         void finished(bool success);
 
     private:
-        // Структура для шага загрузки
-        struct LoadingStep {
-            QString name;
-            std::function<bool()> action;
-        };
+        // Асинхронные шаги загрузки
+        void loadConfigAsync();
+        void loadFromDatabaseAsync();
+        void saveToDatabaseAsync();
+        void requestTradingPairsAsync(Engine::TypesTrade trade);
+        void cancelCurrentRequest();
 
-        // Метод выполняющийся в отдельном потоке
-        bool runLoadingThread();
+        void execStep();
+        void execNextStep();
 
-        // Вспомогательные методы загрузки
-        bool loadConfigSync();
-        bool loadTradingPairsSync(TypesTrade t_trade);
-        void getTradingPairs(TypesTrade t_trade);
-        void processSymbols(const QJsonObject& data);
-        // Методы загрузки
-        bool loadFromDatabase();
-        bool saveToDatabase();
-
-        // Вспомогательные методы
-        void emitError(const QString& error);
-        void emitProgress(int current, int total);
-        void emitStepStarted(const QString& step);
+        void loadConfig();                   // читает конфигурацию из файла
+        void loadFromDatabase();             // загружает данные из БД
+        void saveToDatabase();               // сохраняет данные в БД
+        
+        void processSymbols(const QJsonObject& data); // парсит полученные символы
 
         // Данные
-        QList<LoadingStep> m_loadSteps;
+        QString m_apiKey;
+        QString m_secretKey;
+        bool m_testnet = false;
+
         QHash<QString, QList<TradingInfo>> m_tradingPairs;
-        API m_api;
-        
-        // Для потокобезопасности
         mutable QMutex m_mutex;
-        
-        // Управление асинхронностью
-        QFutureWatcher<bool>* m_futureWatcher;
+
+        // Состояние загрузки
+        QList<QPair<QString, std::function<void()>>> m_loadSteps;
+        bool m_loading = false;
+        qint64 m_totalSteps = 0;
+        qint64 m_currentStep = 0;
+
+        // Управление текущим запросом и таймаутом
+        BybitRestAPI* m_currentApi = nullptr;
+        static const int LOADING_TIMEOUT = 30000;
     };
-}
+
+} // namespace Engine

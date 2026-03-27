@@ -1,17 +1,17 @@
-#include "mainwindow.hpp"
-#include "CustomWindowDialogs/DebugMonitor.hpp"
+#include <QApplication>
+#include <QQmlApplicationEngine>
 
-int main(int argc, char *argv[])
-{
+#include "Engine/App/AppWorker.hpp"
+
+int main(int argc, char *argv[]) {
     qputenv("QT_QPA_PLATFORM", "xcb");
 
     QApplication app(argc, argv);
-    
-    //DebugMonitor debug;
-    //debug.show();
 
-    MainWindow win;
-    win.show();
-    
+    AppWorker worker;
+
+    QQmlApplicationEngine engine;
+    engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+
     return app.exec();
 }

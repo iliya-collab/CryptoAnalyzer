@@ -23,20 +23,14 @@ find_package(Qt6 REQUIRED COMPONENTS
     Charts
     WebSockets
     Sql
+    Quick
 )
-
-get_target_property(Qt6Core_includes Qt6::Core INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qt6Widgets_includes Qt6::Widgets INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qt6Network_includes Qt6::Network INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qt6Network_includes Qt6::Charts INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qt6WebSockets_includes Qt6::WebSockets INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qt6Sql_includes Qt6::Sql INTERFACE_INCLUDE_DIRECTORIES)
-
 
 qt_standard_project_setup()
 
-set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
-set(HEADER_DIR "${CMAKE_SOURCE_DIR}/inc")
+set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")         
+set(HEADER_DIR "${CMAKE_SOURCE_DIR}/inc")       
+set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 
 file(GLOB_RECURSE MY_SOURCES
     "${SOURCE_DIR}/*.cpp"
@@ -48,31 +42,19 @@ file(GLOB_RECURSE MY_HEADERS
     "${HEADER_DIR}/*.hpp"
 )
 
+set(QRC_FILES
+    "${RESOURCE_DIR}/qml.qrc"
+)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_executable(${PROJECT_NAME}
     ${MY_SOURCES}
     ${MY_HEADERS}
+    ${QRC_FILES}
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${HEADER_DIR}
-    ${Qt6Core_includes}
-    ${Qt6Widgets_includes}
-    ${Qt6Network_includes}
-    ${Qt6Charts_includes}
-    ${Qt6WebSockets_includes}
-    ${Qt6Sql_includes}
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-    ${Qt6Core_includes}
-    ${Qt6Widgets_includes}
-    ${Qt6Network_includes}
-    ${Qt6Charts_includes}
-    ${Qt6WebSockets_includes}
-    ${Qt6Sql_includes}
-)
+target_include_directories(${PROJECT_NAME} PRIVATE ${HEADER_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
@@ -81,4 +63,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Charts
     Qt6::WebSockets
     Qt6::Sql
+    Qt6::Quick
 )

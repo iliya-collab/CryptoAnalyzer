@@ -3,7 +3,7 @@
 //#include "Configs/PlatformConfig.hpp"
 #include <QObject>
 
-#include "Engine/BybitWebSocket.hpp"
+#include "Engine/Tools/BybitWebSocket.hpp"
  
 namespace Engine {
 
@@ -29,7 +29,7 @@ namespace Engine {
 
     signals:
 
-        void launched();
+        void started();
         void stopped();
         void errorOccurred(const QString& error);
 

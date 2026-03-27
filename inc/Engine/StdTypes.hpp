@@ -38,12 +38,6 @@ namespace Engine {
 
     QString tradeToBaseEndpoint(TypesTrade t_trade);
 
-    struct API {
-        QString api_key;
-        QString secret_key;
-        bool testnet;
-    };
-
     struct TradingInfo {
         QString symbol;
         QString base_coin;
