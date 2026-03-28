@@ -71,8 +71,8 @@ void AppWorker::setupConnections() {
     });
 }
 
-void AppWorker::startWork(int idTrade) {
-    QMetaObject::invokeMethod(m_engine, [this, idTrade]() {
-        m_engine->run(Engine::tradeToBaseEndpoint(static_cast<Engine::TypesTrade>(idTrade)));
+void AppWorker::startWork(Engine::TypesTrade trade) {
+    QMetaObject::invokeMethod(m_engine, [this, trade]() {
+        m_engine->run(Engine::tradeToBaseEndpoint(trade));
     }, Qt::QueuedConnection);
 }

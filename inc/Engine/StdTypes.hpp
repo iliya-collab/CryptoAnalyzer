@@ -3,8 +3,10 @@
 #include <QString>
 #include <QList>
 #include <QMap>
+#include <QObject>
 
 namespace Engine {
+    Q_NAMESPACE
 
     struct stOrderBooks {
         QString symbol;                 // Название монетной пары (Binance/spot:BTCUSDT)
@@ -33,6 +35,7 @@ namespace Engine {
         INVERSE,                        // Инверсные фьючерсы
         OPTION                          // Опционы
     };
+    Q_ENUM_NS(TypesTrade)
 
     QString tradeToString(TypesTrade t_trade);
 

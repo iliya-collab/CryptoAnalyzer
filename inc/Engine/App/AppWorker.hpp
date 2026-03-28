@@ -7,15 +7,13 @@
 #include "Engine/App/AppEngine.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
 
-// Q_PROPERTY(тип_свойства имя_свойства READ метод_получения WRITE метод_изменения NOTIFY сигнал_изменения)
-
 class AppWorker : public QObject {
     Q_OBJECT
 public:
     AppWorker(QObject* parent = nullptr);
     ~AppWorker();
 
-    Q_INVOKABLE void startWork(int idTrade);
+    Q_INVOKABLE void startWork(Engine::TypesTrade trade);
 
 
 signals:
@@ -32,5 +30,5 @@ private:
     std::atomic<bool> m_hasStarted{false};
 
     void setupConnections();
-;
+
 };

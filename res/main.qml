@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
 
+import Engine 1.0
+
 ApplicationWindow {
     visible: true
     width: 640
@@ -11,6 +13,8 @@ ApplicationWindow {
     palette.windowText: "white"
     palette.button: "#3c3c3c"
     palette.buttonText: "white"
+
+    //someProperty: Engine.TypesTrade.Spot
 
     // Основная панель меню
     Row {
@@ -35,19 +39,19 @@ ApplicationWindow {
             onSubMenuItemClicked: function(item) {
                 if (item === "Spot") {
                     console.log("Clicked Spot")
-                    appEngine.startWork(1)
+                    appEngine.startWork(Engine.TypesTrade.SPOT)
                 }
                 else if (item === "Linear") {
                     console.log("Clicked Linear")
-                    appEngine.startWork(2)
+                    appEngine.startWork(Engine.TypesTrade.LINEAR)
                 }
                 else if (item === "Inverse") {
                     console.log("Clicked Inverse")
-                    appEngine.startWork(3)
+                    appEngine.startWork(Engine.TypesTrade.INVERSE)
                 }
-                else if (item === "Options") {
-                    console.log("Clicked Options")
-                    appEngine.startWork(4)
+                else if (item === "Option") {
+                    console.log("Clicked Option")
+                    appEngine.startWork(Engine.TypesTrade.OPTION)
                 }
             }
         }
