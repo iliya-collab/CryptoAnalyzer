@@ -70,3 +70,9 @@ void AppWorker::setupConnections() {
         emit errorOccurred(error);
     });
 }
+
+void AppWorker::startWork(int idTrade) {
+    QMetaObject::invokeMethod(m_engine, [this, idTrade]() {
+        m_engine->run(Engine::tradeToBaseEndpoint(static_cast<Engine::TypesTrade>(idTrade)));
+    }, Qt::QueuedConnection);
+}
