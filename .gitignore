@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # This file is used to ignore files which are generated
 # ----------------------------------------------------------------------------
 
@@ -82,3 +83,8 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.qtcreator/
+=======
+/build
+/.vscode
+/.cache
+>>>>>>> a9945cf8d93f0075ca976264bb89cd68a83aebc9

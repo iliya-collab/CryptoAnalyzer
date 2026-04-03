@@ -14,6 +14,8 @@ ApplicationWindow {
     palette.button: "#3c3c3c"
     palette.buttonText: "white"
 
+    //someProperty: Engine.TypesTrade.Spot
+
     // Основная панель меню
     Row {
         id: menuBar
