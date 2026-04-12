@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: root
-    property string title: "Пункт"
+    property string title: "Item"
     property var subMenuItems: []
     property bool subMenuVisible: false
 
@@ -67,7 +67,14 @@ Rectangle {
                     Text {
                         text: modelData
                         color: palette.buttonText
-                        anchors.centerIn: parent
+
+                        // Выравнивание текста внутри области Text
+                        horizontalAlignment: Text.AlignLeft
+
+                        // Привязка самого элемента Text (вместо anchors.centerIn)
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+
                         font.pointSize: 9
                     }
 

@@ -1,7 +1,7 @@
 #pragma once
 
-//#include "Configs/PlatformConfig.hpp"
 #include <QObject>
+#include <memory>
 
 #include "Engine/Tools/BybitWebSocket.hpp"
  
@@ -11,21 +11,18 @@ namespace Engine {
         Q_OBJECT
     private:
 
-        BybitWebSocket* m_webSocket;
+        std::unique_ptr<BybitWebSocket> m_webSocket;
 
     public:
 
         AppEngine(QObject* parent = nullptr);
+        ~AppEngine();
 
         void run(const QUrl& baseEndpont);
 
-        void stop();
+        bool hasRunned();
 
-    private slots:
-    
-        void onConnected();
-        void onDisconnected();
-        void onError(const QString& error);
+        void stop();
 
     signals:
 

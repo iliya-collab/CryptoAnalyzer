@@ -9,13 +9,11 @@ int main(int argc, char *argv[]) {
 
     QApplication app(argc, argv);
 
-    AppWorker worker;
-
     QQmlApplicationEngine qmlEngine;
 
-    // Регестрируем свойство appEngine в контексте QML
-    qmlEngine.rootContext()->setContextProperty("appEngine", &worker);
-    // Регестрируем пространство имен Engine в контексте QML а качестве модуля Engine
+    // Регестрируем тип AppWorker в контексте QML как ApplicationEngine в модуле MyApp
+    qmlRegisterType<AppWorker>("MyApp", 1, 0, "ApplicationEngine");
+    // Регестрируем пространство имен Engine в контексте QML в модуле Engine
     qmlRegisterUncreatableMetaObject(Engine::staticMetaObject, "Engine", 1, 0, "Engine", "Access to enums only");
 
     qmlEngine.load(QUrl(QStringLiteral("qrc:/main.qml")));

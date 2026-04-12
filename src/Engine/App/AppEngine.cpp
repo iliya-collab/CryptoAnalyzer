@@ -3,35 +3,49 @@
 namespace Engine {
 
     AppEngine::AppEngine(QObject* parent) : QObject(parent) {
-        m_webSocket = new BybitWebSocket(this);
+        m_webSocket = std::make_unique<BybitWebSocket>(this);
 
-        connect(m_webSocket, &BybitWebSocket::connected, this, &AppEngine::onConnected);
-        connect(m_webSocket, &BybitWebSocket::disconnected, this, &AppEngine::onDisconnected);
-        connect(m_webSocket, &BybitWebSocket::errorOccurred, this, &AppEngine::onError);
+        // Подключаем сигналы
+        connect(m_webSocket.get(), &BybitWebSocket::connected, this, &AppEngine::started);
+        connect(m_webSocket.get(), &BybitWebSocket::disconnected, this, &AppEngine::stopped);
+        connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
+
+        qDebug() << "AppEngine created in thread:" << QThread::currentThread();
+
     }
 
-    void AppEngine::run(const QUrl& baseEndpont) {
-        if (!m_webSocket->isOpen())
-            m_webSocket->open(baseEndpont);
+    AppEngine::~AppEngine() {
+        qDebug() << "AppEngine destructor in thread:" << QThread::currentThread();
+
+        if (m_webSocket && m_webSocket->isOpen())
+            m_webSocket->close();
+
+        qDebug() << "AppEngine destructor end";
+    }
+
+    bool AppEngine::hasRunned() {
+        return m_webSocket && m_webSocket->isOpen();
+    }
+
+    void AppEngine::run(const QUrl& baseEndpoint) {
+        if (!m_webSocket)
+            return;
+
+        qDebug() << "AppEngine::run in thread:" << QThread::currentThread() << "Socket thread:" << m_webSocket->thread();
+
+        m_webSocket->open(baseEndpoint);
     }
 
     void AppEngine::stop() {
+        if (!m_webSocket)
+            return;
+
+        qDebug() << "AppEngine::stop in thread:" << QThread::currentThread();
+
         if (m_webSocket->isOpen()) {
             m_webSocket->disconnectFromStream();
             m_webSocket->close();
         }
-    }
-
-    void AppEngine::onConnected() {
-        emit started();
-    }
-
-    void AppEngine::onDisconnected() {
-        emit stopped();
-    }
-
-    void AppEngine::onError(const QString& error) {
-        emit errorOccurred(error);
     }
 
 }

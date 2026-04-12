@@ -7,29 +7,37 @@
 #include <QReadWriteLock>
 #include <QThread>
 
-#include <memory>
 #include <expected>
 
 #include "Engine/StdTypes.hpp"
 
 namespace Engine {
 
+    /*
+    *   Класс для работы с WebSocket на бирже Bybit
+    */
     class BybitWebSocket : public QObject {
         Q_OBJECT
 
     protected:
 
         // Методы для отправки сообшений
+        // Сообщение о подписке
         void sendSubscriptionMessage(const QStringList& streams);
+        // Сообщение о отписке
         void sendUnsubscriptionMessage(const QStringList& streams);
-        void messageReceived(const QJsonObject& obj);
+        // Отправка сообщения о пинге
         void sendPingMessage(const QJsonObject& obj);
+        // Обработка сообщения
+        void messageReceived(const QJsonObject& obj);
         
         // Превращает строковое сообщение в json объект
         std::expected<QJsonObject, QString> parseTextMessage(const QString &message);
 
         // Методы для обновления каналов
+        // Обнавление тикера
         void updateTicker(const QJsonObject& json);
+        // Обнавление стакана цен
         void updateOrderbook(const QJsonObject& json);
 
         // Метод для создания каналов

@@ -33,7 +33,7 @@ namespace Engine {
         SPOT,                           // Спот
         LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
         INVERSE,                        // Инверсные фьючерсы
-        OPTION                          // Опционы
+        OPTIONS                         // Опционы
     };
     Q_ENUM_NS(TypesTrade)
 

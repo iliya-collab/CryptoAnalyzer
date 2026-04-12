@@ -1,10 +1,17 @@
 #include "Engine/App/AppEngineСonfiguration.hpp"
 #include "Engine/Managers/JsonManager.hpp"
 
-#include <QDebug>
+#include <QFileInfo>
+#include <QDir>
 
+// Файл конфигурации
 const char* configFile = "platform.json";
+// Главный объект конфигурации
 const char* configObject = "Platform";
+
+AppEngineСonfiguration::AppEngineСonfiguration() {
+
+}
 
 QJsonObject AppEngineСonfiguration::toJson() {
     QJsonObject platform;
@@ -48,32 +55,58 @@ void AppEngineСonfiguration::parseJsonDocument(const QJsonDocument& doc) {
     AppEngineСonfiguration::instance().fromJson(root.value(configObject).toObject());
 }
 
-bool AppEngineСonfiguration::readСonfiguration() {
-    QJsonDocument doc;
+bool AppEngineСonfiguration::openСonfigurationFile() {
+    // Получаем домашнюю директорию
+    QString homePath = QDir::homePath();
 
-    auto exp = JsonManager::readDocument(configFile);
-    if (!exp.has_value()) {
-        m_lastError = exp.error();
-        return false;
+    // Формируем полный путь
+    QString configDir = homePath + "/.config/ByBit";
+    m_fullNameConfigFile = QString("%1/%2").arg(configDir).arg(configFile);
+
+    // Создаем директорию .config если не существует
+    QDir dir;
+    if (!dir.exists(configDir)) {
+        if (!dir.mkpath(configDir)) {
+            m_lastError = "Failed to create directory:" + configDir;
+            return false;
+        }
     }
 
-    doc = exp.value();
-
-    exp = JsonManager::isDocumentValid(doc);
-    if (!exp.has_value()) {
-        m_lastError = exp.error();
-        return false;
-    }
-
-    parseJsonDocument(doc);
+    // Проверяем наличие конфигурации
+    QFileInfo checkFile(m_fullNameConfigFile);
+    if (checkFile.isFile() && !checkFile.exists())
+        if (!writeСonfiguration())
+            return false;
 
     return true;
 }
 
-void AppEngineСonfiguration::writeСonfiguration() {
+bool AppEngineСonfiguration::readСonfiguration() {
+    JsonManager jsManager;
+
+    auto doc = jsManager.readDocument(m_fullNameConfigFile);
+    if (!doc.has_value()) {
+        m_lastError = doc.error();
+        return false;
+    }
+
+    parseJsonDocument(doc.value());
+    return true;
+}
+
+bool AppEngineСonfiguration::writeСonfiguration() {
     QJsonObject root;
     root[configObject] = AppEngineСonfiguration::instance().toJson();
     QJsonDocument doc(root);
-    JsonManager::setDocument(doc);
-    JsonManager::writeDocument(configFile);
+
+    JsonManager jsManager;
+    jsManager.setDocument(doc);
+    auto isError = jsManager.writeDocument(m_fullNameConfigFile);
+    if (isError.has_value()) {
+        m_lastError = isError.value();
+        return false;
+    }
+
+    return true;
+
 }

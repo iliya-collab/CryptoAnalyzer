@@ -1,67 +1,75 @@
 #include "Engine/Managers/JsonManager.hpp"
 
-QJsonDocument JsonManager::doc = {};
-
-std::expected<QJsonDocument, QString> JsonManager::readDocument(const char* _file) {
-
-    QFile jsonFile(_file);
+std::expected<QJsonDocument, QString> JsonManager::readDocument(const QString& name) {
+    QFile jsonFile(name);
 
     if (!jsonFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return std::unexpected(jsonFile.errorString());
 
 
     QByteArray jsonData = jsonFile.readAll();
+
     jsonFile.close();
 
     QJsonParseError parseError;
-    doc = QJsonDocument::fromJson(jsonData, &parseError);
+    m_curDocument = QJsonDocument::fromJson(jsonData, &parseError);
 
     if (parseError.error != QJsonParseError::NoError)
         return std::unexpected(parseError.errorString());
 
-    if (!doc.isObject())
-        return std::unexpected(QString("Invalid JSON structure"));
+    if (!m_curDocument.isObject())
+        return isDocumentValid(m_curDocument);
 
-    return doc;
+    return m_curDocument;
 }
 
-void JsonManager::writeDocument(const char* _file) {
-    QFile jsonFile(_file);
+std::optional<QString> JsonManager::writeDocument(const QString& name) {
+    QFile jsonFile(name);
+
     if (jsonFile.open(QIODevice::WriteOnly)) {
-        jsonFile.write(doc.toJson(QJsonDocument::Indented));
-        jsonFile.close();
+        QByteArray data = m_curDocument.toJson(QJsonDocument::Indented);
+        qint64 bytesWritten = jsonFile.write(data);
+
+        if (bytesWritten == -1)
+            return jsonFile.errorString();
+        else if (bytesWritten != data.size())
+            return "The data was not saved correctly";
     }
+
+    jsonFile.close();
+
+    return std::nullopt;
 }
 
-std::expected<QJsonDocument, QString> JsonManager::isDocumentValid(const QJsonDocument& _doc)
+std::expected<QJsonDocument, QString> JsonManager::isDocumentValid(const QJsonDocument& doc)
 {
-    if (_doc.isNull())
+    if (doc.isNull())
         return std::unexpected(QString("Document isNull()"));
 
-    if (_doc.isEmpty())
+    if (doc.isEmpty())
         return std::unexpected(QString("Document isEmpty()"));
 
-    if (_doc.isObject()) {
+    if (doc.isObject()) {
         QJsonObject obj = doc.object();
         if (obj.isEmpty())
             return std::unexpected(QString("Object is empty"));
-        return _doc;
+        return doc;
     }
 
-    if (_doc.isArray()) {
+    if (doc.isArray()) {
         QJsonArray arr = doc.array();
         if (doc.isEmpty())
             return std::unexpected(QString("Array is empty"));
-        return _doc;
+        return doc;
     }
 
     return std::unexpected(QString("Unknown document type"));
 }
 
 QJsonDocument JsonManager::getDocument() {
-    return doc;
+    return m_curDocument;
 }
 
-void JsonManager::setDocument(const QJsonDocument& _doc) {
-    doc = _doc;
+void JsonManager::setDocument(const QJsonDocument& doc) {
+    m_curDocument = doc;
 }

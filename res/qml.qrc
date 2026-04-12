@@ -1,7 +1,7 @@
-<!DOCTYPE RCC>
-<RCC version="1.0">
+<RCC>
     <qresource prefix="/">
         <file>main.qml</file>
         <file>CustomMenuItem.qml</file>
+        <file>CustomStatusWidget.qml</file>
     </qresource>
 </RCC>

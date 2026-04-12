@@ -8,21 +8,29 @@
 class AppEngineСonfiguration {
 private:
 
+    // Структура для хранения информации об API ключах
     struct API {
+        // API ключ
         QString api_key;
+        // Секретный API ключ
         QString secret_key;
+        // Тип сети (true - testnet, false - mainnet)
         bool testnet;
     };
 
+    // Структура параметров конфигурации
     struct ParamsСonfiguration {
+        // Набор API ключей
         QHash<QString, API> m_api;
     };
 
+    // Параметры конфигурации
     ParamsСonfiguration m_config;
-
+    // Последняя ошибка
     QString m_lastError;
+    QString m_fullNameConfigFile;
 
-    AppEngineСonfiguration() = default;
+    AppEngineСonfiguration();
 
     QJsonObject toJson();
     void fromJson(const QJsonObject& obj);
@@ -35,8 +43,9 @@ public:
     AppEngineСonfiguration(const AppEngineСonfiguration&) = delete;
     AppEngineСonfiguration& operator=(const AppEngineСonfiguration&) = delete;
 
+    bool openСonfigurationFile();
     bool readСonfiguration();
-    void writeСonfiguration();
+    bool writeСonfiguration();
 
     // Получает текущий конфиг
     ParamsСonfiguration& getСonfiguration() {

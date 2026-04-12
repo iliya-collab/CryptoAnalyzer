@@ -1,5 +1,4 @@
-#ifndef JSON_MANAGER
-#define JSON_MANAGER
+#pragma once
 
 #include <QFile>
 #include <QString>
@@ -9,23 +8,20 @@
 #include <QJsonArray>
 
 #include <expected>
+#include <optional>
 
 class JsonManager {
 private:
 
-    static QJsonDocument doc;
-
-    JsonManager() = default;
+    QJsonDocument m_curDocument;
 
 public:
 
-    static std::expected<QJsonDocument, QString> readDocument(const char* _file);
-    static void writeDocument(const char* _file);
+    std::expected<QJsonDocument, QString> readDocument(const QString& name);
+    std::optional<QString> writeDocument(const QString& name);
 
-    static std::expected<QJsonDocument, QString> isDocumentValid(const QJsonDocument& _doc);
-    static QJsonDocument getDocument();
-    static void setDocument(const QJsonDocument& _doc);
+    std::expected<QJsonDocument, QString> isDocumentValid(const QJsonDocument& doc);
+    QJsonDocument getDocument();
+    void setDocument(const QJsonDocument& doc);
 
 };
-
-#endif

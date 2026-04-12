@@ -10,8 +10,8 @@ namespace Engine {
             return "LINEAR";
         case TypesTrade::INVERSE:
             return "INVERSE";
-        case TypesTrade::OPTION:
-            return "OPTION";
+        case TypesTrade::OPTIONS:
+            return "OPTIONS";
         default:
             return "NONE";
             break;

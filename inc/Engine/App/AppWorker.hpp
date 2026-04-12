@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QThread>
 #include <atomic>
+#include <memory>
 
 #include "Engine/App/AppEngine.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
@@ -13,22 +14,25 @@ public:
     AppWorker(QObject* parent = nullptr);
     ~AppWorker();
 
-    Q_INVOKABLE void startWork(Engine::TypesTrade trade);
-
+    Q_INVOKABLE void startTrade(Engine::TypesTrade trade);
 
 signals:
-    void loadingProgress(int current, int total);
+    void loadingProgress(const QString& step, int current, int total);
     void errorOccurred(const QString& error);
     void loadingFinished(bool success);
+    void engineStarted();
 
 private:
-    Engine::AppEngineLoader* m_loader = nullptr;
-    Engine::AppEngine* m_engine = nullptr;
-    QThread* m_thread = nullptr;
+    std::unique_ptr<Engine::AppEngineLoader> m_loader;
+    std::unique_ptr<Engine::AppEngine> m_engine;
+    QThread* m_workerThread;
+    QUrl m_pendingUrl;
 
     std::atomic<bool> m_hasLoaded{false};
     std::atomic<bool> m_hasStarted{false};
 
+    void setupLoaderConnections();
+    void setupEngineConnections();
     void setupConnections();
 
 };

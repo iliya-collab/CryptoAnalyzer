@@ -4,18 +4,24 @@
 #include "Engine/Tools/DBHash.hpp"
 #include <QUrlQuery>
 #include <QDebug>
+#include <QThread>
 
 namespace Engine {
 
-    AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent) {}
+    AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent) {
+        qDebug() << "AppEngineLoader created in thread:" << QThread::currentThread();
+    }
 
     AppEngineLoader::~AppEngineLoader() {
+        qDebug() << "AppEngineLoader destructor start in thread:" << QThread::currentThread();
         cancelCurrentRequest();
+        qDebug() << "AppWorker destructor end";
     }
 
     void AppEngineLoader::startLoading() {
 
         QMutexLocker locker(&m_mutex);
+
         if (m_loading) {
             emit errorOccurred("Loading already in progress");
             return;
@@ -24,7 +30,7 @@ namespace Engine {
         m_tradingPairs.clear();
         m_loading = true;
 
-        m_loadSteps.append({"Loading the platform configuration", [this]() { loadConfigAsync(); }});
+        m_loadSteps.append({"Loading configuration", [this]() { loadConfigAsync(); }});
         
         DBHash db;
         if (db.dbExist()) {
@@ -33,12 +39,13 @@ namespace Engine {
             m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync(TypesTrade::SPOT); }});
             m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync(TypesTrade::LINEAR); }});
             m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync(TypesTrade::INVERSE); }});
-            m_loadSteps.append({"Loading OPTION pairs", [this]() { requestTradingPairsAsync(TypesTrade::OPTION); }});
+            m_loadSteps.append({"Loading OPTIONS pairs", [this]() { requestTradingPairsAsync(TypesTrade::OPTIONS); }});
             m_loadSteps.append({"Saving to database", [this]() { saveToDatabaseAsync(); }});
         }
         
         m_totalSteps = m_loadSteps.size();
         m_currentStep = 0;
+
         locker.unlock();
 
         execStep();
@@ -68,6 +75,11 @@ namespace Engine {
     void AppEngineLoader::loadConfig() {
         auto& engine_config = AppEngineСonfiguration::instance();
 
+        if (!engine_config.openСonfigurationFile()) {
+            emit errorOccurred(engine_config.getLastError());
+            return;
+        }
+
         if (!engine_config.readСonfiguration()) {
             emit errorOccurred(engine_config.getLastError());
             return;
@@ -80,20 +92,21 @@ namespace Engine {
             return;
         }
 
-        auto api = config.m_api.values()[0];
-        m_apiKey = api.api_key;
-        m_secretKey = api.secret_key;
-        m_testnet = api.testnet;
+        auto api = config.m_api.values().value(0);
 
-        if (m_apiKey.isEmpty()) {
+        if (api.api_key.isEmpty()) {
             emit errorOccurred("API key is empty");
             return;
         }
 
-        if (m_secretKey.isEmpty()) {
+        if (api.secret_key.isEmpty()) {
             emit errorOccurred("Secret key is empty");
             return;
         }
+
+        m_apiKey = api.api_key;
+        m_secretKey = api.secret_key;
+        m_testnet = api.testnet;
     }
 
     void AppEngineLoader::loadFromDatabaseAsync() {
