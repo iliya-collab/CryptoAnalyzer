@@ -29,17 +29,17 @@ namespace Engine {
         double vol24h;                  // Объем торгов в базовой валюте за 24ч (BTC)
     };
 
-    enum class TypesTrade {
+    enum class TypeTrade {
         SPOT,                           // Спот
         LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
         INVERSE,                        // Инверсные фьючерсы
-        OPTIONS                         // Опционы
+        OPTION                          // Опционы
     };
-    Q_ENUM_NS(TypesTrade)
+    Q_ENUM_NS(TypeTrade)
 
-    QString tradeToString(TypesTrade t_trade);
+    QString tradeToString(TypeTrade t_trade);
 
-    QString tradeToBaseEndpoint(TypesTrade t_trade);
+    QString tradeToBaseEndpoint(TypeTrade t_trade);
 
     struct TradingInfo {
         QString symbol;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Engine/Managers/DataBaseManager.hpp"
 #include "Engine/StdTypes.hpp"
 
 namespace Engine {
@@ -19,7 +18,7 @@ namespace Engine {
         QString error();
         
         bool addItem(const TradingInfo& trade_item);
-        bool getAllItems(QHash<QString, QList<Engine::TradingInfo>>& data);
+        bool getAllItems(const QString& category, QList<Engine::TradingInfo>& data);
     };
 }
 

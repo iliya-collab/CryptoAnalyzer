@@ -2,27 +2,27 @@
 
 namespace Engine {
 
-    QString tradeToString(TypesTrade t_trade) {
+    QString tradeToString(TypeTrade t_trade) {
         switch (t_trade) {
-        case TypesTrade::SPOT:
-            return "SPOT";
-        case TypesTrade::LINEAR:
-            return "LINEAR";
-        case TypesTrade::INVERSE:
-            return "INVERSE";
-        case TypesTrade::OPTIONS:
-            return "OPTIONS";
+        case TypeTrade::SPOT:
+            return "spot";
+        case TypeTrade::LINEAR:
+            return "linear";
+        case TypeTrade::INVERSE:
+            return "inverse";
+        case TypeTrade::OPTION:
+            return "option";
         default:
-            return "NONE";
+            return "none";
             break;
         }
     }
 
-    QString tradeToBaseEndpoint(TypesTrade t_trade) {
+    QString tradeToBaseEndpoint(TypeTrade t_trade) {
         switch (t_trade) {
-        case TypesTrade::SPOT:
+        case TypeTrade::SPOT:
             return "wss://stream.bybit.com/v5/public/spot";
-        case TypesTrade::LINEAR:
+        case TypeTrade::LINEAR:
             return "wss://stream.bybit.com/v5/public/linear";
         default:
             return QString();

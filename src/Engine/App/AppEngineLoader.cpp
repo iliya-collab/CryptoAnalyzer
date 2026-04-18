@@ -2,6 +2,7 @@
 #include "Engine/App/AppEngineСonfiguration.hpp"
 #include "Engine/Tools/BybitRestAPI.hpp"
 #include "Engine/Tools/DBHash.hpp"
+
 #include <QUrlQuery>
 #include <QDebug>
 #include <QThread>
@@ -33,13 +34,11 @@ namespace Engine {
         m_loadSteps.append({"Loading configuration", [this]() { loadConfigAsync(); }});
         
         DBHash db;
-        if (db.dbExist()) {
-            m_loadSteps.append({"Loading from database", [this]() { loadFromDatabaseAsync(); }});
-        } else {
-            m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync(TypesTrade::SPOT); }});
-            m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync(TypesTrade::LINEAR); }});
-            m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync(TypesTrade::INVERSE); }});
-            m_loadSteps.append({"Loading OPTIONS pairs", [this]() { requestTradingPairsAsync(TypesTrade::OPTIONS); }});
+        if (!db.dbExist()) {
+            m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync(TypeTrade::SPOT); }});
+            m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync(TypeTrade::LINEAR); }});
+            m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync(TypeTrade::INVERSE); }});
+            m_loadSteps.append({"Loading OPTION pairs", [this]() { requestTradingPairsAsync(TypeTrade::OPTION); }});
             m_loadSteps.append({"Saving to database", [this]() { saveToDatabaseAsync(); }});
         }
         
@@ -109,12 +108,7 @@ namespace Engine {
         m_testnet = api.testnet;
     }
 
-    void AppEngineLoader::loadFromDatabaseAsync() {
-        loadFromDatabase();
-        execNextStep();
-    }
-
-    void AppEngineLoader::loadFromDatabase() {
+    void AppEngineLoader::loadFromDatabase(const QString& category) {
         DBHash db;
         if (!db.dbExist()) {
             emit errorOccurred("Database does not exist");
@@ -122,7 +116,8 @@ namespace Engine {
         }
 
         QMutexLocker locker(&m_mutex);
-        if (!db.getAllItems(m_tradingPairs)) {
+        m_tradingPairs.clear();
+        if (!db.getAllItems(category, m_tradingPairs)) {
             emit errorOccurred(db.error());
             return;
         }
@@ -141,18 +136,16 @@ namespace Engine {
         }
 
         QMutexLocker locker(&m_mutex);
-        for (const auto& items : m_tradingPairs) {
-            for (const auto& item : items) {
-                if (!db.addItem(item)) {
-                    emit errorOccurred(db.error());
-                    return;
-                }
+        for (const auto& item : m_tradingPairs) {
+            if (!db.addItem(item)) {
+                emit errorOccurred(db.error());
+                return;
             }
         }
 
     }
 
-    void AppEngineLoader::requestTradingPairsAsync(TypesTrade trade) {
+    void AppEngineLoader::requestTradingPairsAsync(TypeTrade trade) {
         cancelCurrentRequest();
 
         m_currentApi = new BybitRestAPI(m_apiKey, m_secretKey, m_testnet);
@@ -206,15 +199,13 @@ namespace Engine {
             lst.append(info);
         }
 
-        {
-            QMutexLocker locker(&m_mutex);
-            m_tradingPairs.insert(category, lst);
-        }
+        QMutexLocker locker(&m_mutex);
+        m_tradingPairs.append(lst);
     }
 
-    QList<TradingInfo> AppEngineLoader::getData(const QString& category) const {
-        QMutexLocker locker(&m_mutex);
-        return m_tradingPairs.value(category);
+    QList<TradingInfo> AppEngineLoader::getData(const QString& category) {
+        loadFromDatabase(category);
+        return m_tradingPairs;
     }
 
 } // namespace Engine

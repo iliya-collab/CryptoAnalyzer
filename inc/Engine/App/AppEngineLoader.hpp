@@ -23,7 +23,7 @@ namespace Engine {
         void startLoading();
 
         // Возвращает загруженные данные для указанной категории
-        QList<TradingInfo> getData(const QString& category) const;
+        QList<TradingInfo> getData(const QString& category);
 
     signals:
         void progressChanged(const QString& stepName, int current, int total);
@@ -33,26 +33,30 @@ namespace Engine {
     private:
         // Асинхронные шаги загрузки
         void loadConfigAsync();
-        void loadFromDatabaseAsync();
         void saveToDatabaseAsync();
-        void requestTradingPairsAsync(Engine::TypesTrade trade);
+        void requestTradingPairsAsync(TypeTrade t_trade);
         void cancelCurrentRequest();
 
         void execStep();
         void execNextStep();
 
-        void loadConfig();                   // читает конфигурацию из файла
-        void loadFromDatabase();             // загружает данные из БД
-        void saveToDatabase();               // сохраняет данные в БД
+        // читает конфигурацию из файла
+        void loadConfig();
+        // загружает данные из БД
+        void loadFromDatabase(const QString& category);
+        // сохраняет данные в БД
+        void saveToDatabase();
         
         void processSymbols(const QJsonObject& data); // парсит полученные символы
 
-        // Данные
+        // Данные об API
         QString m_apiKey;
         QString m_secretKey;
         bool m_testnet = false;
 
-        QHash<QString, QList<TradingInfo>> m_tradingPairs;
+        // Загруженные торги
+        QList<TradingInfo> m_tradingPairs;
+        // Мьютекс для потокобезопасности
         mutable QMutex m_mutex;
 
         // Состояние загрузки

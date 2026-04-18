@@ -1,5 +1,9 @@
 #include "Engine/App/AppWorker.hpp"
 
+#include <QVariant>
+#include <QList>
+#include <QVariantList>
+
 AppWorker::AppWorker(QObject* parent) : QObject(parent) {
     qDebug() << "--------------------------------------------------";
 
@@ -78,6 +82,13 @@ void AppWorker::setupEngineConnections() {
     connect(m_engine.get(), &Engine::AppEngine::started, this, [this]() {
         m_hasStarted = true;
         qDebug().noquote() << "Engine started in thread:" << QThread::currentThread();
+
+        auto lstTrades = m_loader->getData(Engine::tradeToString(m_trade));
+        m_lstTrades.clear();
+        for (const auto& iTrade : lstTrades)
+            m_lstTrades.append(iTrade.symbol);
+        emit tradeListChanged();
+
         emit engineStarted();
     });
 
@@ -89,9 +100,7 @@ void AppWorker::setupEngineConnections() {
         if (!m_pendingUrl.isEmpty()) {
             QUrl url = m_pendingUrl;
             m_pendingUrl.clear();
-            QMetaObject::invokeMethod(m_engine.get(), [this, url]() {
-                m_engine->run(url);
-            }, Qt::QueuedConnection);
+            QMetaObject::invokeMethod(m_engine.get(), [this, url]() { m_engine->run(url); }, Qt::QueuedConnection);
         }
     });
 
@@ -107,16 +116,16 @@ void AppWorker::setupConnections() {
     setupEngineConnections();
 }
 
-void AppWorker::startTrade(Engine::TypesTrade trade) {
+void AppWorker::startTrade() {
     if (!m_hasLoaded) {
         qDebug() << "Cannot start trade: not loaded";
         return;
     }
 
-    QMetaObject::invokeMethod(m_engine.get(), [this, trade]() {
+    QUrl url = Engine::tradeToBaseEndpoint(m_trade);
+    QMetaObject::invokeMethod(m_engine.get(), [this, url]() {
         qDebug() << "AppWorker::startTrade in thread:" << QThread::currentThread();
 
-        QUrl url = Engine::tradeToBaseEndpoint(trade);
         if (!m_engine->hasRunned()) {
             m_engine->run(url);
         } else {
@@ -124,4 +133,8 @@ void AppWorker::startTrade(Engine::TypesTrade trade) {
             m_engine->stop();
         }
     }, Qt::QueuedConnection);
+}
+
+QVariantList AppWorker::tradeList() const {
+    return m_lstTrades;
 }
