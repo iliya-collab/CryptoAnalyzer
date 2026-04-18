@@ -307,4 +307,12 @@ ApplicationWindow {
         id: sysPal
     }
 
+    Image {
+        width: 200
+        height: 200
+        source: "qrc:/images/image.jpg"
+
+        fillMode: Image.PreserveAspectFit
+    }
+
 }

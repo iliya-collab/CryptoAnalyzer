@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     // Регестрируем пространство имен Engine в контексте QML в модуле Engine
     qmlRegisterUncreatableMetaObject(Engine::staticMetaObject, "Engine", 1, 0, "Engine", "Access to enums only");
 
-    qmlEngine.load(QUrl(QStringLiteral("qrc:/main.qml")));
+    qmlEngine.load(QUrl(QStringLiteral("qrc:/QML/main.qml")));
     if (qmlEngine.rootObjects().isEmpty()) {
         qDebug().noquote() << "Runtime error qml engine";
         return -1;

@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>main.qml</file>
-        <file>CustomStatusWidget.qml</file>
-    </qresource>
-</RCC>

@@ -42,7 +42,7 @@ file(GLOB_RECURSE MY_HEADERS
 )
 
 set(QRC_FILES
-    "${RESOURCE_DIR}/qml.qrc"
+    "${RESOURCE_DIR}/resources.qrc"
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

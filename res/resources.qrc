@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/image.jpg</file>
+        <file>QML/main.qml</file>
+        <file>QML/CustomStatusWidget.qml</file>
+    </qresource>
+</RCC>
