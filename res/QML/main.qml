@@ -15,19 +15,20 @@ ApplicationWindow {
     height: 600
     title: "Bybit platform"
 
-    // Фиксируем размер
+    /*// Фиксируем размер
     minimumWidth: width
     maximumWidth: width
     minimumHeight: height
     maximumHeight: height
 
     // Убираем кнопку "Развернуть" из заголовка
-    flags: Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint
+    flags: Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint*/
 
     // ДВИЖОК ПРИЛОЖЕНИЯ
     ApplicationEngine {
         id: appEngine
 
+        // Сигналы из движка
         // Обрабатываем прогресс загрузки
         onLoadingProgress: function(step, current, total) {
             if (statusWidget.progressTo !== total)
@@ -50,6 +51,7 @@ ApplicationWindow {
                 statusWidget.text = "Loading failed!"
         }
 
+        // Дополнительные сигналы
         // Добавляем сигнал для запуска движка из UI
         signal runEngine(string action)
 
@@ -64,165 +66,110 @@ ApplicationWindow {
             else if (action === "Option")
                 trade = Engine.TypeTrade.OPTION
 
-            appEngine.startTrade()
+            appEngine.startEngine()
         }
 
     } // ApplicationEngine
 
+    // Меню
+    menuBar : MenuBar {
+        Menu {
+            title: "Trade"
+
+            MenuItem {
+                text: "Spot"
+
+                Label {
+                   text: "\u203A"
+                   font.bold: true
+                   anchors.right: parent.right
+                   anchors.rightMargin: 10
+                   anchors.verticalCenter: parent.verticalCenter
+                   color: sysPal.midlight
+               }
+
+                onTriggered:{
+                    mainStack.currentIndex = tradePage.StackLayout.index
+                    appEngine.runEngine("Spot");
+                }
+            }
+
+            MenuItem {
+                text: "Linear"
+
+                Label {
+                   text: "\u203A"
+                   font.bold: true
+                   anchors.right: parent.right
+                   anchors.rightMargin: 10
+                   anchors.verticalCenter: parent.verticalCenter
+                   color: sysPal.midlight
+               }
+
+                onTriggered:{
+                    mainStack.currentIndex = tradePage.StackLayout.index
+                    appEngine.runEngine("Linear");
+                }
+            }
+
+            MenuItem {
+                text: "Inverse"
+
+                Label {
+                   text: "\u203A"
+                   font.bold: true
+                   anchors.right: parent.right
+                   anchors.rightMargin: 10
+                   anchors.verticalCenter: parent.verticalCenter
+                   color: sysPal.midlight
+               }
+
+                onTriggered:{
+                    mainStack.currentIndex = tradePage.StackLayout.index
+                    appEngine.runEngine("Inverse");
+                }
+            }
+
+            MenuItem {
+                text: "Option"
+
+                Label {
+                   text: "\u203A"
+                   font.bold: true
+                   anchors.right: parent.right
+                   anchors.rightMargin: 10
+                   anchors.verticalCenter: parent.verticalCenter
+                   color: sysPal.midlight
+               }
+
+                onTriggered:{
+                    mainStack.currentIndex = tradePage.StackLayout.index
+                    appEngine.runEngine("Option");
+                }
+            }
+
+        } // Menu "Trade"
+    } // MenuBar
+
+    // Панель инструментов
     header: ToolBar {
         RowLayout {
             anchors.fill: parent
             spacing: 0
 
             ToolButton {
-                id: mainMenu
                 text: "☰"
                 onClicked: {
                     drawer.opened ? drawer.close() : drawer.open()
                 }
-            } // mainMenu
-
-            ToolButton {
-                id: tradeMenu
-                text: "Trade"
-
-                onClicked: {
-                    drawer.close()
-                    tradeMenuPopup.open()
-                }
-
-                Popup {
-                    id: tradeMenuPopup
-                    y: parent.height
-                    width: 150
-                    modal: true
-                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-                    Column {
-                        width: parent.width
-
-                        Button {
-                            text: "Spot"
-                            width: parent.width
-                            onClicked: {
-                                appEngine.runEngine("Spot")
-                                tradeMenuPopup.close()
-                            }
-                        }
-
-                        Button {
-                            text: "Linear"
-                            width: parent.width
-                            onClicked: {
-                                appEngine.runEngine("Linear")
-                                tradeMenuPopup.close()
-                            }
-                        }
-
-                        Button {
-                            text: "Inverse"
-                            width: parent.width
-                            onClicked: {
-                                appEngine.runEngine("Inverse")
-                                tradeMenuPopup.close()
-                            }                    x: 0
-                        }
-
-                        Button {
-                            text: "Option"
-                            width: parent.width
-                            onClicked: {
-                                appEngine.runEngine("Option")
-                                tradeMenuPopup.close()
-                            }
-                        }
-                    }
-                } // tradeMenuPopup
-            } // tradeMenu
-
-            ToolButton {
-                id: availableMenu
-                text: "Available"
-
-                onClicked: {
-                    drawer.close()
-                    availablePopup.open()
-                }
-
-                Popup {
-                    id: availablePopup
-                    y: parent.height
-                    width: 220
-                    height: 300
-                    modal: true
-                    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 10
-
-                        Rectangle {
-                            width: parent.width
-                            height: parent.height
-                            border.color: sysPal.midlight   // Цвет рамки
-                            border.width: 2                 // Толщина рамки
-                            color: "transparent"            // Прозрачный фон (или можно задать свой)
-                            radius: 4                       // Скругление углов (опционально)
-
-                            ListView {
-                                id: listView
-                                anchors.fill: parent
-                                // Если скроллбар виден, добавляем отступ справа, равный его ширине
-                                rightMargin: vScrollBar.visible ? vScrollBar.width : 0
-                                // Аналогично для горизонтального (чтобы текст не уходил под него)
-                                bottomMargin: hScrollBar.visible ? hScrollBar.height : 0
-
-                                model: appEngine.tradeList
-                                clip: true
-
-                                delegate: ItemDelegate {
-                                    text: modelData
-                                    width: ListView.view.availableWidth
-                                    onClicked: {
-                                        console.log(model.name + " clicked")
-                                        availablePopup.close()
-                                    }
-                                }
-
-                                contentWidth: {
-                                    var maxWidth = 0
-                                    for (var i = 0; i < model.length; i++) {
-                                        var textWidth = model[i].length * 8 + 20
-                                        maxWidth = Math.max(maxWidth, textWidth)
-                                    }
-                                    return Math.max(maxWidth, width)
-                                }
-
-                                ScrollBar.vertical: ScrollBar {
-                                    id: vScrollBar
-                                    policy: ScrollBar.AsNeeded
-                                }
-                                ScrollBar.horizontal: ScrollBar {
-                                    id: hScrollBar
-                                    policy: ScrollBar.AsNeeded
-                                }
-
-                            } // listView
-                        }
-                    }
-                } // availablePopup
-            } // availableMenu
-
-            // Растягиваем остальное пространство
-            Item { Layout.fillWidth: true }
+            }
         }
     }
 
     // Левая панель
     Drawer {
         id: drawer
-        width: 150
+        width: parent.width / 6
         height: parent.height
         edge: Qt.LeftEdge
         modal: true
@@ -234,10 +181,12 @@ ApplicationWindow {
             ColumnLayout {
                 anchors.fill: parent // Растягиваем Layout по всей высоте
                 anchors.margins: 20
-                spacing: 0  // Убираем расстояние между элементами
 
                 Text {
                     text: "Main menu"
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter // Центрирует содержимое по горизонтали
+                    verticalAlignment: Text.AlignVCenter   // Центрирует содержимое по вертикали
                     color: sysPal.text
                     font.pixelSize: 20
                     font.bold: true
@@ -258,7 +207,7 @@ ApplicationWindow {
 
                     onClicked: {
                         drawer.close()
-                        console.log("Settings")
+                        //console.log("Settings")
                     }
                 }
 
@@ -271,33 +220,62 @@ ApplicationWindow {
 
                     onClicked: {
                         drawer.close()
-                        console.log("About the program")
+                        //console.log("About the program")
                     }
                 }
             } // ColumnLayout
         } // Rectangle
     } // Drawer
 
-    // Progress bar и status bar
-    CustomStatusWidget {
-        id: statusWidget
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        anchors.margins: 8
+    // Главное окно
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
 
-        // Настройка по умолчанию
-        width: 300
-        height: 80
-        text: "Ready"
-        progressValue: 50
-        progressTo: 100
+        StackLayout {
+            id: mainStack
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            currentIndex: 0
 
-        durationHide: 3000
-        onClicked: {
-            console.log("Clicked on status bar")
-        }
+            Rectangle {
+                id: homePage
+                color: "transparent"
+                Text {
+                    text: "Главный экран";
+                    anchors.centerIn: parent
+                }
+            }
 
-    } // statusWidget
+            TradePage {
+                id: tradePage
+                cmbModel: appEngine.tradeList
+            }
+
+        } // mainStack
+
+        // Progress bar и status bar
+        CustomStatusWidget {
+            id: statusWidget
+
+            Layout.alignment: Qt.AlignRight | Qt.AlignBottom
+            Layout.margins: 8
+
+            // Настройка по умолчанию
+            width: 300
+            height: 80
+            text: "Ready"
+            progressValue: 50
+            progressTo: 100
+
+            durationHide: 3000
+            onClicked: {
+                console.log("Clicked on status bar")
+            }
+
+        } // statusWidget
+
+    }
 
     Component.onCompleted: {
         console.log("UI Loaded successfully")
@@ -305,14 +283,6 @@ ApplicationWindow {
 
     SystemPalette {
         id: sysPal
-    }
-
-    Image {
-        width: 200
-        height: 200
-        source: "qrc:/images/image.jpg"
-
-        fillMode: Image.PreserveAspectFit
     }
 
 }

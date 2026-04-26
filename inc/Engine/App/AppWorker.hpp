@@ -18,7 +18,8 @@ public:
     AppWorker(QObject* parent = nullptr);
     ~AppWorker();
 
-    Q_INVOKABLE void startTrade();
+    Q_INVOKABLE void startEngine();
+    Q_INVOKABLE void startTrade(const QString& pair);
 
     QVariantList tradeList() const;
 

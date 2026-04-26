@@ -7,7 +7,7 @@
 AppWorker::AppWorker(QObject* parent) : QObject(parent) {
     qDebug() << "--------------------------------------------------";
 
-    qDebug() << "AppWorker created in thread:" << QThread::currentThread();
+    qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
 
     m_loader = std::make_unique<Engine::AppEngineLoader>();
     m_engine = std::make_unique<Engine::AppEngine>();
@@ -17,12 +17,12 @@ AppWorker::AppWorker(QObject* parent) : QObject(parent) {
     m_loader->moveToThread(m_workerThread);
     m_engine->moveToThread(m_workerThread);
 
-    qDebug() << "AppEngineLoader moved to thread:" << m_loader->thread();
-    qDebug() << "AppEngine moved to thread:" << m_engine->thread();
+    qDebug() << "Loader moved to thread:" << m_loader->thread();
+    qDebug() << "Engine moved to thread:" << m_engine->thread();
 
     connect(m_workerThread, &QThread::started, this, [this]() {
         QMetaObject::invokeMethod(m_loader.get(), [this] () {
-            qDebug().noquote() << "AppEngineLoader::startLoading in thread:" << QThread::currentThread();
+            //qDebug().noquote() << "Loading has started in thread:" << QThread::currentThread();
             m_loader->startLoading();
         }, Qt::QueuedConnection);
     });
@@ -35,7 +35,7 @@ AppWorker::AppWorker(QObject* parent) : QObject(parent) {
 }
 
 AppWorker::~AppWorker() {
-    qDebug() << "AppWorker destructor start in thread:" << QThread::currentThread();
+    qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
 
     // Останавливаем движок перед удалением
     if (m_hasStarted) {
@@ -52,7 +52,7 @@ AppWorker::~AppWorker() {
     m_workerThread->quit();
     m_workerThread->wait();
 
-    qDebug() << "AppWorker destructor end";
+    qDebug() << Q_FUNC_INFO << "finished";
 }
 
 void AppWorker::setupLoaderConnections() {
@@ -80,9 +80,9 @@ void AppWorker::setupLoaderConnections() {
 void AppWorker::setupEngineConnections() {
     // Движок запущен
     connect(m_engine.get(), &Engine::AppEngine::started, this, [this]() {
-        m_hasStarted = true;
-        qDebug().noquote() << "Engine started in thread:" << QThread::currentThread();
+        qDebug().noquote() << "Engine started";
 
+        m_hasStarted = true;
         auto lstTrades = m_loader->getData(Engine::tradeToString(m_trade));
         m_lstTrades.clear();
         for (const auto& iTrade : lstTrades)
@@ -94,9 +94,9 @@ void AppWorker::setupEngineConnections() {
 
     // Движок остановлен
     connect(m_engine.get(), &Engine::AppEngine::stopped, this, [this]() {
-        m_hasStarted = false;
-        qDebug().noquote() << "Engine stopped in thread:" << QThread::currentThread();
+        qDebug().noquote() << "Engine stopped";
 
+        m_hasStarted = false;
         if (!m_pendingUrl.isEmpty()) {
             QUrl url = m_pendingUrl;
             m_pendingUrl.clear();
@@ -116,22 +116,37 @@ void AppWorker::setupConnections() {
     setupEngineConnections();
 }
 
-void AppWorker::startTrade() {
+void AppWorker::startEngine() {
+    qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
     if (!m_hasLoaded) {
-        qDebug() << "Cannot start trade: not loaded";
+        qDebug() << "The engine failed to load";
         return;
     }
 
     QUrl url = Engine::tradeToBaseEndpoint(m_trade);
     QMetaObject::invokeMethod(m_engine.get(), [this, url]() {
-        qDebug() << "AppWorker::startTrade in thread:" << QThread::currentThread();
-
         if (!m_engine->hasRunned()) {
             m_engine->run(url);
         } else {
             m_pendingUrl = url;
             m_engine->stop();
         }
+
+    }, Qt::QueuedConnection);
+}
+
+void AppWorker::startTrade(const QString& pair) {
+    qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+    QMetaObject::invokeMethod(m_engine.get(), [this, pair]() {
+        if (!m_engine->hasRunned()) {
+            qDebug() << "Unable to start trade";
+            return;
+        }
+
+        m_engine->addTrade(pair);
+
     }, Qt::QueuedConnection);
 }
 

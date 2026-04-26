@@ -20,6 +20,8 @@ namespace Engine {
 
         void run(const QUrl& baseEndpont);
 
+        void addTrade(const QString& pair);
+
         bool hasRunned();
 
         void stop();

@@ -10,13 +10,13 @@
 namespace Engine {
 
     AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent) {
-        qDebug() << "AppEngineLoader created in thread:" << QThread::currentThread();
+        qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
     }
 
     AppEngineLoader::~AppEngineLoader() {
-        qDebug() << "AppEngineLoader destructor start in thread:" << QThread::currentThread();
+        qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
         cancelCurrentRequest();
-        qDebug() << "AppWorker destructor end";
+        qDebug() << Q_FUNC_INFO << "finished";
     }
 
     void AppEngineLoader::startLoading() {
