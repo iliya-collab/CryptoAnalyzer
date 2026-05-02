@@ -45,10 +45,7 @@ ApplicationWindow {
 
         // Обрабатываем загрузку
         onLoadingFinished: function(success) {
-            if (success)
-                statusWidget.text = "Loading completed!"
-            else
-                statusWidget.text = "Loading failed!"
+            statusWidget.text = (success) ? "Loading completed!" : "Loading failed!"
         }
 
         // Дополнительные сигналы
@@ -229,6 +226,7 @@ ApplicationWindow {
 
     // Главное окно
     ColumnLayout {
+        id: mainLayout
         anchors.fill: parent
         spacing: 0
 
@@ -241,17 +239,12 @@ ApplicationWindow {
             Rectangle {
                 id: homePage
                 color: "transparent"
-                Text {
-                    text: "Главный экран";
-                    anchors.centerIn: parent
-                }
             }
 
             TradePage {
                 id: tradePage
                 cmbModel: appEngine.tradeList
             }
-
         } // mainStack
 
         // Progress bar и status bar
@@ -272,10 +265,9 @@ ApplicationWindow {
             onClicked: {
                 console.log("Clicked on status bar")
             }
-
         } // statusWidget
 
-    }
+    } // mainLayout
 
     Component.onCompleted: {
         console.log("UI Loaded successfully")

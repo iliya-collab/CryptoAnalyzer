@@ -68,9 +68,8 @@ Rectangle {
             onHoveredChanged: {
                 if (!hovered) {
                     // Если курсор ушел с popup и с root, запускаем таймер закрытия
-                    if (!hoverHandler.hovered) {
+                    if (!hoverHandler.hovered)
                         popupTimer.restart()
-                    }
                 } else {
                     // Курсор на popup - останавливаем таймер
                     popupTimer.stop()
@@ -140,8 +139,8 @@ Rectangle {
                         text: modelData
                         width: ListView.view.availableWidth
                         onClicked: {
-                            //console.log(modelData + " clicked")
                             lblTitle.text = modelData
+                            //console.log(lblTitle.text + " clicked")
                             appEngine.startTrade(lblTitle.text)
                             mainPopup.close()
                         }

@@ -32,6 +32,8 @@ namespace Engine {
         void stopped();
         void errorOccurred(const QString& error);
 
+        void tickerUpdated(const stTicker& ticker);
+
     };
 
 }

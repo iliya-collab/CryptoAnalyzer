@@ -27,7 +27,7 @@ namespace Engine {
         // Сообщение о отписке
         void sendUnsubscriptionMessage(const QStringList& streams);
         // Отправка сообщения о пинге
-        void sendPingMessage(const QJsonObject& obj);
+        void sendPingMessage();
         // Обработка сообщения
         void messageReceived(const QJsonObject& obj);
         
@@ -50,6 +50,8 @@ namespace Engine {
         // Метод для правильного закрытия веб-сокеты
         void cleanup();
 
+        void closeAfterFlush();
+
         // Веб-сокет
         QWebSocket* m_webSocket;
         // Таймер проверки доступности соединения (активный ping)
@@ -60,20 +62,25 @@ namespace Engine {
         // Используемые каналы
         QSet<QString> m_usedStreams;
 
+        // Уникальный id для подписки на каналы
+        quint64 m_nextReqId = 1;
+        bool m_pendingClose = false;
+
         // Максимальное кол-во каналов в 1ой подписке
         const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
-        // каждые 10 с
-        const int ACTIVE_PING_INTERVAL = 10000;
+        // каждые 20 с
+        const int ACTIVE_PING_INTERVAL = 20000;
 
     public:
 
         explicit BybitWebSocket(QObject* parent = nullptr);
         ~BybitWebSocket();
 
+        // Каналы для подклячения
         enum class Stream {
-            Ticker,
-            Orderbook,
-            Kline
+            Ticker, // Тикер
+            Orderbook, // Стакан ордеров
+            Kline // Свечи
         };
 
         // Открывает websocket по указанному адресу
@@ -82,12 +89,13 @@ namespace Engine {
         void close();
         // Проверяет открыт ли websocket
         bool isOpen();
-        // Подписывает монету на каналы
+        // Формирует каналы для монеты и отправляет сообщение о подписке на них, если websocket открыт
         void subscribeToStream(const QString& coin, QSet<Stream> streams);
-        // Подключается ко всем каналам
-        void connectToStream();
-        // Отключается от всех каналов
-        void disconnectFromStream();
+
+        // Потправляет сообщение о подписке на все используемые каналы
+        void connectToStreams();
+        // Потправляет сообщение об отписке на все используемые каналы
+        void disconnectFromStreams();
 
     signals:
 
@@ -113,6 +121,10 @@ namespace Engine {
         void onSslErrors(const QList<QSslError>& errors);
         // Обработка принятого сообщения
         void onTextMessageReceived(const QString& message);
+
+        void onBytesWritten(qint64 bytes);
+
+        void onPing();
 
     };
     

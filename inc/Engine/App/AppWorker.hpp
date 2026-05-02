@@ -36,6 +36,8 @@ signals:
 
     void engineStarted();
 
+    void tickerUpdated(const Engine::stTicker& ticker);
+
 private:
     std::unique_ptr<Engine::AppEngineLoader> m_loader;
     std::unique_ptr<Engine::AppEngine> m_engine;

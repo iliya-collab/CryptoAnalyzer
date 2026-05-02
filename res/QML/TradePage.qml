@@ -34,6 +34,7 @@ ColumnLayout {
             implicitHeight: selecterTrade.implicitHeight
         }
 
+
     } // RowLayout
 
     Item { Layout.fillHeight: true }

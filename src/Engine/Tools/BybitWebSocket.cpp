@@ -14,7 +14,6 @@ namespace Engine {
     }
 
     BybitWebSocket::~BybitWebSocket() {
-        // Корректное закрытие websocket с отключением всех соединений и таймеров
         cleanup();
     }
 
@@ -33,14 +32,11 @@ namespace Engine {
         connect(m_webSocket, &QWebSocket::connected, this, &BybitWebSocket::onConnected);
         connect(m_webSocket, &QWebSocket::disconnected, this, &BybitWebSocket::onDisconnected);
         connect(m_webSocket, &QWebSocket::textMessageReceived, this, &BybitWebSocket::onTextMessageReceived);
+        connect(m_webSocket, &QWebSocket::bytesWritten, this, &BybitWebSocket::onBytesWritten);
         connect(m_webSocket, &QWebSocket::errorOccurred, this, &BybitWebSocket::onError);
         connect(m_webSocket, &QWebSocket::sslErrors, this, &BybitWebSocket::onSslErrors);
 
-
-        connect(m_pingTimer, &QTimer::timeout, this, [this]() {
-            if (isOpen())
-                m_webSocket->ping();
-        });
+        connect(m_pingTimer, &QTimer::timeout, this, &BybitWebSocket::onPing);
     }
 
     void BybitWebSocket::cleanup() {
@@ -48,20 +44,18 @@ namespace Engine {
             m_pingTimer->blockSignals(true);
             if (m_pingTimer->isActive())
                 m_pingTimer->stop();
-            m_pingTimer->disconnect(this);
         }
 
         if (m_webSocket) {
             if (isOpen()) {
-                disconnectFromStream();
-                m_webSocket->close();
+                disconnectFromStreams();
+                closeAfterFlush();
             }
-            m_webSocket->disconnect(this);
         }
     }
 
     bool BybitWebSocket::isOpen() {
-        return m_webSocket->state() == QAbstractSocket::ConnectedState;
+        return m_webSocket && (m_webSocket->state() == QAbstractSocket::ConnectedState);
     }
 
     void BybitWebSocket::open(const QUrl& baseEndpont) {
@@ -69,41 +63,70 @@ namespace Engine {
     }
 
     void BybitWebSocket::close() {
-        if (m_pingTimer && m_pingTimer->isActive())
-            m_pingTimer->stop();
-
-        if (m_webSocket && isOpen())
-            m_webSocket->close();
+        cleanup();
     }
 
-    void BybitWebSocket::connectToStream() {    
+    void BybitWebSocket::connectToStreams() {
         if (!m_usedStreams.isEmpty())
             sendSubscriptionMessage(m_usedStreams.values());
     }
 
-    void BybitWebSocket::disconnectFromStream() {
+    void BybitWebSocket::disconnectFromStreams() {
         if (!m_usedStreams.isEmpty()) {
             sendUnsubscriptionMessage(m_usedStreams.values());
             m_usedStreams.clear();
         }
     }
 
+    void BybitWebSocket::closeAfterFlush() {
+        m_webSocket->flush();
+        qint64 pending = m_webSocket->bytesToWrite();
+        //qDebug() << "closeAfterFlush: bytesToWrite =" << pending;
+        if (pending == 0) {
+            //qDebug() << "closeAfterFlush: closing immediately";
+            m_webSocket->close();
+        } else {
+            m_pendingClose = true;
+            //qDebug() << "closeAfterFlush: waiting for bytesWritten";
+            QTimer::singleShot(5000, this, [this]() {
+                if (m_pendingClose) {
+                    //qDebug() << "Timeout close";
+                    m_pendingClose = false;
+                    m_webSocket->close();
+                }
+            });
+        }
+    }
+
+
     void BybitWebSocket::subscribeToStream(const QString& coin, QSet<Stream> streams) {
-        for (auto stream : streams)
+        QStringList newStreams;
+        QString streamName;
+
+        for (auto stream : streams) {
             switch (stream) {
             case Stream::Ticker:
-                m_usedStreams.insert(createTickerStream(coin));
+                streamName = createTickerStream(coin);
                 break;
             case Stream::Orderbook:
-                m_usedStreams.insert(createOrderbookStream(coin));
-            default:
+                streamName = createOrderbookStream(coin);
                 break;
             }
+
+            if (!m_usedStreams.contains(streamName)) {
+                m_usedStreams.insert(streamName);
+                newStreams << streamName;
+            }
+        }
+
+        if (isOpen() && !newStreams.isEmpty())
+            sendSubscriptionMessage(newStreams);
     }
 
     void BybitWebSocket::onConnected() {
         // Запускаем таймер ping
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
+        connectToStreams();
         emit connected();
     }
 
@@ -116,12 +139,19 @@ namespace Engine {
 
     void BybitWebSocket::onTextMessageReceived(const QString &message) {
         auto jsonObj = parseTextMessage(message);
-        if (jsonObj.has_value()) {
+        if (jsonObj.has_value())
             messageReceived(jsonObj.value());
-            sendPingMessage(jsonObj.value());
-        }
         else
             emit errorOccurred(jsonObj.error());
+    }
+
+    void BybitWebSocket::onBytesWritten(qint64 bytes) {
+        //qDebug() << "onBytesWritten" << bytes;
+        if (m_pendingClose && (m_webSocket->bytesToWrite() == 0)) {
+            //qDebug() << "onBytesWritten close";
+            m_pendingClose = false;
+            m_webSocket->close();
+        }
     }
 
     void BybitWebSocket::onError(QAbstractSocket::SocketError error) {
@@ -146,6 +176,11 @@ namespace Engine {
             m_webSocket->abort();
     }
 
+    void BybitWebSocket::onPing() {
+        if (isOpen())
+            sendPingMessage();
+    }
+
     std::expected<QJsonObject, QString> BybitWebSocket::parseTextMessage(const QString &message) {
         QJsonParseError parseError;
         QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseError);
@@ -159,15 +194,13 @@ namespace Engine {
         return doc.object();
     }
 
-    void BybitWebSocket::sendPingMessage(const QJsonObject& obj) {
-        if (obj.contains("ping")) {
-            QJsonObject pong{{"pong", obj["ping"]}};
-            m_webSocket->sendTextMessage(QJsonDocument(pong).toJson());
-        }
-    }
-
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
-        if (obj.contains("topic")) {
+        qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)) << '\n';
+        if (obj.contains("success")) {
+            bool isSuccess = obj["success"].toBool();
+            if (!isSuccess)
+                emit errorOccurred(obj["op"].toString() + "failed: " + obj["ret_msg"].toString());
+        } else if (obj.contains("topic")) {
             QString channel = obj["topic"].toString();
             if (channel.startsWith("tickers."))
                 updateTicker(obj);
@@ -190,12 +223,23 @@ namespace Engine {
         if (data.contains("lastPrice"))
             ticker.lastPrice = data["lastPrice"].toString().toDouble();
         
-        if (data.contains("highPrice24h") && data.contains("lowPrice24h") && data.contains("turnover24h") && data.contains("volume24h")) {
+        if (data.contains("highPrice24h"))
             ticker.high24h = data["highPrice24h"].toString().toDouble();
+
+        if (data.contains("lowPrice24h"))
             ticker.low24h = data["lowPrice24h"].toString().toDouble();
+
+        if (data.contains("turnover24h"))
             ticker.volCcy24h = data["turnover24h"].toString().toDouble();
+
+        if (data.contains("volume24h"))
             ticker.vol24h = data["volume24h"].toString().toDouble();
-        }
+
+        if (data.contains("prevPrice24h"))
+            ticker.prevPrice24h = ticker.lastPrice - data["prevPrice24h"].toString().toDouble();
+
+        if (data.contains("price24hPcnt"))
+            ticker.price24hPcnt = data["price24hPcnt"].toString().toDouble();
 
         emit updatedTicker(ticker);
     }
@@ -261,10 +305,11 @@ namespace Engine {
             QJsonObject subscribeMessage;
             subscribeMessage["op"] = "subscribe";
             subscribeMessage["args"] = QJsonArray::fromStringList(chunk);
-            subscribeMessage["req_id"] = QString::number(i + 1);
+            subscribeMessage["req_id"] = QString::number(m_nextReqId++);
 
             QJsonDocument doc(subscribeMessage);
             QString message = doc.toJson(QJsonDocument::Compact);
+            //qDebug() << message << '\n';
 
             m_webSocket->sendTextMessage(message);
 
@@ -280,7 +325,7 @@ namespace Engine {
             QJsonObject unsubscribeMessage;
             unsubscribeMessage["op"] = "unsubscribe";
             unsubscribeMessage["args"] = QJsonArray::fromStringList(chunk);
-            unsubscribeMessage["req_id"] = QString::number(1000 + i);
+            unsubscribeMessage["req_id"] = QString::number(m_nextReqId++);
 
             QJsonDocument doc(unsubscribeMessage);
             QString message = doc.toJson(QJsonDocument::Compact);
@@ -290,6 +335,14 @@ namespace Engine {
             if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
                 QThread::msleep(100);
         }
+
+    }
+
+    void BybitWebSocket::sendPingMessage() {
+        QJsonObject pingMessage;
+        pingMessage["op"] = "ping";
+        pingMessage["req_id"] = QString::number(m_nextReqId++);
+        m_webSocket->sendTextMessage(QJsonDocument(pingMessage).toJson());
 
     }
 

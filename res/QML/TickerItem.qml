@@ -26,7 +26,7 @@ Rectangle {
             id: lblTitle
             text: titleItem
             font.pixelSize: 12
-            color: sysPal.midlight
+            color: sysPal.text
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }
@@ -34,8 +34,8 @@ Rectangle {
         Label {
             id: lblContent
             text: contentItem
-            font.pixelSize: 16
-            font.bold: true
+            font.pixelSize: 12
+            color: sysPal.text
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }

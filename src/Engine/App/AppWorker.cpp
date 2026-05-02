@@ -109,6 +109,8 @@ void AppWorker::setupEngineConnections() {
         qDebug() << "Engine error:" << error;
         emit errorOccurred(error);
     });
+
+    connect(m_engine.get(), &Engine::AppEngine::tickerUpdated, this, &AppWorker::tickerUpdated);
 }
 
 void AppWorker::setupConnections() {
