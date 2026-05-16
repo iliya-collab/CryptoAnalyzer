@@ -15,44 +15,21 @@ namespace Engine {
     class AppEngineLoader : public QObject {
         Q_OBJECT
 
-    public:
-        explicit AppEngineLoader(QObject* parent = nullptr);
-        ~AppEngineLoader();
-
-        // Запускает асинхронную загрузку
-        void startLoading();
-
-        // Возвращает загруженные данные для указанной категории
-        QList<TradingInfo> getData(const QString& category);
-
-    signals:
-        void progressChanged(const QString& stepName, int current, int total);
-        void errorOccurred(const QString& error);
-        void finished(bool success);
-
     private:
         // Асинхронные шаги загрузки
-        void loadConfigAsync();
         void saveToDatabaseAsync();
-        void requestTradingPairsAsync(TypeTrade t_trade);
+        void requestTradingPairsAsync(const QString& category);
         void cancelCurrentRequest();
 
         void execStep();
         void execNextStep();
 
-        // читает конфигурацию из файла
-        void loadConfig();
         // загружает данные из БД
         void loadFromDatabase(const QString& category);
         // сохраняет данные в БД
         void saveToDatabase();
-        
-        void processSymbols(const QJsonObject& data); // парсит полученные символы
 
-        // Данные об API
-        QString m_apiKey;
-        QString m_secretKey;
-        bool m_testnet = false;
+        void processSymbols(const QJsonObject& data); // парсит полученные символы
 
         // Загруженные торги
         QList<TradingInfo> m_tradingPairs;
@@ -68,6 +45,23 @@ namespace Engine {
         // Управление текущим запросом и таймаутом
         BybitRestAPI* m_currentApi = nullptr;
         static const int LOADING_TIMEOUT = 30000;
+
+    public:
+        explicit AppEngineLoader(QObject* parent = nullptr);
+        ~AppEngineLoader();
+
+        // Запускает асинхронную загрузку
+        void startLoading();
+
+        void setAPI(const API& api);
+
+        // Возвращает загруженные данные для указанной категории
+        QList<TradingInfo> getData(const QString& category);
+
+    signals:
+        void progressChanged(const QString& stepName, int current, int total);
+        void errorOccurred(const QString& error);
+        void finished(bool success);
     };
 
 } // namespace Engine

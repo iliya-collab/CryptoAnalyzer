@@ -4,25 +4,20 @@ import QtQuick.Layouts 1.15
 
 import Engine 1.0
 import MyApp 1.0
+import "."
+import "Components/TradePageWidget"
+import "Components/CustomWidgets"
 
 // Главное окно
 ApplicationWindow {
 
-    // ПАРАМЕТРЫ ГЛАВНОГО ОКНА
     id: mainWindow
     visible: true
     width: 800
     height: 600
     title: "Bybit platform"
 
-    /*// Фиксируем размер
-    minimumWidth: width
-    maximumWidth: width
-    minimumHeight: height
-    maximumHeight: height
-
-    // Убираем кнопку "Развернуть" из заголовка
-    flags: Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint*/
+    color: theme.windowColor
 
     // ДВИЖОК ПРИЛОЖЕНИЯ
     ApplicationEngine {
@@ -31,19 +26,16 @@ ApplicationWindow {
         // Сигналы из движка
         // Обрабатываем прогресс загрузки
         onLoadingProgress: function(step, current, total) {
-            if (statusWidget.progressTo !== total)
-                statusWidget.progressTo = total
-
-            statusWidget.progressValue = current
-            statusWidget.text = step + " (" + current + "/" + total + ")"
+            statusWidget.progressValue = current / total * 100
+            statusWidget.text = step + " - completed " + statusWidget.progressValue + "%"
         }
 
         // Обрабатываем ошибки
         onErrorOccurred: function(error) {
-            statusWidget.text = "Error: " + error
+            statusWidget.text = error
         }
 
-        // Обрабатываем загрузку
+        // Обрабатываем загрузку TradePageWidgetузку
         onLoadingFinished: function(success) {
             statusWidget.text = (success) ? "Loading completed!" : "Loading failed!"
         }
@@ -55,23 +47,26 @@ ApplicationWindow {
         // Обработка runEngine
         onRunEngine: function(action) {
             if (action === "Spot")
-                trade = Engine.TypeTrade.SPOT
+                appEngine.run(Engine.WebSocketEndpoints.SPOT)
             else if (action === "Linear")
-                trade = Engine.TypeTrade.LINEAR
+                appEngine.run(Engine.WebSocketEndpoints.LINEAR)
             else if (action === "Inverse")
-                trade = Engine.TypeTrade.INVERSE
+                appEngine.run(Engine.WebSocketEndpoints.INVERSE)
             else if (action === "Option")
-                trade = Engine.TypeTrade.OPTION
-
-            appEngine.startEngine()
+                appEngine.run(Engine.WebSocketEndpoints.OPTION)
         }
 
     } // ApplicationEngine
 
     // Меню
     menuBar : MenuBar {
+
+        background: Rectangle { color: theme.muneBarColor }
+
         Menu {
             title: "Trade"
+
+            background: Rectangle { color: theme.muneBarColor }
 
             MenuItem {
                 text: "Spot"
@@ -82,7 +77,7 @@ ApplicationWindow {
                    anchors.right: parent.right
                    anchors.rightMargin: 10
                    anchors.verticalCenter: parent.verticalCenter
-                   color: sysPal.midlight
+                   color: theme.textColor
                }
 
                 onTriggered:{
@@ -100,7 +95,7 @@ ApplicationWindow {
                    anchors.right: parent.right
                    anchors.rightMargin: 10
                    anchors.verticalCenter: parent.verticalCenter
-                   color: sysPal.midlight
+                   color: theme.textColor
                }
 
                 onTriggered:{
@@ -118,7 +113,7 @@ ApplicationWindow {
                    anchors.right: parent.right
                    anchors.rightMargin: 10
                    anchors.verticalCenter: parent.verticalCenter
-                   color: sysPal.midlight
+                   color: theme.textColor
                }
 
                 onTriggered:{
@@ -136,7 +131,7 @@ ApplicationWindow {
                    anchors.right: parent.right
                    anchors.rightMargin: 10
                    anchors.verticalCenter: parent.verticalCenter
-                   color: sysPal.midlight
+                   color: theme.textColor
                }
 
                 onTriggered:{
@@ -150,15 +145,16 @@ ApplicationWindow {
 
     // Панель инструментов
     header: ToolBar {
+
+        background: Rectangle { color: theme.toolBarColor }
+
         RowLayout {
             anchors.fill: parent
             spacing: 0
 
             ToolButton {
                 text: "☰"
-                onClicked: {
-                    drawer.opened ? drawer.close() : drawer.open()
-                }
+                onClicked: drawer.opened ? drawer.close() : drawer.open()
             }
         }
     }
@@ -173,52 +169,88 @@ ApplicationWindow {
 
         Rectangle {
             anchors.fill: parent
-            color: palette.window
+            color: theme.toolBarColor
 
             ColumnLayout {
-                anchors.fill: parent // Растягиваем Layout по всей высоте
+                anchors.fill: parent
                 anchors.margins: 20
 
                 Text {
                     text: "Main menu"
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter // Центрирует содержимое по горизонтали
-                    verticalAlignment: Text.AlignVCenter   // Центрирует содержимое по вертикали
-                    color: sysPal.text
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    color: theme.textColor
                     font.pixelSize: 20
                     font.bold: true
-                    Layout.bottomMargin: 10  // Добавляем отступ снизу
+                    Layout.bottomMargin: 10
                 }
 
                 // Разделитель
                 Rectangle {
                     height: 1;
                     Layout.fillWidth: true;
-                    color: sysPal.midlight
-                    Layout.bottomMargin: 10  // Отступ после разделителя
+                    color: theme.textColor
+                    Layout.bottomMargin: 10
                 }
 
                 Button {
+                    id: btnSettings
                     text: "Settings"
                     Layout.fillWidth: true
+                    implicitHeight: 40
+
+                    background: Rectangle {
+                        implicitWidth: 100
+                        implicitHeight: 40
+                        color: theme.buttonColor
+                        border.color: theme.borderColor
+                        border.width: 2
+                    }
+
+                    contentItem: Text {
+                        text: btnSettings.text
+                        font: btnSettings.font
+                        color: theme.textColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
 
                     onClicked: {
                         drawer.close()
-                        //console.log("Settings")
+
+                        if ((windowLoader.status === Loader.Ready) && windowLoader.item)
+                            windowLoader.item.show()
+                        else
+                            windowLoader.source = "Components/Windows/SettingsWindow.qml"
+
                     }
                 }
 
-                // Элемент-распорка забирает оставшуюся высоту
                 Item { Layout.fillHeight: true }
 
                 Button {
+                    id: btnHelp
                     text: "Help"
                     Layout.fillWidth: true
 
-                    onClicked: {
-                        drawer.close()
-                        //console.log("About the program")
+                    background: Rectangle {
+                        implicitWidth: 100
+                        implicitHeight: 40
+                        color: theme.buttonColor
+                        border.color: theme.borderColor
+                        border.width: 2
                     }
+
+                    contentItem: Text {
+                        text: btnHelp.text
+                        font: btnHelp.font
+                        color: theme.textColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: drawer.close()
                 }
             } // ColumnLayout
         } // Rectangle
@@ -258,23 +290,17 @@ ApplicationWindow {
             width: 300
             height: 80
             text: "Ready"
-            progressValue: 50
-            progressTo: 100
 
             durationHide: 3000
-            onClicked: {
-                console.log("Clicked on status bar")
-            }
+            intervalHide: 1000
         } // statusWidget
 
     } // mainLayout
 
-    Component.onCompleted: {
-        console.log("UI Loaded successfully")
-    }
+    Component.onCompleted: console.log("UI Loaded successfully")
 
-    SystemPalette {
-        id: sysPal
-    }
+    Loader { id: windowLoader }
+
+    Theme { id: theme }
 
 }

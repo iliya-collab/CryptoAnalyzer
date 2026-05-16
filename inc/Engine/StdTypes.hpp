@@ -20,37 +20,48 @@ namespace Engine {
 
     struct stTicker {
         Q_GADGET
-        Q_PROPERTY(QString symbol MEMBER symbol)
-        Q_PROPERTY(double lastPrice MEMBER lastPrice)
-        Q_PROPERTY(double high24h MEMBER high24h)
-        Q_PROPERTY(double low24h MEMBER low24h)
-        Q_PROPERTY(double volCcy24h MEMBER volCcy24h)
-        Q_PROPERTY(double vol24h MEMBER vol24h)
-        Q_PROPERTY(double prevPrice24h MEMBER prevPrice24h)
-        Q_PROPERTY(double price24hPcnt MEMBER price24hPcnt)
+
+        Q_PROPERTY(QString symbol MEMBER m_symbol)
+        Q_PROPERTY(double lastPrice MEMBER m_lastPrice)
+        Q_PROPERTY(double usdIndexPrice MEMBER m_usdIndexPrice)
+        Q_PROPERTY(double high24h MEMBER m_high24h)
+        Q_PROPERTY(double low24h MEMBER m_low24h)
+        Q_PROPERTY(double volCcy24h MEMBER m_volCcy24h)
+        Q_PROPERTY(double vol24h MEMBER m_vol24h)
+        Q_PROPERTY(double prevPrice24h MEMBER m_prevPrice24h)
+        Q_PROPERTY(double price24hPcnt MEMBER m_price24hPcnt)
 
     public:
-        double lastPrice = 0.0; // Последняя цена сделки
-        double high24h = 0.0; // Максимальная цена за 24 часа
-        double low24h = 0.0; // Минимальная цена за 24 часа
-        double volCcy24h = 0.0; // Объем торгов в котируемой валюте за 24ч (USDT)
-        double vol24h = 0.0; // Объем торгов в базовой валюте за 24ч (BTC)
-        double prevPrice24h = 0.0; // Рыночная цена 24 часа назад
-        double price24hPcnt = 0.0; // Процентное изменение рыночной цены относительно 24 часов
-        QString symbol; // Название пары
+
+        double m_lastPrice = 0.0; // Последняя цена сделки
+        double m_usdIndexPrice = 0; // Индексная цена доллара США
+        double m_high24h = 0.0; // Максимальная цена за 24 часа
+        double m_low24h = 0.0; // Минимальная цена за 24 часа
+        double m_volCcy24h = 0.0; // Объем торгов в котируемой валюте за 24ч (USDT)
+        double m_vol24h = 0.0; // Объем торгов в базовой валюте за 24ч (BTC)
+        double m_prevPrice24h = 0.0; // Рыночная цена 24 часа назад
+        double m_price24hPcnt = 0.0; // Процентное изменение рыночной цены относительно 24 часов
+        QString m_symbol = ""; // Название пары
     };
 
-    enum class TypeTrade {
+    enum class WebSocketEndpoints {
+        NONE,
         SPOT,                           // Спот
         LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
         INVERSE,                        // Инверсные фьючерсы
         OPTION                          // Опционы
     };
-    Q_ENUM_NS(TypeTrade)
+    Q_ENUM_NS(WebSocketEndpoints)
 
-    QString tradeToString(TypeTrade t_trade);
-
-    QString tradeToBaseEndpoint(TypeTrade t_trade);
+    // Структура для хранения информации об API ключах
+    struct API {
+        // API ключ
+        QString m_apiKey = "";
+        // Секретный API ключ
+        QString m_secretKey = "";
+        // Тип сети (true - testnet, false - mainnet)
+        bool m_isTestnet = true;
+    };
 
     struct TradingInfo {
         QString symbol;

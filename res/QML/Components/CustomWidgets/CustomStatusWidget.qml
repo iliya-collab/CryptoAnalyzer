@@ -6,10 +6,9 @@ Rectangle {
 
     property alias text: statusText.text
     property alias progressValue: progressBar.value
-    property alias progressTo: progressBar.to
-    property alias progressFrom: progressBar.from
     property bool autoHide: true
     property alias durationHide: hideAnimation.duration
+    property alias intervalHide: hideTimer.interval
 
     // Значения по умолчанию
     width: 260
@@ -35,12 +34,18 @@ Rectangle {
         }
     }
 
-    onProgressValueChanged: {
-        if (autoHide && progressValue >= progressBar.to)
-            root.visible = false
+    Timer {
+        id: hideTimer
+        interval: 1000
+        running: false
+        onTriggered: root.visible = false
     }
 
-    signal clicked
+    onProgressValueChanged: {
+        if (autoHide && progressValue >= progressBar.to) {
+            hideTimer.start()
+        }
+    }
 
     // Текст статуса
     Text {
@@ -66,6 +71,9 @@ Rectangle {
     // Кликабельная область
     MouseArea {
         anchors.fill: parent
-        onClicked: root.clicked()
+        onClicked: {
+            if (progressValue >= progressBar.to)
+                root.visible = false
+        }
     }
 }

@@ -17,6 +17,10 @@ namespace Engine {
         cleanup();
     }
 
+    void BybitWebSocket::initAPI(const API& api) {
+        m_api = api;
+    }
+
     void BybitWebSocket::setupWebSocket() {
         QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
         sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
@@ -58,8 +62,26 @@ namespace Engine {
         return m_webSocket && (m_webSocket->state() == QAbstractSocket::ConnectedState);
     }
 
-    void BybitWebSocket::open(const QUrl& baseEndpont) {
-        m_webSocket->open(baseEndpont);
+    void BybitWebSocket::open(WebSocketEndpoints endpoint) {
+
+        QString url;
+
+        switch (endpoint) {
+        case WebSocketEndpoints::SPOT:
+            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/spot" : "wss://stream.bybit.com/v5/public/spot";
+            break;
+        case WebSocketEndpoints::LINEAR:
+            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/linear" : "wss://stream.bybit.com/v5/public/linear";
+            break;
+        case WebSocketEndpoints::INVERSE:
+            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/inverse" : "wss://stream.bybit.com/v5/public/inverse";
+            break;
+        case WebSocketEndpoints::OPTION:
+            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/option" : "wss://stream.bybit.com/v5/public/option";
+            break;
+        }
+
+        m_webSocket->open(url);
     }
 
     void BybitWebSocket::close() {
@@ -80,24 +102,18 @@ namespace Engine {
 
     void BybitWebSocket::closeAfterFlush() {
         m_webSocket->flush();
-        qint64 pending = m_webSocket->bytesToWrite();
-        //qDebug() << "closeAfterFlush: bytesToWrite =" << pending;
-        if (pending == 0) {
-            //qDebug() << "closeAfterFlush: closing immediately";
+        if (m_webSocket->bytesToWrite() == 0)
             m_webSocket->close();
-        } else {
+        else {
             m_pendingClose = true;
-            //qDebug() << "closeAfterFlush: waiting for bytesWritten";
             QTimer::singleShot(5000, this, [this]() {
                 if (m_pendingClose) {
-                    //qDebug() << "Timeout close";
                     m_pendingClose = false;
                     m_webSocket->close();
                 }
             });
         }
     }
-
 
     void BybitWebSocket::subscribeToStream(const QString& coin, QSet<Stream> streams) {
         QStringList newStreams;
@@ -110,6 +126,8 @@ namespace Engine {
                 break;
             case Stream::Orderbook:
                 streamName = createOrderbookStream(coin);
+                break;
+            case Stream::Kline:
                 break;
             }
 
@@ -146,9 +164,7 @@ namespace Engine {
     }
 
     void BybitWebSocket::onBytesWritten(qint64 bytes) {
-        //qDebug() << "onBytesWritten" << bytes;
         if (m_pendingClose && (m_webSocket->bytesToWrite() == 0)) {
-            //qDebug() << "onBytesWritten close";
             m_pendingClose = false;
             m_webSocket->close();
         }
@@ -195,7 +211,7 @@ namespace Engine {
     }
 
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
-        qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact)) << '\n';
+        qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
         if (obj.contains("success")) {
             bool isSuccess = obj["success"].toBool();
             if (!isSuccess)
@@ -218,28 +234,31 @@ namespace Engine {
 
         stTicker ticker = {};
 
-        ticker.symbol = symbol;
+        ticker.m_symbol = symbol;
 
         if (data.contains("lastPrice"))
-            ticker.lastPrice = data["lastPrice"].toString().toDouble();
+            ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
+
+        if (data.contains("usdIndexPrice"))
+            ticker.m_usdIndexPrice = data["usdIndexPrice"].toString().toDouble();
         
         if (data.contains("highPrice24h"))
-            ticker.high24h = data["highPrice24h"].toString().toDouble();
+            ticker.m_high24h = data["highPrice24h"].toString().toDouble();
 
         if (data.contains("lowPrice24h"))
-            ticker.low24h = data["lowPrice24h"].toString().toDouble();
+            ticker.m_low24h = data["lowPrice24h"].toString().toDouble();
 
         if (data.contains("turnover24h"))
-            ticker.volCcy24h = data["turnover24h"].toString().toDouble();
+            ticker.m_volCcy24h = data["turnover24h"].toString().toDouble();
 
         if (data.contains("volume24h"))
-            ticker.vol24h = data["volume24h"].toString().toDouble();
+            ticker.m_vol24h = data["volume24h"].toString().toDouble();
 
         if (data.contains("prevPrice24h"))
-            ticker.prevPrice24h = ticker.lastPrice - data["prevPrice24h"].toString().toDouble();
+            ticker.m_prevPrice24h = ticker.m_lastPrice - data["prevPrice24h"].toString().toDouble();
 
         if (data.contains("price24hPcnt"))
-            ticker.price24hPcnt = data["price24hPcnt"].toString().toDouble();
+            ticker.m_price24hPcnt = data["price24hPcnt"].toString().toDouble() * 100;
 
         emit updatedTicker(ticker);
     }
@@ -309,7 +328,6 @@ namespace Engine {
 
             QJsonDocument doc(subscribeMessage);
             QString message = doc.toJson(QJsonDocument::Compact);
-            //qDebug() << message << '\n';
 
             m_webSocket->sendTextMessage(message);
 

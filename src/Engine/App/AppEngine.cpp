@@ -11,8 +11,10 @@ namespace Engine {
         connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
 
         connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const stTicker& ticker) {
-            qDebug().noquote() << "Latest update" << ticker.symbol << QTime::currentTime().toString();
-            emit tickerUpdated(ticker);
+            if (m_isFilter && (m_filter == ticker.m_symbol)) {
+                qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
+                emit tickerUpdated(ticker);
+            }
         });
 
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
@@ -31,13 +33,22 @@ namespace Engine {
         return m_webSocket->isOpen();
     }
 
-    void AppEngine::run(const QUrl& baseEndpoint) {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread() << "Socket thread:" << m_webSocket->thread();
+    void AppEngine::setAPI(const API& api) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_webSocket)
             return;
 
-        m_webSocket->open(baseEndpoint);
+        m_webSocket->initAPI(api);
+    }
+
+    void AppEngine::run(WebSocketEndpoints endpoint) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (!m_webSocket)
+            return;
+
+        m_webSocket->open(endpoint);
     }
 
     void AppEngine::stop() {
@@ -52,6 +63,11 @@ namespace Engine {
 
         if (m_webSocket && m_webSocket->isOpen())
             m_webSocket->subscribeToStream(pair, {BybitWebSocket::Stream::Ticker});
+    }
+
+    void AppEngine::enableFilter(const QString& pair, bool on) {
+        m_isFilter = on;
+        m_filter = pair;
     }
 
 }

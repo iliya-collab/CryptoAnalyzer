@@ -19,11 +19,13 @@ int main(int argc, char *argv[]) {
     qmlRegisterUncreatableType<Engine::stTicker>("Engine", 1, 0, "stTicker", "Cannot create in QML");
     qmlRegisterUncreatableType<Engine::stOrderBooks>("Engine", 1, 0, "stOrderBooks", "Cannot create in QML");
 
-    qmlEngine.load(QUrl(QStringLiteral("qrc:/QML/main.qml")));
-    if (qmlEngine.rootObjects().isEmpty()) {
-        qDebug().noquote() << "Runtime error qml engine";
-        return -1;
-    }
+    const QUrl url("qrc:/QML/Main.qml");
+
+    QObject::connect(&qmlEngine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
+        QCoreApplication::exit(-1);
+    }, Qt::QueuedConnection);
+
+    qmlEngine.load(url);
 
     return app.exec();
 }

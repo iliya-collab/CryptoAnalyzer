@@ -12,7 +12,7 @@ Rectangle {
     color: "transparent"
     visible: true
     border.width: 1
-    border.color: sysPal.midlight
+    border.color: theme.borderColor
 
     // Автоматический расчет высоты на основе содержимого
     implicitHeight: lblTitle.implicitHeight + (lblTitle.anchors.margins * 2)
@@ -44,7 +44,7 @@ Rectangle {
         id: lblTitle
         font.pixelSize: 14
         font.bold: true
-        color: sysPal.text
+        color: theme.textColor
 
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -89,8 +89,14 @@ Rectangle {
                 ButtonGroup {
                     id: btnGroup
                     onClicked: {
-                        appEngine.runEngine(button.text)
-                        //console.log("Selected:", button.text)
+                        if (button.text === "Spot")
+                            appEngine.run(Engine.WebSocketEndpoints.SPOT)
+                        else if (button.text === "Linear")
+                            appEngine.run(Engine.WebSocketEndpoints.LINEAR)
+                        else if (button.text === "Inverse")
+                            appEngine.run(Engine.WebSocketEndpoints.INVERSE)
+                        else if (button.text === "Option")
+                            appEngine.run(Engine.WebSocketEndpoints.OPTION)
                     }
                 }
 
@@ -115,10 +121,10 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                border.color: sysPal.midlight   // Цвет рамки
-                border.width: 2                 // Толщина рамки
-                color: "transparent"            // Прозрачный фон (или можно задать свой)
-                radius: 4                       // Скругление углов (опционально)
+                border.color: theme.borderColor
+                border.width: 2
+                color: "transparent"
+                radius: 4
 
                 ListView {
                     id: lstTrades
@@ -131,7 +137,8 @@ Rectangle {
                         if (model && model.length > 0) {
                             //console.log("Model length:", model.length)
                             lblTitle.text = model[0]
-                            appEngine.startTrade(lblTitle.text)
+                            appEngine.addTrade(lblTitle.text)
+                            appEngine.filter(lblTitle.text)
                         }
                     }
 
@@ -141,7 +148,8 @@ Rectangle {
                         onClicked: {
                             lblTitle.text = modelData
                             //console.log(lblTitle.text + " clicked")
-                            appEngine.startTrade(lblTitle.text)
+                            appEngine.addTrade(lblTitle.text)
+                            appEngine.filter(lblTitle.text)
                             mainPopup.close()
                         }
                     }

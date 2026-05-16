@@ -1,5 +1,4 @@
 #include "Engine/App/AppEngineLoader.hpp"
-#include "Engine/App/AppEngineСonfiguration.hpp"
 #include "Engine/Tools/BybitRestAPI.hpp"
 #include "Engine/Tools/DBHash.hpp"
 
@@ -11,47 +10,20 @@ namespace Engine {
 
     AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent) {
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
+        m_currentApi = new BybitRestAPI(this);
     }
 
     AppEngineLoader::~AppEngineLoader() {
         qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
-        cancelCurrentRequest();
+        //cancelCurrentRequest();
         qDebug() << Q_FUNC_INFO << "finished";
     }
 
-    void AppEngineLoader::startLoading() {
-
-        QMutexLocker locker(&m_mutex);
-
-        if (m_loading) {
-            emit errorOccurred("Loading already in progress");
-            return;
-        }
-
-        m_tradingPairs.clear();
-        m_loading = true;
-
-        m_loadSteps.append({"Loading configuration", [this]() { loadConfigAsync(); }});
-        
-        DBHash db;
-        if (!db.dbExist()) {
-            m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync(TypeTrade::SPOT); }});
-            m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync(TypeTrade::LINEAR); }});
-            m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync(TypeTrade::INVERSE); }});
-            m_loadSteps.append({"Loading OPTION pairs", [this]() { requestTradingPairsAsync(TypeTrade::OPTION); }});
-            m_loadSteps.append({"Saving to database", [this]() { saveToDatabaseAsync(); }});
-        }
-        
-        m_totalSteps = m_loadSteps.size();
-        m_currentStep = 0;
-
-        locker.unlock();
-
-        execStep();
-    }
-
     void AppEngineLoader::execStep() {
-        if (m_currentStep >= m_loadSteps.size()) {
+        if (m_totalSteps == 0)
+            emit progressChanged("Database exists", 1, 1);
+
+        if (m_currentStep >= m_totalSteps) {
             emit finished(true);
             return;
         }
@@ -64,48 +36,6 @@ namespace Engine {
     void AppEngineLoader::execNextStep() {
         m_currentStep++;
         execStep();
-    }
-
-    void AppEngineLoader::loadConfigAsync() {
-        loadConfig();
-        execNextStep();
-    }
-
-    void AppEngineLoader::loadConfig() {
-        auto& engine_config = AppEngineСonfiguration::instance();
-
-        if (!engine_config.openСonfigurationFile()) {
-            emit errorOccurred(engine_config.getLastError());
-            return;
-        }
-
-        if (!engine_config.readСonfiguration()) {
-            emit errorOccurred(engine_config.getLastError());
-            return;
-        }
-
-        auto& config = engine_config.getСonfiguration();
-
-        if (config.m_api.isEmpty()) {
-            emit errorOccurred("No API configuration found");
-            return;
-        }
-
-        auto api = config.m_api.values().value(0);
-
-        if (api.api_key.isEmpty()) {
-            emit errorOccurred("API key is empty");
-            return;
-        }
-
-        if (api.secret_key.isEmpty()) {
-            emit errorOccurred("Secret key is empty");
-            return;
-        }
-
-        m_apiKey = api.api_key;
-        m_secretKey = api.secret_key;
-        m_testnet = api.testnet;
     }
 
     void AppEngineLoader::loadFromDatabase(const QString& category) {
@@ -145,33 +75,21 @@ namespace Engine {
 
     }
 
-    void AppEngineLoader::requestTradingPairsAsync(TypeTrade trade) {
-        cancelCurrentRequest();
-
-        m_currentApi = new BybitRestAPI(m_apiKey, m_secretKey, m_testnet);
-
+    void AppEngineLoader::requestTradingPairsAsync(const QString& category) {
         // Подключаем сигналы
-        connect(m_currentApi, &BybitRestAPI::dataReceived, this,
-                [this, trade](const QJsonObject& data) {
-                    if (m_currentApi == sender()) {
-                        cancelCurrentRequest();
-                        processSymbols(data);
-                        execNextStep();
-                    }
-                });
+        connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+            processSymbols(data);
+            execNextStep();
+        });
 
-        connect(m_currentApi, &BybitRestAPI::errorOccurred, this,
-                [this, trade](const QString& error) {
-                    if (m_currentApi == sender()) {
-                        cancelCurrentRequest();
-                        emit errorOccurred(QString("Error loading %1: %2").arg(tradeToString(trade)).arg(error));
-                        execNextStep();
-                    }
-                });
+        connect(m_currentApi, &BybitRestAPI::errorOccurred, this, [this](const QString& error) {
+            emit errorOccurred(QString("Error loading: %2").arg(error));
+            execNextStep();
+        });
 
         // Выполняем запрос
         QUrlQuery params;
-        params.addQueryItem("category", tradeToString(trade).toLower());
+        params.addQueryItem("category", category);
         m_currentApi->requestEndpoint("/v5/market/instruments-info", params, LOADING_TIMEOUT);
     }
 
@@ -203,7 +121,49 @@ namespace Engine {
         m_tradingPairs.append(lst);
     }
 
+    void AppEngineLoader::startLoading() {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        QMutexLocker locker(&m_mutex);
+
+        if (m_loading) {
+            emit errorOccurred("Loading already in progress");
+            return;
+        }
+
+        m_tradingPairs.clear();
+        m_loadSteps.clear();
+        m_loading = true;
+
+        DBHash db;
+        if (!db.dbExist()) {
+            m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync("spot"); }});
+            m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync("linear"); }});
+            m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync("inverse"); }});
+            m_loadSteps.append({"Loading OPTION pairs", [this]() { requestTradingPairsAsync("option"); }});
+            m_loadSteps.append({"Saving to database", [this]() { saveToDatabaseAsync(); }});
+        }
+
+        m_totalSteps = m_loadSteps.size();
+        m_currentStep = -1;
+
+        locker.unlock();
+
+        execNextStep();
+    }
+
+    void AppEngineLoader::setAPI(const API& api) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (!m_currentApi)
+            return;
+
+        m_currentApi->initAPI(api);
+    }
+
     QList<TradingInfo> AppEngineLoader::getData(const QString& category) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         loadFromDatabase(category);
         return m_tradingPairs;
     }

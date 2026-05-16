@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QNetworkAccessManager>
@@ -20,8 +21,8 @@ namespace Engine {
 
         QNetworkAccessManager* m_manager;
         QString m_baseEndpoint;
-        QString m_apiKey;
-        QString m_secretKey;
+
+        API m_api;
 
         struct APIHeaders {
             QString X_BAPI_API_KEY;
@@ -30,18 +31,26 @@ namespace Engine {
             QString X_BAPI_RECV_WINDOW;
         };
         
+        // Обработка ответа
         void handleResponse();
-        QString generateSignature(const QString& timestamp, const QString& recv_window, const QString& queryString = "");
-        void initBaseEndpoint(bool is_testnet);
+        // Генерирует сигнатуру для поля X_BAPI_SIGN
+        QString generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString = "");
+        // Инициализирует API заголовок учитывая параметры запроса
         APIHeaders initAPIHeaders(const QString& queryString = "");
-
+        // Добавляет API заголовок к запросу
         void addAPIHeaders(const QUrl& url, QNetworkRequest& request);
 
     public:
 
-        BybitRestAPI(const QString& api_key, const QString& secret_key, bool is_testnet, QObject* parent = nullptr);
+        BybitRestAPI(QObject* parent = nullptr);
         ~BybitRestAPI() = default;
 
+        void initAPI(const API& api = API());
+
+        // Формирует запрос
+        // endpoint - отправляемый запрос
+        // params - параметры к запросу
+        // timeout - ограничение по времени на обработку запроса в мс
         void requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1);
 
     signals:

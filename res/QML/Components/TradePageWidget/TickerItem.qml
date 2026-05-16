@@ -26,7 +26,7 @@ Rectangle {
             id: lblTitle
             text: titleItem
             font.pixelSize: 12
-            color: sysPal.text
+            color: theme.textColor
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }
@@ -35,7 +35,7 @@ Rectangle {
             id: lblContent
             text: contentItem
             font.pixelSize: 12
-            color: sysPal.text
+            color: theme.textColor
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }

@@ -9,7 +9,7 @@ Rectangle {
     color: "transparent"
     visible: true
     border.width: 1
-    border.color: sysPal.midlight
+    border.color: theme.borderColor
 
     implicitHeight: contentLayout.implicitHeight + (contentLayout.anchors.margins * 2)
     implicitWidth: contentLayout.implicitWidth + (contentLayout.anchors.margins * 2)
@@ -26,7 +26,7 @@ Rectangle {
         property string volume24h: ""
         property string volumeCcy24h: ""
 
-        // Св-ва для измения содержимого элемента при наведении (true когда наведено)
+        // Свойства для измения содержимого элемента при наведении (true когда наведено)
         property bool showChangeAbsolute: hoverChange.hovered
         property bool showVolumeRaw: hoverVolume.hovered
     }
@@ -35,7 +35,7 @@ Rectangle {
     function updateTicker(ticker) {
         privateData.priceValue = ticker.lastPrice.toFixed(2)
         privateData.change24h = ticker.prevPrice24h.toFixed(2)
-        privateData.change24hPcnt = (ticker.price24hPcnt * 100).toFixed(2)
+        privateData.change24hPcnt = ticker.price24hPcnt.toFixed(2)
         privateData.maxValue = ticker.high24h.toFixed(2)
         privateData.minValue = ticker.low24h.toFixed(2)
         privateData.volume24h = ticker.vol24h.toFixed(2)

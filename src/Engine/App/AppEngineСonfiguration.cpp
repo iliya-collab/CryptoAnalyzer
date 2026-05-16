@@ -3,110 +3,139 @@
 
 #include <QFileInfo>
 #include <QDir>
+#include <QThread>
 
-// Файл конфигурации
-const char* configFile = "platform.json";
-// Главный объект конфигурации
-const char* configObject = "Platform";
+namespace Engine {
 
-AppEngineСonfiguration::AppEngineСonfiguration() {
+    const QString AppEngineСonfiguration::configFile = QDir::homePath() + "/.config/ByBit/platform.json";
+    const char* AppEngineСonfiguration::configObject = "Platform";
 
-}
-
-QJsonObject AppEngineСonfiguration::toJson() {
-    QJsonObject platform;
-
-    QJsonObject objKeys;
-    for (auto [name, key] : m_config.m_api.asKeyValueRange()) {
-        QJsonObject objAPIKey;
-        objAPIKey["api_key"] = key.api_key;
-        objAPIKey["secret_key"] = key.secret_key;
-        objAPIKey["testnet"] = key.testnet;
-        objKeys[name] = objAPIKey;
+    AppEngineСonfiguration::AppEngineСonfiguration() {
+        qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
     }
-    platform["Keys"] = objKeys;
 
-    return platform;
-}
-
-void AppEngineСonfiguration::fromJson(const QJsonObject& obj) {
-    QJsonObject objKeys = obj.value("Keys").toObject();
-
-    m_config.m_api.clear();
-    for (auto it = objKeys.begin(); it != objKeys.end(); ++it) {
-        QString name = it.key();
-        
-        QJsonObject objAPIKey = it.value().toObject();
-
-        QString api_key = objAPIKey.value("api_key").toString();
-        QString secret_key = objAPIKey.value("secret_key").toString();
-        bool testnet = objAPIKey.value("testnet").toBool();
-
-        m_config.m_api[name] = {
-            api_key, 
-            secret_key,
-            testnet
-        };
+    AppEngineСonfiguration::~AppEngineСonfiguration() {
+        qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
+        qDebug() << Q_FUNC_INFO << "finished";
     }
-}
 
-void AppEngineСonfiguration::parseJsonDocument(const QJsonDocument& doc) {
-    QJsonObject root = doc.object();
-    AppEngineСonfiguration::instance().fromJson(root.value(configObject).toObject());
-}
+    QJsonObject AppEngineСonfiguration::toJson() {
+        QJsonObject platform;
 
-bool AppEngineСonfiguration::openСonfigurationFile() {
-    // Получаем домашнюю директорию
-    QString homePath = QDir::homePath();
+        QJsonObject objKeys;
+        for (auto [name, key] : m_config.m_api.asKeyValueRange()) {
+            QJsonObject objAPIKey;
+            objAPIKey["apiKey"] = key.m_apiKey;
+            objAPIKey["secretKey"] = key.m_secretKey;
+            objAPIKey["isTestnet"] = key.m_isTestnet;
+            objKeys[name] = objAPIKey;
+        }
 
-    // Формируем полный путь
-    QString configDir = homePath + "/.config/ByBit";
-    m_fullNameConfigFile = QString("%1/%2").arg(configDir).arg(configFile);
+        platform["usedKeys"] = objKeys;
+        platform["defaultKey"] = m_config.m_defaultKey;
 
-    // Создаем директорию .config если не существует
-    QDir dir;
-    if (!dir.exists(configDir)) {
-        if (!dir.mkpath(configDir)) {
-            m_lastError = "Failed to create directory:" + configDir;
-            return false;
+        return platform;
+    }
+
+    void AppEngineСonfiguration::fromJson(const QJsonObject& obj) {
+        m_config.m_defaultKey = obj.value("defaultKey").toString();
+
+        QJsonObject objKeys = obj.value("usedKeys").toObject();
+
+        m_config.m_api.clear();
+        for (auto it = objKeys.begin(); it != objKeys.end(); ++it) {
+            QString name = it.key();
+
+            QJsonObject objAPIKey = it.value().toObject();
+
+            QString api_key = objAPIKey.value("apiKey").toString();
+            QString secret_key = objAPIKey.value("secretKey").toString();
+            bool testnet = objAPIKey.value("isTestnet").toBool();
+
+            m_config.m_api[name] = {
+                api_key,
+                secret_key,
+                testnet
+            };
         }
     }
 
-    // Проверяем наличие конфигурации
-    QFileInfo checkFile(m_fullNameConfigFile);
-    if (checkFile.isFile() && !checkFile.exists())
-        if (!writeСonfiguration())
+    void AppEngineСonfiguration::parseJsonDocument(const QJsonDocument& doc) {
+        QJsonObject root = doc.object();
+        fromJson(root.value(configObject).toObject());
+    }
+
+    bool AppEngineСonfiguration::readСonfiguration() {
+        JsonManager jsManager;
+
+        auto doc = jsManager.readDocument(configFile);
+        if (!doc.has_value()) {
+            m_lastError = doc.error();
             return false;
+        }
 
-    return true;
-}
-
-bool AppEngineСonfiguration::readСonfiguration() {
-    JsonManager jsManager;
-
-    auto doc = jsManager.readDocument(m_fullNameConfigFile);
-    if (!doc.has_value()) {
-        m_lastError = doc.error();
-        return false;
+        parseJsonDocument(doc.value());
+        return true;
     }
 
-    parseJsonDocument(doc.value());
-    return true;
-}
+    bool AppEngineСonfiguration::writeСonfiguration() {
+        QJsonObject root;
+        root[configObject] = toJson();
+        QJsonDocument doc(root);
 
-bool AppEngineСonfiguration::writeСonfiguration() {
-    QJsonObject root;
-    root[configObject] = AppEngineСonfiguration::instance().toJson();
-    QJsonDocument doc(root);
+        JsonManager jsManager;
+        jsManager.setDocument(doc);
+        auto isError = jsManager.writeDocument(configFile);
+        if (isError.has_value()) {
+            m_lastError = isError.value();
+            return false;
+        }
 
-    JsonManager jsManager;
-    jsManager.setDocument(doc);
-    auto isError = jsManager.writeDocument(m_fullNameConfigFile);
-    if (isError.has_value()) {
-        m_lastError = isError.value();
-        return false;
+        return true;
     }
 
-    return true;
+    void AppEngineСonfiguration::loadConfig() {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (!readСonfiguration()) {
+            qDebug().noquote() << "The configuration was not read:" << m_lastError;
+            return;
+        }
+
+        if (m_config.m_api.isEmpty()) {
+            qDebug().noquote() << "No API configuration found!";
+            return;
+        }
+
+        for (auto [name, key] : m_config.m_api.asKeyValueRange()) {
+            if (key.m_apiKey.isEmpty())
+                qDebug().noquote() << QString("In key \'%1\': API key is empty").arg(name);
+            else if (key.m_secretKey.isEmpty())
+                qDebug().noquote() << QString("In key \'%1\': Secret key is empty").arg(name);
+            else
+                qDebug().noquote() << QString(" * Key \'%1\' detected").arg(name);
+        };
+
+        if (m_config.m_defaultKey.isEmpty())
+            m_config.m_defaultKey = m_config.m_api.keys().value(0);
+
+        qDebug().noquote() << " * Default key:" << QString("\'%1\'").arg(m_config.m_defaultKey);
+    }
+
+    void AppEngineСonfiguration::saveARIKey(const QString& name, API api) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (!readСonfiguration()) {
+            qDebug().noquote() << "The configuration was not read:" << m_lastError;
+            return;
+        }
+
+        m_config.m_api.insert(name, api);
+
+        if (!writeСonfiguration()) {
+            qDebug().noquote() << "The configuration was not write:" << m_lastError;
+            return;
+        }
+    }
 
 }

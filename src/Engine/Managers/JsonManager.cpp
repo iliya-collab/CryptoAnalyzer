@@ -6,7 +6,6 @@ std::expected<QJsonDocument, QString> JsonManager::readDocument(const QString& n
     if (!jsonFile.open(QIODevice::ReadOnly | QIODevice::Text))
         return std::unexpected(jsonFile.errorString());
 
-
     QByteArray jsonData = jsonFile.readAll();
 
     jsonFile.close();

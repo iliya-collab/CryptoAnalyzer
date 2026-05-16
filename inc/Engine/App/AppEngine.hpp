@@ -13,14 +13,21 @@ namespace Engine {
 
         std::unique_ptr<BybitWebSocket> m_webSocket;
 
+        bool m_isFilter;
+        QString m_filter;
+
     public:
 
         AppEngine(QObject* parent = nullptr);
         ~AppEngine();
 
-        void run(const QUrl& baseEndpont);
+        void run(WebSocketEndpoints endpoint);
+
+        void setAPI(const API& api);
 
         void addTrade(const QString& pair);
+
+        void enableFilter(const QString& pair, bool on = true);
 
         bool hasRunned();
 

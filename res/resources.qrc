@@ -1,10 +1,12 @@
 <RCC>
     <qresource prefix="/">
-        <file>QML/main.qml</file>
-        <file>QML/CustomStatusWidget.qml</file>
-        <file>QML/TradePage.qml</file>
-        <file>QML/TickerItem.qml</file>
-        <file>QML/TickerWidget.qml</file>
-        <file>QML/SelecterTradeWidget.qml</file>
+        <file>QML/Main.qml</file>
+        <file>QML/Components/TradePageWidget/TradePage.qml</file>
+        <file>QML/Components/TradePageWidget/TickerWidget.qml</file>
+        <file>QML/Components/TradePageWidget/TickerItem.qml</file>
+        <file>QML/Components/TradePageWidget/SelecterTradeWidget.qml</file>
+        <file>QML/Components/CustomWidgets/CustomStatusWidget.qml</file>
+        <file>QML/Components/Windows/SettingsWindow.qml</file>
+        <file>QML/Theme.qml</file>
     </qresource>
 </RCC>

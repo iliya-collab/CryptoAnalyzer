@@ -5,61 +5,56 @@
 #include <QJsonArray>
 #include <QHash>
 
-class AppEngineСonfiguration {
-private:
+#include "Engine/StdTypes.hpp"
 
-    // Структура для хранения информации об API ключах
-    struct API {
-        // API ключ
-        QString api_key;
-        // Секретный API ключ
-        QString secret_key;
-        // Тип сети (true - testnet, false - mainnet)
-        bool testnet;
+namespace Engine {
+
+    class AppEngineСonfiguration : public QObject {
+    private:
+
+        // Структура параметров конфигурации
+        struct ParamsСonfiguration {
+            // Набор API ключей
+            QHash<QString, API> m_api;
+            // Ключ по умолчанию
+            QString m_defaultKey;
+        };
+
+        // Файл конфигурации
+        static const QString configFile;
+        // Главный объект конфигурации
+        static const char* configObject;
+
+        // Параметры конфигурации
+        ParamsСonfiguration m_config;
+        // Последняя ошибка
+        QString m_lastError;
+
+        QJsonObject toJson();
+        void fromJson(const QJsonObject& obj);
+
+        void parseJsonDocument(const QJsonDocument& doc);
+
+        bool readСonfiguration();
+        bool writeСonfiguration();
+
+    public:
+
+        AppEngineСonfiguration();
+        ~AppEngineСonfiguration();
+
+        void loadConfig();
+        void saveARIKey(const QString& name, API api);
+
+        // Получает текущий конфиг
+        ParamsСonfiguration& getСonfiguration() {
+            return m_config;
+        }
+
+        QString getLastError() {
+            return m_lastError;
+        }
+
     };
 
-    // Структура параметров конфигурации
-    struct ParamsСonfiguration {
-        // Набор API ключей
-        QHash<QString, API> m_api;
-    };
-
-    // Параметры конфигурации
-    ParamsСonfiguration m_config;
-    // Последняя ошибка
-    QString m_lastError;
-    QString m_fullNameConfigFile;
-
-    AppEngineСonfiguration();
-
-    QJsonObject toJson();
-    void fromJson(const QJsonObject& obj);
-
-    void parseJsonDocument(const QJsonDocument& doc);
-
-public:
-
-    ~AppEngineСonfiguration() = default;
-    AppEngineСonfiguration(const AppEngineСonfiguration&) = delete;
-    AppEngineСonfiguration& operator=(const AppEngineСonfiguration&) = delete;
-
-    bool openСonfigurationFile();
-    bool readСonfiguration();
-    bool writeСonfiguration();
-
-    // Получает текущий конфиг
-    ParamsСonfiguration& getСonfiguration() {
-        return m_config;
-    }
-
-    // Возвращает экземпляр класса
-    static AppEngineСonfiguration& instance() {
-        static AppEngineСonfiguration instance;
-        return instance;
-    }
-
-    QString getLastError() {
-        return m_lastError;
-    }
-
-};
+}

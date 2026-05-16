@@ -19,7 +19,7 @@ namespace Engine {
     class BybitWebSocket : public QObject {
         Q_OBJECT
 
-    protected:
+    private:
 
         // Методы для отправки сообшений
         // Сообщение о подписке
@@ -54,6 +54,7 @@ namespace Engine {
 
         // Веб-сокет
         QWebSocket* m_webSocket;
+        API m_api;
         // Таймер проверки доступности соединения (активный ping)
         QTimer* m_pingTimer;
 
@@ -78,13 +79,15 @@ namespace Engine {
 
         // Каналы для подклячения
         enum class Stream {
-            Ticker, // Тикер
-            Orderbook, // Стакан ордеров
-            Kline // Свечи
+            Ticker,     // Тикер
+            Orderbook,  // Стакан ордеров
+            Kline       // Свечи
         };
 
-        // Открывает websocket по указанному адресу
-        void open(const QUrl& baseEndpont);
+        void initAPI(const API& api);
+
+        // Открывает websocket
+        void open(WebSocketEndpoints endpoint);
         // Закрывает websocket
         void close();
         // Проверяет открыт ли websocket
