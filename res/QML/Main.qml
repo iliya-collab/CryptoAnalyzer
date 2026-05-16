@@ -4,7 +4,6 @@ import QtQuick.Layouts 1.15
 
 import Engine 1.0
 import MyApp 1.0
-import "."
 import "Components/TradePageWidget"
 import "Components/CustomWidgets"
 
