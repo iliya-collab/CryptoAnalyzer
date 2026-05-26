@@ -1,5 +1,8 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+
+import Theme 1.0
 
 Rectangle {
     id: root
@@ -47,25 +50,23 @@ Rectangle {
         }
     }
 
-    // Текст статуса
-    Text {
-        id: statusText
-        anchors.bottom: progressBar.top
-        anchors.right: parent.right
-        anchors.bottomMargin: 5
-        color: "white"
-        text: "Ready"
-        font.pixelSize: 12
-    }
-
-    ProgressBar {
-        id: progressBar
-        from: 0
-        to: 100
-        value: 0
-        anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        width: root.width
+    RowLayout {
+        anchors.fill: parent
+        Label {
+            id: statusText
+            text: "Ready"
+            anchors.margins: Theme.margins
+            font.pixelSize: Theme.fontSizeSmall
+            font.family: Theme.fontFamily
+            color: Theme.textColor
+        }
+        ProgressBar {
+            id: progressBar
+            from: 0
+            to: 100
+            value: 0
+            width: root.width
+        }
     }
 
     // Кликабельная область

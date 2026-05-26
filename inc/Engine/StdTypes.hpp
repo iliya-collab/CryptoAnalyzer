@@ -8,14 +8,19 @@
 namespace Engine {
     Q_NAMESPACE
 
-    struct stOrderBooks {
-        QString symbol;                 // Название пары
+    struct stOrderBook {
+        Q_GADGET
 
-        QMap<double, double> bids;      // Покупки (пара цена, объем)
-        QMap<double, double> asks;      // Продажи (пара цена, объем)
+        Q_PROPERTY(QString symbol MEMBER m_symbol)
+        Q_PROPERTY(QVariantList bids MEMBER m_bids)
+        Q_PROPERTY(QVariantList asks MEMBER m_asks)
 
-        quint64 lastUpdateId;
-        quint64 lastSeq;
+    public:
+
+        QString m_symbol; // Название пары
+        QVariantList m_bids; // Покупки - пара (цена, объем)
+        QVariantList m_asks; // Продажи - пара (цена, объем)
+
     };
 
     struct stTicker {
@@ -42,32 +47,28 @@ namespace Engine {
         double m_prevPrice24h = 0.0; // Рыночная цена 24 часа назад
         double m_price24hPcnt = 0.0; // Процентное изменение рыночной цены относительно 24 часов
         QString m_symbol = ""; // Название пары
-    };
 
-    enum class WebSocketEndpoints {
-        NONE,
-        SPOT,                           // Спот
-        LINEAR,                         // Бессрочные фьючерсы (USDT или USDC)
-        INVERSE,                        // Инверсные фьючерсы
-        OPTION                          // Опционы
     };
-    Q_ENUM_NS(WebSocketEndpoints)
 
     // Структура для хранения информации об API ключах
     struct API {
-        // API ключ
-        QString m_apiKey = "";
-        // Секретный API ключ
-        QString m_secretKey = "";
-        // Тип сети (true - testnet, false - mainnet)
-        bool m_isTestnet = true;
+        Q_GADGET
+
+        Q_PROPERTY(QString apiKey MEMBER m_apiKey)
+        Q_PROPERTY(QString secretKey MEMBER m_secretKey)
+        Q_PROPERTY(bool isTestnet MEMBER m_isTestnet)
+
+    public:
+
+        QString m_apiKey = ""; // API ключ
+        QString m_secretKey = ""; // Секретный API ключ
+        bool m_isTestnet = true; // Тип сети (true - testnet, false - mainnet)
     };
 
     struct TradingInfo {
         QString symbol;
         QString base_coin;
         QString quote_coin;
-        QString category;
     };
 
 } // namespace Engine

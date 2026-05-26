@@ -2,6 +2,8 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
+import Theme 1.0
+
 Rectangle {
     id: root
 
@@ -9,7 +11,9 @@ Rectangle {
     property alias contentItem: lblContent.text
 
     color: "transparent"
-    visible: true
+    border.width: Theme.borderWidth
+    border.color: Theme.borderColor
+    radius: Theme.radius
 
     // Автоматический расчет высоты на основе содержимого
     implicitHeight: contentLayout.implicitHeight + (contentLayout.anchors.margins * 2)
@@ -19,14 +23,13 @@ Rectangle {
         id: contentLayout
         anchors.fill: parent
 
-        spacing: 5
-        anchors.margins: 5
+        anchors.margins: Theme.margins
 
         Label {
             id: lblTitle
             text: titleItem
-            font.pixelSize: 12
-            color: theme.textColor
+            font.pixelSize: Theme.fontSizeBody
+            color: Theme.textColor
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }
@@ -34,8 +37,8 @@ Rectangle {
         Label {
             id: lblContent
             text: contentItem
-            font.pixelSize: 12
-            color: theme.textColor
+            font.pixelSize: Theme.fontSizeBody
+            color: Theme.textColor
             horizontalAlignment: Text.AlignHCenter
             Layout.fillWidth: true
         }

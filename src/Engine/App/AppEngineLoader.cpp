@@ -20,10 +20,15 @@ namespace Engine {
     }
 
     void AppEngineLoader::execStep() {
-        if (m_totalSteps == 0)
+        if (m_totalSteps == 0) {
+            m_loading = false;
             emit progressChanged("Database exists", 1, 1);
+            emit finished(true);
+            return;
+        }
 
         if (m_currentStep >= m_totalSteps) {
+            m_loading = false;
             emit finished(true);
             return;
         }
@@ -47,7 +52,13 @@ namespace Engine {
 
         QMutexLocker locker(&m_mutex);
         m_tradingPairs.clear();
-        if (!db.getAllItems(category, m_tradingPairs)) {
+        if (category == "ALL") {
+            if (!db.getAllItems(m_tradingPairs)) {
+                emit errorOccurred(db.error());
+                return;
+            }
+        }
+        else if (!db.getItems(m_tradingPairs, category)) {
             emit errorOccurred(db.error());
             return;
         }
@@ -55,6 +66,9 @@ namespace Engine {
 
     void AppEngineLoader::saveToDatabaseAsync() {
         saveToDatabase();
+        QMutexLocker locker(&m_mutex);
+        m_tradingPairs.clear();
+        locker.unlock();
         execNextStep();
     }
 
@@ -75,22 +89,39 @@ namespace Engine {
 
     }
 
-    void AppEngineLoader::requestTradingPairsAsync(const QString& category) {
-        // Подключаем сигналы
+    void AppEngineLoader::requestTradingPairsAsync() {
+        if (!m_currentApi)
+            return;
+
         connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
             processSymbols(data);
             execNextStep();
-        });
+        }, Qt::SingleShotConnection);
 
         connect(m_currentApi, &BybitRestAPI::errorOccurred, this, [this](const QString& error) {
             emit errorOccurred(QString("Error loading: %2").arg(error));
             execNextStep();
-        });
+        }, Qt::SingleShotConnection);
 
         // Выполняем запрос
         QUrlQuery params;
-        params.addQueryItem("category", category);
+        params.addQueryItem("category", "spot");
         m_currentApi->requestEndpoint("/v5/market/instruments-info", params, LOADING_TIMEOUT);
+    }
+
+    void AppEngineLoader::requestInfoAboutAccount() {
+        if (!m_currentApi)
+            return;
+
+        connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+            emit apiChecked(data["retMsg"] == "OK");
+        }, Qt::SingleShotConnection);
+
+        connect(m_currentApi, &BybitRestAPI::errorOccurred, this, [this](const QString& error) {
+            emit apiChecked(false);
+        }, Qt::SingleShotConnection);
+
+        m_currentApi->requestEndpoint("/v5/account/info", QUrlQuery(), LOADING_TIMEOUT);
     }
 
     void AppEngineLoader::cancelCurrentRequest() {
@@ -110,7 +141,6 @@ namespace Engine {
         for (const auto& obj : list) {
             QJsonObject item = obj.toObject();
             TradingInfo info;
-            info.category = category;
             info.symbol = item["symbol"].toString();
             info.base_coin = item["baseCoin"].toString();
             info.quote_coin = item["quoteCoin"].toString();
@@ -137,11 +167,8 @@ namespace Engine {
 
         DBHash db;
         if (!db.dbExist()) {
-            m_loadSteps.append({"Loading SPOT pairs", [this]() { requestTradingPairsAsync("spot"); }});
-            m_loadSteps.append({"Loading LINEAR pairs", [this]() { requestTradingPairsAsync("linear"); }});
-            m_loadSteps.append({"Loading INVERSE pairs", [this]() { requestTradingPairsAsync("inverse"); }});
-            m_loadSteps.append({"Loading OPTION pairs", [this]() { requestTradingPairsAsync("option"); }});
-            m_loadSteps.append({"Saving to database", [this]() { saveToDatabaseAsync(); }});
+            m_loadSteps.append({"Loading spot pairs", [this]() { requestTradingPairsAsync(); }});
+            m_loadSteps.append({"Saving spot pairs to database", [this]() { saveToDatabaseAsync(); }});
         }
 
         m_totalSteps = m_loadSteps.size();
@@ -161,9 +188,13 @@ namespace Engine {
         m_currentApi->initAPI(api);
     }
 
-    QList<TradingInfo> AppEngineLoader::getData(const QString& category) {
+    void AppEngineLoader::checkAPI() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        requestInfoAboutAccount();
+    }
 
+    QList<TradingInfo> AppEngineLoader::loadTradingPairs(const QString& category) {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         loadFromDatabase(category);
         return m_tradingPairs;
     }

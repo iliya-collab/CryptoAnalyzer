@@ -7,7 +7,6 @@
 #include <QTimer>
 #include <functional>
 
-#include "Engine/StdTypes.hpp"
 #include "Engine/Tools/BybitRestAPI.hpp"
 
 namespace Engine {
@@ -18,7 +17,8 @@ namespace Engine {
     private:
         // Асинхронные шаги загрузки
         void saveToDatabaseAsync();
-        void requestTradingPairsAsync(const QString& category);
+        void requestTradingPairsAsync();
+        void requestInfoAboutAccount();
         void cancelCurrentRequest();
 
         void execStep();
@@ -54,14 +54,19 @@ namespace Engine {
         void startLoading();
 
         void setAPI(const API& api);
+        void checkAPI();
 
-        // Возвращает загруженные данные для указанной категории
-        QList<TradingInfo> getData(const QString& category);
+        // Возвращает загруженные данные
+        QList<TradingInfo> loadTradingPairs(const QString& category);
 
     signals:
+
         void progressChanged(const QString& stepName, int current, int total);
         void errorOccurred(const QString& error);
         void finished(bool success);
+
+        void apiChecked(bool isValid);
+
     };
 
 } // namespace Engine

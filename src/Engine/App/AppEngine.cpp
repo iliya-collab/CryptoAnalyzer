@@ -10,10 +10,17 @@ namespace Engine {
         connect(m_webSocket.get(), &BybitWebSocket::disconnected, this, &AppEngine::stopped);
         connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const stTicker& ticker) {
-            if (m_isFilter && (m_filter == ticker.m_symbol)) {
-                qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
-                emit tickerUpdated(ticker);
+        connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const stTicker& newTicker) {
+            if (m_isFilter && (m_filter == newTicker.m_symbol)) {
+                //qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
+                emit tickerUpdated(newTicker);
+            }
+        });
+
+        connect(m_webSocket.get(), &BybitWebSocket::updatedOrderbook, this, [this](const stOrderBook& newOrderBook) {
+            if (m_isFilter && (m_filter == newOrderBook.m_symbol)) {
+                //qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
+                emit orderBookUpdated(newOrderBook);
             }
         });
 
@@ -42,13 +49,13 @@ namespace Engine {
         m_webSocket->initAPI(api);
     }
 
-    void AppEngine::run(WebSocketEndpoints endpoint) {
+    void AppEngine::run() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_webSocket)
             return;
 
-        m_webSocket->open(endpoint);
+        m_webSocket->open();
     }
 
     void AppEngine::stop() {

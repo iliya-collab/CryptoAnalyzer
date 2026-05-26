@@ -34,7 +34,7 @@ namespace Engine {
         // Превращает строковое сообщение в json объект
         std::expected<QJsonObject, QString> parseTextMessage(const QString &message);
 
-        // Методы для обновления каналов
+        // Методы для обновления
         // Обнавление тикера
         void updateTicker(const QJsonObject& json);
         // Обнавление стакана цен
@@ -87,7 +87,7 @@ namespace Engine {
         void initAPI(const API& api);
 
         // Открывает websocket
-        void open(WebSocketEndpoints endpoint);
+        void open();
         // Закрывает websocket
         void close();
         // Проверяет открыт ли websocket
@@ -102,8 +102,8 @@ namespace Engine {
 
     signals:
 
-        void updatedTicker(const stTicker& ticker);
-        void updatedOrderbook(const stOrderBooks& orderBooks);
+        void updatedTicker(const stTicker& newTicker);
+        void updatedOrderbook(const stOrderBook& newOrderBook);
 
         // Испускается, когда websocket успешно открылся
         void connected();

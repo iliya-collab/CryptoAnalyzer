@@ -18,7 +18,8 @@ namespace Engine {
         QString error();
         
         bool addItem(const TradingInfo& trade_item);
-        bool getAllItems(const QString& category, QList<Engine::TradingInfo>& data);
+        bool getAllItems(QList<Engine::TradingInfo>& data);
+        bool getItems(QList<Engine::TradingInfo>& data, const QString& category);
     };
 }
 

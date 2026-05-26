@@ -62,25 +62,8 @@ namespace Engine {
         return m_webSocket && (m_webSocket->state() == QAbstractSocket::ConnectedState);
     }
 
-    void BybitWebSocket::open(WebSocketEndpoints endpoint) {
-
-        QString url;
-
-        switch (endpoint) {
-        case WebSocketEndpoints::SPOT:
-            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/spot" : "wss://stream.bybit.com/v5/public/spot";
-            break;
-        case WebSocketEndpoints::LINEAR:
-            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/linear" : "wss://stream.bybit.com/v5/public/linear";
-            break;
-        case WebSocketEndpoints::INVERSE:
-            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/inverse" : "wss://stream.bybit.com/v5/public/inverse";
-            break;
-        case WebSocketEndpoints::OPTION:
-            url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/option" : "wss://stream.bybit.com/v5/public/option";
-            break;
-        }
-
+    void BybitWebSocket::open() {
+        QString url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/spot" : "wss://stream.bybit.com/v5/public/spot";
         m_webSocket->open(url);
     }
 
@@ -211,7 +194,7 @@ namespace Engine {
     }
 
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
-        qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+        //qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
         if (obj.contains("success")) {
             bool isSuccess = obj["success"].toBool();
             if (!isSuccess)
@@ -271,22 +254,15 @@ namespace Engine {
         QString symbol = data["symbol"].toString();
         QString type = json["type"].toString();
         
-        quint64 updateId = data.value("u").toVariant().toULongLong();
-        quint64 seq = data.value("seq").toVariant().toULongLong();
-        
-        static stOrderBooks orderBooks = {};
+        static stOrderBook orderBook = {};
 
         QWriteLocker locker(&m_dataLock);
         
         if (type == "snapshot") {
-            orderBooks.bids.clear();
-            orderBooks.asks.clear();
-        } else if (updateId <= orderBooks.lastUpdateId)
-            return;
-        
-        orderBooks.lastUpdateId = updateId;
-        orderBooks.lastSeq = seq;
-    
+            orderBook.m_bids.clear();
+            orderBook.m_asks.clear();
+        }
+
         QJsonArray bidsArray = data.value("b").toArray();
         for (int i = 0; i < bidsArray.size(); i++) {
             QJsonArray bid = bidsArray[i].toArray();
@@ -295,9 +271,9 @@ namespace Engine {
             double size = bid[1].toString().toDouble();
 
             if (qFuzzyIsNull(size) || size <= 0)
-                orderBooks.bids.remove(price);
+                orderBook.m_bids.remove(price);
             else
-                orderBooks.bids[price] = size;
+                orderBook.m_bids[price] = size;
 
         }
 
@@ -309,12 +285,12 @@ namespace Engine {
             double size = ask[1].toString().toDouble();
 
             if (qFuzzyIsNull(size) || size <= 0)
-                orderBooks.asks.remove(price);
+                orderBook.m_asks.remove(price);
             else
-                orderBooks.asks[price] = size;
+                orderBook.m_asks[price] = size;
         }
 
-        emit updatedOrderbook(orderBooks);
+        emit updatedOrderbook(orderBook);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {

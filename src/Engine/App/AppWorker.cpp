@@ -7,31 +7,23 @@
 AppWorker::AppWorker(QObject* parent) : QObject(parent) {
     //qDebug() << "--------------------------------------------------";
 
-    //qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
+    qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
 
     m_loader = std::make_unique<Engine::AppEngineLoader>();
     m_engine = std::make_unique<Engine::AppEngine>();
-    m_config = std::make_unique<Engine::AppEngineСonfiguration>();
 
     m_workerThread = new QThread(this);
 
     m_loader->moveToThread(m_workerThread);
     m_engine->moveToThread(m_workerThread);
-    m_config->moveToThread(m_workerThread);
 
     //qDebug() << "Loader moved to thread:" << m_loader->thread();
     //qDebug() << "Engine moved to thread:" << m_engine->thread();
 
     connect(m_workerThread, &QThread::started, this, [this]() {
         QMetaObject::invokeMethod(m_loader.get(), [this] () {
-            m_config->loadConfig();
-
-            auto config = m_config->getСonfiguration();
-            m_curAPI = config.m_api.value(config.m_defaultKey);
-
             m_engine->setAPI(m_curAPI);
             m_loader->setAPI(m_curAPI);
-
             m_loader->startLoading();
         }, Qt::QueuedConnection);
     });
@@ -90,23 +82,15 @@ void AppWorker::setupEngineConnections() {
     // Движок запущен
     connect(m_engine.get(), &Engine::AppEngine::started, this, [this]() {
         qDebug().noquote() << "------------------------------ Engine started ------------------------------";
-
         m_hasStarted = true;
-        auto lstTrades = m_loader->getData(m_loadTrade);
-        m_lstTrades.clear();
-        for (const auto& iTrade : lstTrades)
-            m_lstTrades.append(iTrade.symbol);
-        emit tradeListChanged();
-
         emit engineStarted();
     });
 
     // Движок остановлен
     connect(m_engine.get(), &Engine::AppEngine::stopped, this, [this]() {
         qDebug().noquote() << "------------------------------ Engine stopped ------------------------------";
-
         m_hasStarted = false;
-        QMetaObject::invokeMethod(m_engine.get(), [this]() { m_engine->run(m_pendingEndpoint); }, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(m_engine.get(), [this]() { m_engine->run(); }, Qt::QueuedConnection);
     });
 
     // Ошибки движка
@@ -116,6 +100,8 @@ void AppWorker::setupEngineConnections() {
     });
 
     connect(m_engine.get(), &Engine::AppEngine::tickerUpdated, this, &AppWorker::tickerUpdated);
+    connect(m_engine.get(), &Engine::AppEngine::orderBookUpdated, this, &AppWorker::orderBookUpdated);
+
 }
 
 void AppWorker::setupConnections() {
@@ -123,7 +109,7 @@ void AppWorker::setupConnections() {
     setupEngineConnections();
 }
 
-void AppWorker::run(Engine::WebSocketEndpoints endpoint) {
+void AppWorker::run() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
     if (!m_hasLoaded) {
@@ -131,41 +117,42 @@ void AppWorker::run(Engine::WebSocketEndpoints endpoint) {
         return;
     }
 
-    switch (endpoint) {
-    case Engine::WebSocketEndpoints::SPOT:
-        m_loadTrade = "spot";
-        break;
-    case Engine::WebSocketEndpoints::LINEAR:
-        m_loadTrade = "linear";
-        break;
-    case Engine::WebSocketEndpoints::INVERSE:
-        m_loadTrade = "inverse";
-        break;
-    case Engine::WebSocketEndpoints::OPTION:
-        m_loadTrade = "option";
-        break;
-    default:
-        m_loadTrade = "";
-        break;
-    }
-
-    m_pendingEndpoint = Engine::WebSocketEndpoints::NONE;
-    QMetaObject::invokeMethod(m_engine.get(), [this, endpoint]() {
+    QMetaObject::invokeMethod(m_engine.get(), [this]() {
         if (!m_engine->hasRunned())
-            m_engine->run(endpoint);
-        else {
-            m_pendingEndpoint = endpoint;
+            m_engine->run();
+        else
             m_engine->stop();
-        }
     }, Qt::QueuedConnection);
 }
 
-void AppWorker::setAPI(const Engine::API& api) {
+void AppWorker::loadTradingPairs(const QString& category) {
+    qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+    auto lstTrades = m_loader->loadTradingPairs(category);
+    m_lstTrades.clear();
+    for (const auto& iTrade : lstTrades)
+        m_lstTrades.append(iTrade.symbol);
+    emit tradeListChanged();
+}
+
+void AppWorker::setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    m_curAPI = api;
+    m_curAPI.m_apiKey = apiKey;
+    m_curAPI.m_secretKey = secretKey;
+    m_curAPI.m_isTestnet = isTestnet;
+
+    //qDebug() << m_curAPI.m_apiKey <<  m_curAPI.m_secretKey << m_curAPI.m_isTestnet;
+
     m_engine->setAPI(m_curAPI);
     m_loader->setAPI(m_curAPI);
+}
+
+void AppWorker::checkAPI() {
+    qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+    connect(m_loader.get(), &Engine::AppEngineLoader::apiChecked, this, &AppWorker::apiChecked, Qt::SingleShotConnection);
+
+    QMetaObject::invokeMethod(m_engine.get(), [this]() { m_loader->checkAPI(); }, Qt::QueuedConnection);
 }
 
 void AppWorker::addTrade(const QString& pair) {
@@ -182,17 +169,4 @@ void AppWorker::addTrade(const QString& pair) {
 
 void AppWorker::filter(const QString& pair, bool on) {
     m_engine->enableFilter(pair, on);
-}
-
-void AppWorker::saveAPI(const QString& name, const QString& apiKey, const QString& secretKey, bool isTestnet) {
-    Engine::API api = { apiKey, secretKey, isTestnet };
-    m_config->saveARIKey(name, api);
-}
-
-QVariantList AppWorker::getTradeList() const {
-    return m_lstTrades;
-}
-
-QVariantList AppWorker::getAPIKeys() const {
-    return QVariantList();
 }

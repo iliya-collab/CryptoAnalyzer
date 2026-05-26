@@ -21,7 +21,7 @@ namespace Engine {
         AppEngine(QObject* parent = nullptr);
         ~AppEngine();
 
-        void run(WebSocketEndpoints endpoint);
+        void run();
 
         void setAPI(const API& api);
 
@@ -39,7 +39,8 @@ namespace Engine {
         void stopped();
         void errorOccurred(const QString& error);
 
-        void tickerUpdated(const stTicker& ticker);
+        void tickerUpdated(const stTicker& newTicker);
+        void orderBookUpdated(const stOrderBook& newOrderBook);
 
     };
 
