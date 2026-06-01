@@ -99,8 +99,14 @@ void AppWorker::setupEngineConnections() {
         emit errorOccurred(error);
     });
 
-    connect(m_engine.get(), &Engine::AppEngine::tickerUpdated, this, &AppWorker::tickerUpdated);
-    connect(m_engine.get(), &Engine::AppEngine::orderBookUpdated, this, &AppWorker::orderBookUpdated);
+    connect(m_engine.get(), &Engine::AppEngine::tickerUpdated, this, [this](const Engine::stTicker& newTicker) {
+        qDebug().noquote() << "Ticker received - latest update" << newTicker.m_symbol << QTime::currentTime().toString();
+        emit tickerUpdated(newTicker);
+    });
+    connect(m_engine.get(), &Engine::AppEngine::orderBookUpdated, this, [this](const Engine::stOrderBook& newOrderBook) {
+        qDebug().noquote() << "Orderbook received - latest update" << newOrderBook.m_symbol << QTime::currentTime().toString();
+        emit orderBookUpdated(newOrderBook);
+    });
 
 }
 

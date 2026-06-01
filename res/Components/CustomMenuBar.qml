@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 import Theme 1.0
 
 MenuBar {
     id: root
     property var menuModel: []
-    signal itemTriggered(string menuTitle, string itemText)
+    signal itemTriggered(string menuTitle, string itemText, bool checked)
 
     background: Rectangle { color: Theme.menuBarColor }
 
@@ -69,39 +70,73 @@ MenuBar {
                 delegate: MenuItem {
                     id: menuItem
 
+                    checkable: modelData.checkable !== undefined ? modelData.checkable : false
+                    checked: modelData.checked !== undefined ? modelData.checked : false
+
+                    indicator: Item {
+                        implicitWidth: 0
+                        implicitHeight: 0
+                        visible: false
+                    }
+
                     background: Rectangle {
                         color: menuItem.pressed ? Theme.pressColor : (menuItem.hovered ? Theme.hoverColor : Theme.menuBarColor)
                     }
 
-                    contentItem: Item {
-                        implicitWidth: lblText.implicitWidth + lblArrow.implicitWidth
-                        implicitHeight: Math.max(lblText.implicitHeight, lblArrow.implicitHeight)
+                    contentItem: RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.margins
+                        anchors.rightMargin: Theme.margins
+                        spacing: Theme.margins
 
+                        // Левая область: отображается только если элемент checkable
+                        Rectangle {
+                            id: customCheckBox
+                            visible: menuItem.checkable
+                            implicitWidth: 16
+                            implicitHeight: 16
+                            color: menuItem.checked ? Theme.pressColor : "transparent"
+                            border.color: menuItem.checked ? Theme.pressColor : Theme.borderColor
+                            border.width: Theme.borderWidth
+                            Layout.alignment: Qt.AlignVCenter
+
+                            // Текстовая галочка внутри квадрата
+                            Text {
+                                text: "\u2713"
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.bold: true
+                                color: Theme.textColor
+                                visible: menuItem.checked
+                                anchors.centerIn: parent
+                            }
+                        }
+
+                        // Центральная область: Текст элемента
                         Text {
                             id: lblText
                             text: modelData.text
                             font.pixelSize: Theme.fontSizeBody
                             font.family: Theme.fontFamily
                             color: Theme.textColor
-                            anchors.left: parent.left
-                            anchors.leftMargin: Theme.margins
-                            anchors.verticalCenter: parent.verticalCenter
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
+                            elide: Text.ElideRight
                         }
 
-                        Label {
+                        // Правая область: Стрелочка (показывается только для обычных пунктов)
+                        Text {
                             id: lblArrow
                             text: "\u203A"
                             font.pixelSize: Theme.fontSizeSmall
                             font.family: Theme.fontFamily
                             font.bold: true
                             color: Theme.textColor
-                            anchors.right: parent.right
-                            anchors.rightMargin: Theme.margins
-                            anchors.verticalCenter: parent.verticalCenter
+                            visible: !menuItem.checkable
+                            Layout.alignment: Qt.AlignVCenter
                         }
                     }
 
-                    onTriggered: root.itemTriggered(menuTitle, modelData.text)
+                    onTriggered: root.itemTriggered(menuTitle, modelData.text, menuItem.checked)
                 }
             }
         }
@@ -122,7 +157,7 @@ MenuBar {
 
             onAboutToShow: {
                 close()
-                root.itemTriggered(menuTitle, "")
+                root.itemTriggered(menuTitle, "", false)
             }
 
             background: Rectangle {

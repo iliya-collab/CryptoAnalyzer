@@ -14,8 +14,8 @@ Rectangle {
     property alias intervalHide: hideTimer.interval
 
     // Значения по умолчанию
-    width: 260
-    height: 60
+    implicitWidth: contantLayout.width
+    implicitHeight: contantLayout.height
     color: "transparent"
     visible: true
 
@@ -51,11 +51,12 @@ Rectangle {
     }
 
     RowLayout {
-        anchors.fill: parent
+        id: contantLayout
+        spacing: Theme.spacing
         Label {
             id: statusText
+            Layout.leftMargin: Theme.margins
             text: "Ready"
-            anchors.margins: Theme.margins
             font.pixelSize: Theme.fontSizeSmall
             font.family: Theme.fontFamily
             color: Theme.textColor
@@ -65,7 +66,6 @@ Rectangle {
             from: 0
             to: 100
             value: 0
-            width: root.width
         }
     }
 

@@ -4,6 +4,7 @@
 #include <QList>
 #include <QMap>
 #include <QObject>
+#include <QVariant>
 
 namespace Engine {
     Q_NAMESPACE
@@ -12,14 +13,28 @@ namespace Engine {
         Q_GADGET
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
-        Q_PROPERTY(QVariantList bids MEMBER m_bids)
-        Q_PROPERTY(QVariantList asks MEMBER m_asks)
+        Q_PROPERTY(QVariantList bids READ getBids)
+        Q_PROPERTY(QVariantList asks READ getAsks)
 
     public:
 
         QString m_symbol; // Название пары
-        QVariantList m_bids; // Покупки - пара (цена, объем)
-        QVariantList m_asks; // Продажи - пара (цена, объем)
+        QMap<double, double> m_bids; // Покупки (цена, объем)
+        QMap<double, double> m_asks; // Продажи (цена, объем)
+
+        QVariantList getBids() const { return mapToVariantList(m_bids); }
+        QVariantList getAsks() const { return mapToVariantList(m_asks); }
+
+    private:
+        static QVariantList mapToVariantList(const QMap<double, double>& map) {
+            QVariantList list;
+            for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+                QVariantList pair;
+                pair << it.key() << it.value();
+                list.prepend(QVariant(pair));
+            }
+            return list;
+        }
 
     };
 
@@ -62,7 +77,7 @@ namespace Engine {
 
         QString m_apiKey = ""; // API ключ
         QString m_secretKey = ""; // Секретный API ключ
-        bool m_isTestnet = true; // Тип сети (true - testnet, false - mainnet)
+        bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
     };
 
     struct TradingInfo {

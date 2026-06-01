@@ -50,7 +50,7 @@ file(GLOB_RECURSE MY_HEADERS
 add_executable(${PROJECT_NAME}
     ${MY_SOURCES}
     ${MY_HEADERS}
-    ${RESOURCE_DIR}/res.qrc
+    #${RESOURCE_DIR}/res.qrc
 )
 
 set_source_files_properties(res/Style/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -74,16 +74,19 @@ qt_add_qml_module(Components
     QML_FILES
         res/Components/CustomButton.qml
         res/Components/CustomLabel.qml
+        res/Components/CustomText.qml
         res/Components/CustomCheckBox.qml
         res/Components/CustomMenuBar.qml
         res/Components/CustomStatusBar.qml
         res/Components/CustomTextField.qml
         res/Components/CustomToolBar.qml
         res/Components/CustomTabBar.qml
+        res/Components/OrderBookTable.qml
         res/Components/SelecterTradeWidget.qml
         res/Components/OrderBookWidget.qml
         res/Components/TickerItem.qml
         res/Components/TickerWidget.qml
+        QML_FILES res/Components/CustomText.qml
 )
 
 # Главный модуль

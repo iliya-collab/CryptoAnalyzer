@@ -209,6 +209,8 @@ namespace Engine {
     }
 
     void BybitWebSocket::updateTicker(const QJsonObject &json) {
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         if (!json.contains("data") || !json["data"].isObject())
             return;
             
@@ -247,16 +249,19 @@ namespace Engine {
     }
 
     void BybitWebSocket::updateOrderbook(const QJsonObject &json) {
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         if (!json.contains("data") || !json["data"].isObject())
             return;
             
         QJsonObject data = json["data"].toObject();
-        QString symbol = data["symbol"].toString();
+        QString symbol = data["s"].toString();
         QString type = json["type"].toString();
         
-        static stOrderBook orderBook = {};
-
         QWriteLocker locker(&m_dataLock);
+
+        stOrderBook& orderBook = m_orderBooks[symbol];
+        orderBook.m_symbol = symbol;
         
         if (type == "snapshot") {
             orderBook.m_bids.clear();
@@ -264,33 +269,33 @@ namespace Engine {
         }
 
         QJsonArray bidsArray = data.value("b").toArray();
-        for (int i = 0; i < bidsArray.size(); i++) {
-            QJsonArray bid = bidsArray[i].toArray();
-
+        for (const QJsonValue &bidVal : bidsArray) {
+            QJsonArray bid = bidVal.toArray();
             double price = bid[0].toString().toDouble();
             double size = bid[1].toString().toDouble();
 
             if (qFuzzyIsNull(size) || size <= 0)
                 orderBook.m_bids.remove(price);
             else
-                orderBook.m_bids[price] = size;
-
+                orderBook.m_bids.insert(price, size);
         }
 
         QJsonArray asksArray = data.value("a").toArray();
-        for (int i = 0; i < asksArray.size(); i++) {
-            QJsonArray ask = asksArray[i].toArray();
-
+        for (const QJsonValue &askVal : asksArray) {
+            QJsonArray ask = askVal.toArray();
             double price = ask[0].toString().toDouble();
             double size = ask[1].toString().toDouble();
 
             if (qFuzzyIsNull(size) || size <= 0)
                 orderBook.m_asks.remove(price);
             else
-                orderBook.m_asks[price] = size;
+                orderBook.m_asks.insert(price, size);
         }
 
-        emit updatedOrderbook(orderBook);
+        stOrderBook bookToEmit = orderBook;
+        locker.unlock();
+
+        emit updatedOrderbook(bookToEmit);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {

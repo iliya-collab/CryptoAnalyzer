@@ -63,6 +63,8 @@ namespace Engine {
         // Используемые каналы
         QSet<QString> m_usedStreams;
 
+        QMap<QString, stOrderBook> m_orderBooks;
+
         // Уникальный id для подписки на каналы
         quint64 m_nextReqId = 1;
         bool m_pendingClose = false;

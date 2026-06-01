@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 
 #include "Engine/App/AppWorker.hpp"
+#include "Engine/Tools/OrderBookModel.hpp"
 
 int main(int argc, char *argv[]) {
     //qputenv("QT_QPA_PLATFORM", "xcb");
@@ -15,8 +16,13 @@ int main(int argc, char *argv[]) {
 
     qmlRegisterSingletonType<AppWorker>("Engine", 1, 0, "Engine", AppWorker::create);
     qmlRegisterUncreatableMetaObject(Engine::staticMetaObject, "Engine", 1, 0, "StdTypesEngine", "Access to enums only");
-    qmlRegisterUncreatableType<Engine::stTicker>("Engine", 1, 0, "stTicker", "Cannot create in QML");
-    qmlRegisterUncreatableType<Engine::stOrderBook>("Engine", 1, 0, "stOrderBook", "Cannot create in QML");
+
+    qmlRegisterType<OrderBookModel>("CryptoComponents", 1, 0, "OrderBookModel");
+    qmlRegisterType<Engine::stTicker>("CryptoComponents", 1, 0, "stTicker");
+    qmlRegisterType<Engine::stOrderBook>("CryptoComponents", 1, 0, "stOrderBook");
+
+    //qmlRegisterUncreatableType<Engine::stTicker>("CryptoComponents", 1, 0, "stTicker", "Cannot create in QML");
+    //qmlRegisterUncreatableType<Engine::stOrderBook>("CryptoComponents", 1, 0, "stOrderBook", "Cannot create in QML");
 
     QObject::connect(&qmlEngine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
         QCoreApplication::exit(-1);

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 
 import Engine 1.0
 import Theme 1.0
@@ -6,18 +7,20 @@ import Theme 1.0
 Rectangle {
     id: root
 
-    // Свойства для каждого значения
-    QtObject {
-        id: privateData
-
-        property var modelAsks: []
-        property var modelBids: []
+    function updateOrderBook(newOrderBook) {
+        orderBookTable.update(newOrderBook.bids, newOrderBook.asks)
+        //console.log(newOrderBook.bids)
     }
 
-    // Функция для обновления данных стакана заявак
-    function updateOrderBook(newOrderBook) {
-        privateData.modelAsks = newOrderBook.asks
-        privateData.modelBids = newOrderBook.bids
+    ColumnLayout {
+        id: contentLayout
+        anchors.fill: parent
+
+        OrderBookTable {
+            id: orderBookTable
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
     }
 
     Component.onCompleted: Engine.orderBookUpdated.connect(updateOrderBook)

@@ -9,7 +9,12 @@ TabBar {
 
     property var modelTabs: []
 
-    background: Rectangle { color: Theme.toolBarColor }
+    background: Rectangle {
+        border.color: Theme.borderColor
+        border.width: Theme.borderWidth
+        color: Theme.toolBarColor
+        radius: Theme.radius
+    }
 
     Repeater {
         model: root.modelTabs
@@ -17,7 +22,10 @@ TabBar {
         TabButton {
             id: tabs
             text: modelData.text
-            background: Rectangle { color: tabs.pressed ? Theme.pressColor : (tabs.hovered ? Theme.hoverColor : "transparent") }
+            background: Rectangle {
+                color: tabs.pressed ? Theme.pressColor : (tabs.hovered ? Theme.hoverColor : "transparent")
+                radius: Theme.radius
+            }
             contentItem: Text {
                 text: tabs.text
                 font.pixelSize: Theme.fontSizeBody

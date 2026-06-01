@@ -12,10 +12,12 @@ ApplicationWindow {
 
     id: mainWindow
     visible: true
-    width: 800
-    height: 600
+    width: 1000
+    height: 800
     title: "Trader"
     color: Theme.windowColor
+
+    property bool visibleOrderbook: true
 
     Component.onCompleted: {
         console.log("UI Loaded successfully")
@@ -39,6 +41,10 @@ ApplicationWindow {
             else
                 console.log("API is not valid");
         })
+
+        Engine.engineStarted.connect(function() {
+            mainStack.showTradePage()
+        })
     }
 
     // Меню
@@ -58,16 +64,29 @@ ApplicationWindow {
                 items: [
                     { text: "Spot" }
                 ]
+            },
+            {
+                title: "View",
+                items: [
+                    {
+                        text: "Orderbook",
+                        checkable: true,
+                        checked: mainWindow.visibleOrderbook
+                    }
+                ]
             }
         ]
 
-        onItemTriggered: function(menuTitle, itemText, index) {
+        onItemTriggered: function(menuTitle, itemText, checkedState) {
             if (itemText === "Connect API")
-                mainStack.currentIndex = connectAPI.StackLayout.index
-            else if (itemText === "Spot") {
-                mainStack.currentIndex = tradePage.StackLayout.index
-                Engine.run()
+                mainStack.showConnectAPI()
+            else if (itemText === "Orderbook") {
+                mainWindow.visibleOrderbook = checkedState
+                if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
+                    mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
             }
+            else if (itemText === "Spot")
+                Engine.run()
         }
     }
 
@@ -76,25 +95,48 @@ ApplicationWindow {
         id: mainLayout
         anchors.fill: parent
 
-        StackLayout {
+        StackView {
             id: mainStack
-            Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: 0
-            Rectangle { color: "transparent" }
-            ConnectAPIScreen { id: connectAPI }
-            TradeScreen { id: tradePage }
+            Layout.fillWidth: true
+
+            // Стартовый пустой экран
+            initialItem: Item {}
+
+            onCurrentItemChanged: {
+                if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
+                    mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
+            }
+
+
+            // Метод для вызова экрана подключения API
+            function showConnectAPI() {
+                mainStack.replace("Views/ConnectAPIScreen.qml")
+            }
+
+            // Метод для вызова экрана торговли
+            function showTradePage() {
+                mainStack.replace("Views/TradeScreen.qml")
+            }
         } // mainStack
     } // mainLayout
 
-    footer: CustomStatusBar {
-        id: statusWidget
-        height: 40
-        anchors.margins: Theme.margins
-        autoHide: false
-        //durationHide: 3000
-        //intervalHide: 1000
-    } // statusWidget
+    footer: Rectangle {
+        border.color: Theme.borderColor
+        border.width: Theme.borderWidth
+        color: Theme.windowColor
+        height: 30
+
+        RowLayout {
+            anchors.fill: parent
+            CustomStatusBar {
+                id: statusWidget
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                autoHide: false
+            }
+        }
+    }
 
     Loader { id: windowLoader }
 

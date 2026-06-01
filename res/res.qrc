@@ -1,7 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>Components/CustomLabel.qml</file>
-        <file>Components/CustomTabBar.qml</file>
-        <file>Components/OrderBookWidget.qml</file>
-    </qresource>
-</RCC>

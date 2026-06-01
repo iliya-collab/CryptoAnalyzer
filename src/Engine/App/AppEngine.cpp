@@ -11,17 +11,13 @@ namespace Engine {
         connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
 
         connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const stTicker& newTicker) {
-            if (m_isFilter && (m_filter == newTicker.m_symbol)) {
-                //qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
+            if (m_isFilter && (m_filter == newTicker.m_symbol))
                 emit tickerUpdated(newTicker);
-            }
         });
 
         connect(m_webSocket.get(), &BybitWebSocket::updatedOrderbook, this, [this](const stOrderBook& newOrderBook) {
-            if (m_isFilter && (m_filter == newOrderBook.m_symbol)) {
-                //qDebug().noquote() << "Latest update" << ticker.m_symbol << QTime::currentTime().toString() << '\n';
+            if (m_isFilter && (m_filter == newOrderBook.m_symbol))
                 emit orderBookUpdated(newOrderBook);
-            }
         });
 
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
@@ -69,7 +65,7 @@ namespace Engine {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (m_webSocket && m_webSocket->isOpen())
-            m_webSocket->subscribeToStream(pair, {BybitWebSocket::Stream::Ticker});
+            m_webSocket->subscribeToStream(pair, {BybitWebSocket::Stream::Ticker, BybitWebSocket::Stream::Orderbook});
     }
 
     void AppEngine::enableFilter(const QString& pair, bool on) {

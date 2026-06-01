@@ -23,6 +23,8 @@ Rectangle {
     signal itemSelected(string item)
     signal filterSelected(string filter)
 
+    property bool isComponentReady: false
+
     // Таймер для закрытия/открытия mainPopup
     Timer {
         id: popupTimer
@@ -44,6 +46,7 @@ Rectangle {
 
     Label {
         id: lblTitle
+        text: (lstTrades.model && lstTrades.model.length > 0) ? lstTrades.model[0] : "None"
         anchors.fill: parent
         anchors.margins: Theme.margins
         font.bold: true
@@ -65,14 +68,23 @@ Rectangle {
         modal: false
         focus: false
         closePolicy: Popup.NoAutoClose
-        background: Rectangle { color: Theme.menuBarColor }
+
+        background: Rectangle {
+            border.color: Theme.borderColor
+            border.width: Theme.borderWidth
+            color: Theme.menuBarColor
+            radius: Theme.radius
+        }
+
         HoverHandler {
             id: popupHoverHandler
             onHoveredChanged: popupTimer.restart()
         }
+
         contentItem: ColumnLayout {
             id: contentLayout
             anchors.fill: parent
+            anchors.margins: Theme.spacing
 
             CustomTabBar {
                 id: tabsBar
@@ -83,7 +95,8 @@ Rectangle {
                     {text: "USDE"}
                 ]
                 onCurrentIndexChanged: {
-                    root.filterSelected(modelTabs[currentIndex].text)
+                    if (root.isComponentReady)
+                        root.filterSelected(modelTabs[currentIndex].text)
                 }
             }
 
@@ -102,14 +115,8 @@ Rectangle {
                     anchors.fill: parent
                     clip: true
                     onModelChanged: {
-                        if (model && model.length > 0) {
-                            var firstItem = model[0]
-                            if (lblTitle.text !== firstItem) {
-                                lblTitle.text = firstItem
-                                if (root.Component.status === Component.Ready)
-                                    root.itemSelected(firstItem)
-                            }
-                        }
+                        if (root.isComponentReady && model && model.length > 0)
+                            root.itemSelected(model[0])
                     }
                     delegate: ItemDelegate {
                         id: lstItem
@@ -151,4 +158,7 @@ Rectangle {
             } // Rectangle
         } // contentLayout
     } // mainPopup
+
+    Component.onCompleted: root.isComponentReady = true
+
 } // SelecterTradeWidget
