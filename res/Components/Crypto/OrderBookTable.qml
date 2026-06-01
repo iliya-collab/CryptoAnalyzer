@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-import Theme
-import CryptoComponents
+import Theme 1.0
+import Components.Custom 1.0
+import EngineComponents 1.0
 
 Rectangle {
     id: root

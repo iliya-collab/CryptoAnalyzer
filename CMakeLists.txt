@@ -22,7 +22,7 @@ set(CMAKE_AUTORCC ON)
 
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
 set(HEADER_DIR "${CMAKE_SOURCE_DIR}/inc")
-set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
+#set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 set(QML_MODULES "${CMAKE_BINARY_DIR}/qml_modules")
 set(QML_IMPORT_PATH "${QML_MODULES}" CACHE STRING "Extra QML Import Paths" FORCE)
 
@@ -53,42 +53,6 @@ add_executable(${PROJECT_NAME}
     #${RESOURCE_DIR}/res.qrc
 )
 
-set_source_files_properties(res/Style/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-
-# Модуль с оформлением
-qt_add_qml_module(Theme
-    URI Theme
-    VERSION 1.0
-    RESOURCE_PREFIX "/qt/qml"
-    OUTPUT_DIRECTORY "${QML_MODULES}/Theme"
-    QML_FILES
-        res/Style/Theme.qml
-)
-
-# Модуль с компанентами
-qt_add_qml_module(Components
-    URI Components
-    VERSION 1.0
-    RESOURCE_PREFIX "/qt/qml"
-    OUTPUT_DIRECTORY "${QML_MODULES}/Components"
-    QML_FILES
-        res/Components/CustomButton.qml
-        res/Components/CustomLabel.qml
-        res/Components/CustomText.qml
-        res/Components/CustomCheckBox.qml
-        res/Components/CustomMenuBar.qml
-        res/Components/CustomStatusBar.qml
-        res/Components/CustomTextField.qml
-        res/Components/CustomToolBar.qml
-        res/Components/CustomTabBar.qml
-        res/Components/OrderBookTable.qml
-        res/Components/SelecterTradeWidget.qml
-        res/Components/OrderBookWidget.qml
-        res/Components/TickerItem.qml
-        res/Components/TickerWidget.qml
-        QML_FILES res/Components/CustomText.qml
-)
-
 # Главный модуль
 qt_add_qml_module(${PROJECT_NAME}
     URI MainApplication
@@ -104,6 +68,8 @@ qt_add_qml_module(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${HEADER_DIR})
 
+add_subdirectory(res)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
     Qt6::Network
@@ -112,5 +78,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Sql
     Qt6::Quick
     Theme
-    Components
+    CustomComponents
+    CryptoComponents
 )

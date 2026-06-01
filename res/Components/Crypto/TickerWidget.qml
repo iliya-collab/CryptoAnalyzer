@@ -4,6 +4,8 @@ import QtQuick.Layouts 1.15
 
 import Engine 1.0
 import Theme 1.0
+import Components.Custom 1.0
+import EngineComponents 1.0
 
 Rectangle {
     id: root
