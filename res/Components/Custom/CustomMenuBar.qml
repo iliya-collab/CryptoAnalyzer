@@ -9,7 +9,11 @@ MenuBar {
     property var menuModel: []
     signal itemTriggered(string menuTitle, string itemText, bool checked)
 
-    background: Rectangle { color: Theme.menuBarColor }
+    background: Rectangle {
+        color: Theme.menuBarColor
+        border.color: Theme.borderColor
+        border.width: Theme.borderWidth
+    }
 
     delegate: MenuBarItem {
         id: menuBarItem

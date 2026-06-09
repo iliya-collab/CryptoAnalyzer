@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "Engine/Tools/BybitRestAPI.hpp"
+#include "Engine/Tools/DBHash.hpp"
 
 namespace Engine {
 
@@ -41,6 +42,8 @@ namespace Engine {
         bool m_loading = false;
         qint64 m_totalSteps = 0;
         qint64 m_currentStep = 0;
+
+        DBHash m_dbSystem;
 
         // Управление текущим запросом и таймаутом
         BybitRestAPI* m_currentApi = nullptr;

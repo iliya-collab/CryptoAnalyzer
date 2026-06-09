@@ -35,16 +35,32 @@ ApplicationWindow {
             statusWidget.text = (success) ? "Loading completed!" : "Loading failed!"
         })
 
+        Engine.engineStarted.connect(function() {
+            Engine.loadTradingPairs("ALL")
+        })
+
         Engine.apiChecked.connect(function(isValid) {
             if (isValid)
                 console.log("API is valid");
             else
                 console.log("API is not valid");
         })
+    }
 
-        Engine.engineStarted.connect(function() {
-            mainStack.showTradePage()
-        })
+    header: CustomToolBar {
+        modelToolButtons: [
+            { id: "btn_run", icon: "qrc:/icons/icon_play.png" },
+            { id: "btn_restart", icon: "qrc:/icons/icon_restart.png" },
+            { id: "btn_stop", icon: "qrc:/icons/icon_stop.png" }
+        ]
+        onToolButtonClicked: function(id, name) {
+            if (id === "btn_run")
+                Engine.run()
+            else if (id === "btn_restart")
+                Engine.restart()
+            else if (id === "btn_stop")
+                Engine.interrupt()
+        }
     }
 
     // Меню
@@ -55,9 +71,6 @@ ApplicationWindow {
                 items: [
                     { text: "Connect API" }
                 ]
-            },
-            {
-                title: "Settings"
             },
             {
                 title: "Trade",
@@ -74,6 +87,9 @@ ApplicationWindow {
                         checked: mainWindow.visibleOrderbook
                     }
                 ]
+            },
+            {
+                title: "Settings"
             }
         ]
 
@@ -86,7 +102,7 @@ ApplicationWindow {
                     mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
             }
             else if (itemText === "Spot")
-                Engine.run()
+                mainStack.showTradePage()
         }
     }
 

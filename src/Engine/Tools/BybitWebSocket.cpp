@@ -7,9 +7,7 @@
 namespace Engine {
 
     BybitWebSocket::BybitWebSocket(QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
-        // Настраиваем websocket
         setupWebSocket();
-        // Настраивием соединения с websocket
         setupConnections();
     }
 
@@ -83,6 +81,8 @@ namespace Engine {
         }
     }
 
+
+
     void BybitWebSocket::closeAfterFlush() {
         m_webSocket->flush();
         if (m_webSocket->bytesToWrite() == 0)
@@ -111,6 +111,7 @@ namespace Engine {
                 streamName = createOrderbookStream(coin);
                 break;
             case Stream::Kline:
+                streamName = createKlineStream(coin);
                 break;
             }
 
@@ -125,14 +126,12 @@ namespace Engine {
     }
 
     void BybitWebSocket::onConnected() {
-        // Запускаем таймер ping
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
         connectToStreams();
         emit connected();
     }
 
     void BybitWebSocket::onDisconnected() {
-        // Отключаем таймер ping
         if (m_pingTimer && m_pingTimer->isActive())
             m_pingTimer->stop();
         emit disconnected();
@@ -195,6 +194,7 @@ namespace Engine {
 
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
         //qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+
         if (obj.contains("success")) {
             bool isSuccess = obj["success"].toBool();
             if (!isSuccess)
@@ -205,6 +205,8 @@ namespace Engine {
                 updateTicker(obj);
             else if (channel.startsWith("orderbook."))
                 updateOrderbook(obj);
+            else if (channel.startsWith("kline."))
+                updateKline(obj);
         }
     }
 
@@ -220,30 +222,14 @@ namespace Engine {
         stTicker ticker = {};
 
         ticker.m_symbol = symbol;
-
-        if (data.contains("lastPrice"))
-            ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
-
-        if (data.contains("usdIndexPrice"))
-            ticker.m_usdIndexPrice = data["usdIndexPrice"].toString().toDouble();
-        
-        if (data.contains("highPrice24h"))
-            ticker.m_high24h = data["highPrice24h"].toString().toDouble();
-
-        if (data.contains("lowPrice24h"))
-            ticker.m_low24h = data["lowPrice24h"].toString().toDouble();
-
-        if (data.contains("turnover24h"))
-            ticker.m_volCcy24h = data["turnover24h"].toString().toDouble();
-
-        if (data.contains("volume24h"))
-            ticker.m_vol24h = data["volume24h"].toString().toDouble();
-
-        if (data.contains("prevPrice24h"))
-            ticker.m_prevPrice24h = ticker.m_lastPrice - data["prevPrice24h"].toString().toDouble();
-
-        if (data.contains("price24hPcnt"))
-            ticker.m_price24hPcnt = data["price24hPcnt"].toString().toDouble() * 100;
+        ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
+        ticker.m_usdIndexPrice = data["usdIndexPrice"].toString().toDouble();
+        ticker.m_high24h = data["highPrice24h"].toString().toDouble();
+        ticker.m_low24h = data["lowPrice24h"].toString().toDouble();
+        ticker.m_volCcy24h = data["turnover24h"].toString().toDouble();
+        ticker.m_vol24h = data["volume24h"].toString().toDouble();
+        ticker.m_prevPrice24h = ticker.m_lastPrice - data["prevPrice24h"].toString().toDouble();
+        ticker.m_price24hPcnt = data["price24hPcnt"].toString().toDouble() * 100;
 
         emit updatedTicker(ticker);
     }
@@ -257,45 +243,55 @@ namespace Engine {
         QJsonObject data = json["data"].toObject();
         QString symbol = data["s"].toString();
         QString type = json["type"].toString();
-        
-        QWriteLocker locker(&m_dataLock);
 
-        stOrderBook& orderBook = m_orderBooks[symbol];
+        stOrderBook orderBook = {};
+
+        orderBook.m_type = type;
         orderBook.m_symbol = symbol;
-        
-        if (type == "snapshot") {
-            orderBook.m_bids.clear();
-            orderBook.m_asks.clear();
-        }
 
         QJsonArray bidsArray = data.value("b").toArray();
-        for (const QJsonValue &bidVal : bidsArray) {
+        for (const auto& bidVal : bidsArray) {
             QJsonArray bid = bidVal.toArray();
             double price = bid[0].toString().toDouble();
             double size = bid[1].toString().toDouble();
-
-            if (qFuzzyIsNull(size) || size <= 0)
-                orderBook.m_bids.remove(price);
-            else
-                orderBook.m_bids.insert(price, size);
+            orderBook.m_bids.insert(price, size);
         }
 
         QJsonArray asksArray = data.value("a").toArray();
-        for (const QJsonValue &askVal : asksArray) {
+        for (const auto& askVal : asksArray) {
             QJsonArray ask = askVal.toArray();
             double price = ask[0].toString().toDouble();
             double size = ask[1].toString().toDouble();
-
-            if (qFuzzyIsNull(size) || size <= 0)
-                orderBook.m_asks.remove(price);
-            else
-                orderBook.m_asks.insert(price, size);
+            orderBook.m_asks.insert(price, size);
         }
 
-        stOrderBook bookToEmit = orderBook;
-        locker.unlock();
+        emit updatedOrderbook(orderBook);
+    }
 
-        emit updatedOrderbook(bookToEmit);
+    void BybitWebSocket::updateKline(const QJsonObject& json) {
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (!json.contains("data") || !json["data"].isArray())
+            return;
+
+        QJsonArray arrData = json["data"].toArray();
+        QString symbol = json["topic"].toString().section('.', -1);;
+
+        stKline newKline;
+        newKline.m_symbol = symbol;
+
+        for (const auto& val : arrData) {
+            QJsonObject data = val.toObject();
+            newKline.m_open = data["open"].toString().toDouble();
+            newKline.m_close = data["close"].toString().toDouble();
+            newKline.m_high = data["high"].toString().toDouble();
+            newKline.m_low = data["low"].toString().toDouble();
+            newKline.m_confirm = data["confirm"].toBool();
+            newKline.m_timestamp = data["timestamp"].toVariant().toLongLong();
+        }
+
+        if (newKline.m_confirm)
+            emit updatedKline(newKline);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {
@@ -351,6 +347,10 @@ namespace Engine {
 
     QString BybitWebSocket::createOrderbookStream(const QString &coin) {
         return QString("orderbook.50.%1").arg(coin);
+    }
+
+    QString BybitWebSocket::createKlineStream(const QString& coin) {
+        return QString("kline.1.%1").arg(coin);
     }
 
 }

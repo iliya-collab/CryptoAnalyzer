@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.15
 import Engine 1.0
 import Theme 1.0
 import Components.Custom 1.0
-import EngineComponents 1.0
+import Engine.Components 1.0
 
 Rectangle {
     id: root
@@ -47,15 +47,20 @@ Rectangle {
         privateData.volumeCcy24h = newTicker.volCcy24h.toFixed(2)
     }
 
-    Component.onCompleted: Engine.tickerUpdated.connect(updateTicker)
+    function bindTicker() {
+        Engine.tickerUpdated.connect(root.updateTicker)
+    }
 
-    Component.onDestruction: Engine.tickerUpdated.disconnect(updateTicker)
+    function unbindTicker() {
+        Engine.tickerUpdated.disconnect(root.updateTicker)
+    }
 
     // Главный контент тикера
     RowLayout {
         id: contentLayout
         anchors.fill: parent
         TickerItem {
+            Layout.preferredWidth: 100
             titleItem: privateData.showPriceInUSD ? "Price, USD" : "Price"
             contentItem: privateData.showPriceInUSD ? privateData.priceValueInUSD : privateData.priceValue
 
@@ -63,6 +68,7 @@ Rectangle {
         } // Price
 
         TickerItem {
+            Layout.preferredWidth: 120
             titleItem: privateData.showChangeAbsolute ? "Change, 24h" : "Change, 24h, %"
             contentItem: privateData.showChangeAbsolute ? privateData.change24h : privateData.change24hPcnt
 
@@ -71,16 +77,19 @@ Rectangle {
         } // Change
 
         TickerItem {
+            Layout.preferredWidth: 100
             titleItem: "Max"
             contentItem: privateData.maxValue
         } // Max
 
         TickerItem {
+            Layout.preferredWidth: 100
             titleItem: "Min"
             contentItem: privateData.minValue
         } // Min
 
         TickerItem {
+            Layout.preferredWidth: 130
             titleItem: privateData.showVolumeRaw ? "Volume, 24h" : "Volume (Ccy), 24h"
             contentItem: privateData.showVolumeRaw ? privateData.volume24h : privateData.volumeCcy24h
 
@@ -90,4 +99,7 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
     } // contentLayout
+
+    //Component.onCompleted: Engine.tickerUpdated.connect(updateTicker)
+
 } // TickerWidget

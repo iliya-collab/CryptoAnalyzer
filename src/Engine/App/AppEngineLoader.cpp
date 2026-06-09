@@ -1,6 +1,4 @@
 #include "Engine/App/AppEngineLoader.hpp"
-#include "Engine/Tools/BybitRestAPI.hpp"
-#include "Engine/Tools/DBHash.hpp"
 
 #include <QUrlQuery>
 #include <QDebug>
@@ -44,8 +42,7 @@ namespace Engine {
     }
 
     void AppEngineLoader::loadFromDatabase(const QString& category) {
-        DBHash db;
-        if (!db.dbExist()) {
+        if (!m_dbSystem.dbExist(m_dbSystem.m_dbCrypto)) {
             emit errorOccurred("Database does not exist");
             return;
         }
@@ -53,13 +50,13 @@ namespace Engine {
         QMutexLocker locker(&m_mutex);
         m_tradingPairs.clear();
         if (category == "ALL") {
-            if (!db.getAllItems(m_tradingPairs)) {
-                emit errorOccurred(db.error());
+            if (!m_dbSystem.getAllItems(m_tradingPairs)) {
+                emit errorOccurred(m_dbSystem.error());
                 return;
             }
         }
-        else if (!db.getItems(m_tradingPairs, category)) {
-            emit errorOccurred(db.error());
+        else if (!m_dbSystem.getItems(m_tradingPairs, category)) {
+            emit errorOccurred(m_dbSystem.error());
             return;
         }
     }
@@ -73,18 +70,15 @@ namespace Engine {
     }
 
     void AppEngineLoader::saveToDatabase() {
-        DBHash db;
-        if (!db.create()) {
-            emit errorOccurred(db.error());
+        if (!m_dbSystem.createCryptoDB()) {
+            emit errorOccurred(m_dbSystem.error());
             return;
         }
 
         QMutexLocker locker(&m_mutex);
-        for (const auto& item : m_tradingPairs) {
-            if (!db.addItem(item)) {
-                emit errorOccurred(db.error());
-                return;
-            }
+        if (!m_dbSystem.addItems(m_tradingPairs)) {
+            emit errorOccurred(m_dbSystem.error());
+            return;
         }
 
     }
@@ -165,8 +159,7 @@ namespace Engine {
         m_loadSteps.clear();
         m_loading = true;
 
-        DBHash db;
-        if (!db.dbExist()) {
+        if (!m_dbSystem.dbExist(m_dbSystem.m_dbCrypto)) {
             m_loadSteps.append({"Loading spot pairs", [this]() { requestTradingPairsAsync(); }});
             m_loadSteps.append({"Saving spot pairs to database", [this]() { saveToDatabaseAsync(); }});
         }

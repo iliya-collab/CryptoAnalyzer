@@ -4,11 +4,12 @@
 
 #include <QObject>
 #include <QThread>
-#include <atomic>
 #include <memory>
 
 #include "Engine/App/AppEngine.hpp"
 #include "Engine/App/AppEngineLoader.hpp"
+
+#include "Engine/Tools/OrderBookModel.hpp"
 
 class AppWorker : public QObject {
     Q_OBJECT
@@ -22,13 +23,10 @@ private:
 
     QThread* m_workerThread;
 
-    QString m_loadTrade;
+    QString m_lastTrade = "";
     QVariantList m_lstTrades;
     QVariantList m_lstAPI;
     Engine::API m_curAPI;
-
-    std::atomic<bool> m_hasLoaded{false};
-    std::atomic<bool> m_hasStarted{false};
 
     void setupLoaderConnections();
     void setupEngineConnections();
@@ -46,13 +44,15 @@ public:
     // ------ Методы доступные в контексте QML ------
     // Запускает движок
     Q_INVOKABLE void run();
+    // Перезапускает движок
+    Q_INVOKABLE void restart();
+    // Прерывает работу движка
+    Q_INVOKABLE void interrupt();
     Q_INVOKABLE void loadTradingPairs(const QString& category);
     Q_INVOKABLE void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
     Q_INVOKABLE void checkAPI();
     // Запускает trade по выбранной паре pair
     Q_INVOKABLE void addTrade(const QString& pair);
-    // Отбрасывает все пары, которые не заданы в фильтре
-    Q_INVOKABLE void filter(const QString& pair, bool on = true);
 
 
 signals:
@@ -65,8 +65,10 @@ signals:
     void loadingFinished(bool success);
     void apiChecked(bool isValid);
     void engineStarted();
+    void engineStopped();
 
     void tickerUpdated(const Engine::stTicker& newTicker);
     void orderBookUpdated(const Engine::stOrderBook& newOrderBook);
+    void klineUpdated(const Engine::stKline& newKline);
 
 };

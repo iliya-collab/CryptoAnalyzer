@@ -1,86 +1,108 @@
 #include "Engine/Tools/OrderBookModel.hpp"
 
-OrderBookModel::OrderBookModel(QObject *parent) : QAbstractListModel(parent) {}
+OrderBookSideModel::OrderBookSideModel(QObject *parent)
+    : QAbstractListModel(parent), m_side(Bid) {}
 
-int OrderBookModel::rowCount(const QModelIndex &parent) const {
+int OrderBookSideModel::rowCount(const QModelIndex &parent) const {
     if (parent.isValid())
         return 0;
-    return m_records.size();
+    return m_levels.size();
 }
 
-QVariant OrderBookModel::data(const QModelIndex &index, int role) const {
-    if (!index.isValid() || index.row() >= m_records.size())
+QVariant OrderBookSideModel::data(const QModelIndex &index, int role) const {
+    if (!index.isValid() || index.row() >= m_levels.size())
         return QVariant();
 
-    const auto &level = m_records.at(index.row());
+    const auto &level = m_levels.at(index.row());
 
     switch (role) {
         case PriceRole:  return level.price;
         case AmountRole: return level.amount;
-        case TypeRole:   return level.isBid ? "bid" : "ask";
         default:         return QVariant();
     }
 }
 
-QHash<int, QByteArray> OrderBookModel::roleNames() const {
+QHash<int, QByteArray> OrderBookSideModel::roleNames() const {
     QHash<int, QByteArray> roles;
+
     roles[PriceRole]  = "price";
     roles[AmountRole] = "amount";
-    roles[TypeRole]   = "type";
+    roles[TotalAmountRole] = "total";
+
     return roles;
 }
 
-void OrderBookModel::updateFromQml(const QVariantList &bids, const QVariantList &asks) {
-    std::vector<OrderBookLevel> new_records;
-    new_records.reserve(asks.size() + bids.size());
+void OrderBookSideModel::setSide(Side side) {
+    if (m_side == side)
+        return;
 
-    for (const auto &val : asks) {
+    m_side = side;
+
+    emit sideChanged();
+}
+
+void OrderBookSideModel::updateData(const QVariantList& data) {
+    std::vector<Level> new_levels;
+    new_levels.reserve(data.size());
+
+    for (const auto& val : data) {
         QVariantList pair = val.toList();
         if (pair.size() >= 2)
-            new_records.push_back({pair.at(0).toDouble(), pair.at(1).toDouble(), false});
-    }
-    for (const auto &val : bids) {
-        QVariantList pair = val.toList();
-        if (pair.size() >= 2)
-            new_records.push_back({pair.at(0).toDouble(), pair.at(1).toDouble(), true});
+            new_levels.push_back({pair.at(0).toDouble(), pair.at(1).toDouble()});
     }
 
-    int old_size = m_records.size();
-    int new_size = static_cast<int>(new_records.size());
+    if (m_side == Bid)
+        std::sort(new_levels.begin(), new_levels.end(), [](const Level &a, const Level &b) {
+            return a.price > b.price;
+        });
+    else
+        std::sort(new_levels.begin(), new_levels.end(), [](const Level &a, const Level &b) {
+            return a.price < b.price;
+        });
 
-    if (new_size < old_size) {
-        beginRemoveRows(QModelIndex(), new_size, old_size - 1);
-        m_records.resize(new_size);
-        endRemoveRows();
-    } else if (new_size > old_size) {
-        beginInsertRows(QModelIndex(), old_size, new_size - 1);
-        m_records.resize(new_size);
-        endInsertRows();
-    }
-
-    int min_size = std::min(old_size, new_size);
-    int first_changed_row = -1;
-    int last_changed_row = -1;
-
-    for (int i = 0; i < new_size; ++i) {
-        const auto &new_item = new_records[i];
-
-        if (i >= min_size ||
-            m_records[i].price != new_item.price ||
-            m_records[i].amount != new_item.amount ||
-            m_records[i].isBid != new_item.isBid)
-        {
-            m_records[i] = {new_item.price, new_item.amount, new_item.isBid};
-
-            if (first_changed_row == -1)
-                first_changed_row = i;
-            last_changed_row = i;
+    if (!new_levels.empty()) {
+        double total = 0;
+        for (auto& lvl : new_levels) {
+            total += lvl.amount;
+            lvl.total += total;
         }
     }
 
-    if (first_changed_row != -1) {
-        QModelIndex topLeft = index(first_changed_row, 0);
-        QModelIndex bottomRight = index(last_changed_row, 0);
-        emit dataChanged(topLeft, bottomRight);
+    int new_size = static_cast<int>(new_levels.size());
+    int old_size = static_cast<int>(m_levels.size());
+
+    if (new_size < old_size) {
+        beginRemoveRows(QModelIndex(), new_size, old_size - 1);
+        m_levels.resize(new_size);
+        endRemoveRows();
+    } else if (new_size > old_size) {
+        beginInsertRows(QModelIndex(), old_size, new_size - 1);
+        m_levels.resize(new_size);
+        endInsertRows();
     }
+
+    bool data_changed = false;
+    int first_changed = -1;
+    int last_changed = -1;
+
+    for (int i = 0; i < new_size; ++i) {
+        if (i < old_size && m_levels[i] != new_levels[i]) {
+            m_levels[i] = new_levels[i];
+            data_changed = true;
+
+            if (first_changed == -1)
+                first_changed = i;
+            last_changed = i;
+        } else {
+            m_levels[i] = new_levels[i];
+            data_changed = true;
+
+            if (first_changed == -1)
+                first_changed = i;
+            last_changed = i;
+        }
+    }
+
+    if (data_changed && first_changed != -1)
+        emit dataChanged(index(first_changed, 0), index(last_changed, 0));
 }

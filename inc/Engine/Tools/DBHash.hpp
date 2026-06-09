@@ -1,23 +1,27 @@
 #pragma once
 
-#include "Engine/StdTypes.hpp"
+#include "Engine/Tools/StdTypes.hpp"
 
 namespace Engine {
 
     class DBHash {
     private:
     
-        const QString m_crypto_db = "crypto_data.db";
-        QString m_last_error;
+        QString m_lastError;
     
     public:
-    
-        bool dbExist();    
-        bool create();
-        void close();
+
+        const QString m_dbCrypto = "crypto_data.db";
+        const QString m_dbHistory = "history_candles.db";
+
+        bool dbExist(const QString& name);
+
+        bool createCryptoDB();
+
+        void close(const QString& dbPath);
         QString error();
         
-        bool addItem(const TradingInfo& trade_item);
+        bool addItems(const QList<TradingInfo>& items);
         bool getAllItems(QList<Engine::TradingInfo>& data);
         bool getItems(QList<Engine::TradingInfo>& data, const QString& category);
     };

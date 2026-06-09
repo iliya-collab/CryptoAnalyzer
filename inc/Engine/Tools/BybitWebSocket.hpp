@@ -3,16 +3,19 @@
 #include <QObject>
 #include <QWebSocket>
 #include <QTimer>
+#include <QElapsedTimer>
+#include <QAtomicInt>
 #include <QSet>
 #include <QReadWriteLock>
 #include <QThread>
-
 #include <expected>
 
-#include "Engine/StdTypes.hpp"
+#include "Engine/Tools/StdTypes.hpp"
+
+// Вынести обработку delta обнавлений в AppEngine
+// Убрать m_orderBooks из BybitWebSocket
 
 namespace Engine {
-
     /*
     *   Класс для работы с WebSocket на бирже Bybit
     */
@@ -21,52 +24,41 @@ namespace Engine {
 
     private:
 
-        // Методы для отправки сообшений
-        // Сообщение о подписке
+        // Отправка сообщения о подписке
         void sendSubscriptionMessage(const QStringList& streams);
-        // Сообщение о отписке
+        // Отправка сообщения об отписке
         void sendUnsubscriptionMessage(const QStringList& streams);
         // Отправка сообщения о пинге
         void sendPingMessage();
         // Обработка сообщения
         void messageReceived(const QJsonObject& obj);
-        
         // Превращает строковое сообщение в json объект
         std::expected<QJsonObject, QString> parseTextMessage(const QString &message);
-
-        // Методы для обновления
         // Обнавление тикера
         void updateTicker(const QJsonObject& json);
         // Обнавление стакана цен
         void updateOrderbook(const QJsonObject& json);
+        void updateKline(const QJsonObject& json);
 
-        // Метод для создания каналов
+        // Метод для создания канала ticker
         QString createTickerStream(const QString& coin);
+        // Метод для создания канала orderbook
         QString createOrderbookStream(const QString& coin);
-        
+        QString createKlineStream(const QString& coin);
         // Методы настройки веб-сокета
         void setupWebSocket();
+        // Метода для настройки соединений
         void setupConnections();
         // Метод для правильного закрытия веб-сокеты
         void cleanup();
-
+        // Метод для освобождения и закрытия
         void closeAfterFlush();
 
-        // Веб-сокет
-        QWebSocket* m_webSocket;
-        API m_api;
-        // Таймер проверки доступности соединения (активный ping)
-        QTimer* m_pingTimer;
-
-        QReadWriteLock m_dataLock;
-
-        // Используемые каналы
-        QSet<QString> m_usedStreams;
-
-        QMap<QString, stOrderBook> m_orderBooks;
-
-        // Уникальный id для подписки на каналы
-        quint64 m_nextReqId = 1;
+        QWebSocket* m_webSocket; // Веб-сокет
+        API m_api; // API для работы с приватными каналами
+        QTimer* m_pingTimer; // Таймер проверки доступности соединения (активный ping)
+        QSet<QString> m_usedStreams; // Используемые каналы
+        quint64 m_nextReqId = 1; // Уникальный id для подписки на каналы
         bool m_pendingClose = false;
 
         // Максимальное кол-во каналов в 1ой подписке
@@ -96,7 +88,6 @@ namespace Engine {
         bool isOpen();
         // Формирует каналы для монеты и отправляет сообщение о подписке на них, если websocket открыт
         void subscribeToStream(const QString& coin, QSet<Stream> streams);
-
         // Потправляет сообщение о подписке на все используемые каналы
         void connectToStreams();
         // Потправляет сообщение об отписке на все используемые каналы
@@ -106,6 +97,7 @@ namespace Engine {
 
         void updatedTicker(const stTicker& newTicker);
         void updatedOrderbook(const stOrderBook& newOrderBook);
+        void updatedKline(const stKline& newKline);
 
         // Испускается, когда websocket успешно открылся
         void connected();

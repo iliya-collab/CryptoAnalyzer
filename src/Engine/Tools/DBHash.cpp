@@ -1,24 +1,22 @@
 #include "Engine/Tools/DBHash.hpp"
-#include "Engine/Managers/DataBaseManager.hpp"
+#include "Engine/Tools/DataBaseManager.hpp"
 
 namespace Engine {
 
-    bool DBHash::dbExist() {
+    bool DBHash::dbExist(const QString& name) {
         auto& db_manager = DataBaseManager::instance();
-        return db_manager.existDBFile(m_crypto_db);
+        return db_manager.existDBFile(name);
     }
 
-    bool DBHash::create() {
+    bool DBHash::createCryptoDB() {
         auto& db_manager = DataBaseManager::instance();
 
-        if (!db_manager.open(m_crypto_db)) {
-            m_last_error = QString("Failed to open database: %1").arg(db_manager.error());
+        if (!db_manager.open(m_dbCrypto)) {
+            m_lastError = QString("Failed to open database: %1").arg(db_manager.error());
             return false;
         }
 
-        QStringList queries;
-
-        queries << R"(
+        QString query = R"(
             CREATE TABLE IF NOT EXISTS crypto_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 symbol TEXT UNIQUE NOT NULL,
@@ -27,45 +25,51 @@ namespace Engine {
             )
         )";
 
-        queries << "CREATE INDEX IF NOT EXISTS idx_crypto_coin ON crypto_data(base_coin)";
-
-        if (!db_manager.execInTransaction(queries)) {
-            m_last_error = QString("Failed to create database structure: %1").arg(db_manager.error());
+        if (!db_manager.request(m_dbCrypto, query)) {
+            m_lastError = db_manager.error();
             return false;
         }
 
         return true;
     }
 
-    void DBHash::close() {
+    void DBHash::close(const QString& dbPath) {
         auto& db_manager = DataBaseManager::instance();
-        db_manager.close();
+        db_manager.close(dbPath);
     }
 
-    bool DBHash::addItem(const TradingInfo& trade_item) {
+    bool DBHash::addItems(const QList<TradingInfo>& items) {
+        if (items.isEmpty())
+            return true;
+
         auto& db_manager = DataBaseManager::instance();
 
-        if (!db_manager.open(m_crypto_db)) {
-            m_last_error = QString("Failed to open database: %1").arg(db_manager.error());
+        if (!db_manager.open(m_dbCrypto)) {
+            m_lastError = db_manager.error();
             return false;
         }
 
-        db_manager.requestPrepared("INSERT INTO crypto_data (symbol, base_coin, quote_coin) VALUES (?, ?, ?)",
-            {trade_item.symbol, trade_item.base_coin, trade_item.quote_coin}
-        );
+        if (!db_manager.beginTransaction(m_dbCrypto))
+            return false;
 
-        return true;
+        for (const auto& item : items)
+            if (!db_manager.requestPrepared(m_dbCrypto, "INSERT INTO crypto_data (symbol, base_coin, quote_coin) VALUES (?, ?, ?)", { item.symbol, item.base_coin, item.quote_coin })) {
+                db_manager.rollbackTransaction(m_dbCrypto);
+                return false;
+            }
+
+        return db_manager.commitTransaction(m_dbCrypto);
     }
 
     bool DBHash::getAllItems(QList<Engine::TradingInfo>& data) {
         auto& db_manager = DataBaseManager::instance();
 
-        if (!db_manager.open(m_crypto_db)) {
-            m_last_error = QString("Failed to open database: %1").arg(db_manager.error());
+        if (!db_manager.open(m_dbCrypto)) {
+            m_lastError = QString("Failed to open database: %1").arg(db_manager.error());
             return false;
         }
 
-        db_manager.request("SELECT symbol, base_coin, quote_coin FROM crypto_data", [&data](QSqlQuery& query) {
+        db_manager.request(m_dbCrypto, "SELECT symbol, base_coin, quote_coin FROM crypto_data", [&data](QSqlQuery& query) {
             while (query.next()) {
                 TradingInfo item;
                 item.symbol = query.value(0).toString();
@@ -81,12 +85,12 @@ namespace Engine {
     bool DBHash::getItems(QList<Engine::TradingInfo>& data, const QString& category) {
         auto& db_manager = DataBaseManager::instance();
 
-        if (!db_manager.open(m_crypto_db)) {
-            m_last_error = QString("Failed to open database: %1").arg(db_manager.error());
+        if (!db_manager.open(m_dbCrypto)) {
+            m_lastError = QString("Failed to open database: %1").arg(db_manager.error());
             return false;
         }
 
-        db_manager.requestPrepared("SELECT symbol, base_coin, quote_coin FROM crypto_data WHERE quote_coin = ?", category, [category, &data](QSqlQuery& query) {
+        db_manager.requestPrepared(m_dbCrypto, "SELECT symbol, base_coin, quote_coin FROM crypto_data WHERE quote_coin = ?", category, [category, &data](QSqlQuery& query) {
             while (query.next()) {
                TradingInfo item;
                item.symbol = query.value(0).toString();
@@ -100,7 +104,7 @@ namespace Engine {
     }
 
     QString DBHash::error() {
-        return m_last_error;
+        return m_lastError;
     }
 
 }

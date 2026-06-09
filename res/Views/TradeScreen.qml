@@ -22,6 +22,18 @@ Rectangle {
         rightPanel.visible = visible
     }
 
+    function bindWithEngine() {
+        tickerWidget.bindTicker()
+        orderbookWidget.bindOrderbook()
+        klineWidget.bindKline()
+    }
+
+    function unbindWithEngine() {
+        tickerWidget.unbindTicker()
+        orderbookWidget.unbindOrderbook()
+        klineWidget.unbindKline()
+    }
+
     Item {
         id: leftContentContainer
         anchors.left: parent.left
@@ -29,9 +41,10 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.right: rightPanel.visible ? rightPanel.left : parent.right
 
-        RowLayout {
+        ColumnLayout {
             id: mainContent
             anchors.fill: parent
+            spacing: Theme.spacing
 
             RowLayout {
                 Layout.alignment: Qt.AlignTop
@@ -49,22 +62,30 @@ Rectangle {
 
                     onItemSelected: function(item) {
                         Engine.addTrade(item)
-                        Engine.filter(item)
                     }
-                    onFilterSelected: function(filter) { Engine.loadTradingPairs(filter) }
+                    onFilterSelected: function(filter) {
+                        Engine.loadTradingPairs(filter)
+                    }
                 }
                 TickerWidget {
                     id: tickerWidget
                     Layout.fillWidth: true
                 }
             } // RowLayout
+
+            KlineWidget {
+                id: klineWidget
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+            }
+
         } // mainContent
     } // leftContentContainer
 
     Rectangle {
         id: rightPanel
         height: root.height
-        width: root.width / 4
+        width: root.width / 3
 
         color: Theme.windowColor
         border.width: Theme.borderWidth
@@ -82,6 +103,7 @@ Rectangle {
             anchors.fill: parent
             anchors.margins: Theme.margins
             OrderBookWidget {
+                id: orderbookWidget
                 Layout.fillWidth: true
                 Layout.fillHeight: true
             }
@@ -89,13 +111,11 @@ Rectangle {
     } // rightPanel
 
     Component.onCompleted: {
+        root.unbindWithEngine()
+        root.bindWithEngine()
         root.setOrderbookVisible(true)
-        Engine.loadTradingPairs("ALL")
-        if (Engine.tradeList && Engine.tradeList.length > 0) {
-            var firstItem = Engine.tradeList[0]
-            Engine.addTrade(firstItem)
-            Engine.filter(firstItem)
-        }
     }
+
+    Component.onDestruction: root.unbindWithEngine()
 
 } // TradePage

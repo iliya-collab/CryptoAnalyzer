@@ -8,12 +8,17 @@ ToolBar {
     id: root
 
     property var modelToolButtons: []
-    signal toolButtonClicked(string button)
+    signal toolButtonClicked(string id, string button)
 
-    background: Rectangle { color: Theme.toolBarColor }
+    background: Rectangle {
+        color: Theme.toolBarColor
+        border.color: Theme.borderColor
+        border.width: Theme.borderWidth
+    }
 
     RowLayout {
         anchors.fill: parent
+        spacing: Theme.spacing
 
         Repeater {
             model: root.modelToolButtons
@@ -22,16 +27,29 @@ ToolBar {
                 id: btnMenu
                 text: modelData.text
                 background: Rectangle { color: btnMenu.pressed ? Theme.pressColor : (btnMenu.hovered ? Theme.hoverColor : "transparent") }
-                contentItem: Text {
-                    text: btnMenu.text
-                    font.pixelSize: Theme.fontSizeBody
-                    font.family: Theme.fontFamily
-                    color: Theme.textColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                contentItem: RowLayout {
+                    anchors.centerIn: parent
+
+                    Image {
+                        visible: !!modelData.icon
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        source: modelData.icon
+                        sourceSize: Qt.size(24, 24)
+                        fillMode: Image.PreserveAspectFit
+                    }
+
+                    CustomText {
+                        visible: btnMenu.text !== ""
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                        text: btnMenu.text
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
                 }
-                onClicked: root.toolButtonClicked(btnMenu.text)
+
+                onClicked: root.toolButtonClicked(modelData.id, btnMenu.text)
             } // ToolButton
         } // Repeater
+
+        Item { Layout.fillWidth: true }
     } // RowLayout
 } // CustomToolBar

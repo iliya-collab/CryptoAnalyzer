@@ -2,7 +2,6 @@
 #include <QQmlApplicationEngine>
 
 #include "Engine/App/AppWorker.hpp"
-#include "Engine/Tools/OrderBookModel.hpp"
 
 int main(int argc, char *argv[]) {
     //qputenv("QT_QPA_PLATFORM", "xcb");
@@ -11,15 +10,15 @@ int main(int argc, char *argv[]) {
 
     QQmlApplicationEngine qmlEngine;
 
-    // Выводим пути поиска
+    // Пути поиска
     qDebug() << "Import paths:" << qmlEngine.importPathList();
 
     qmlRegisterSingletonType<AppWorker>("Engine", 1, 0, "Engine", AppWorker::create);
     qmlRegisterUncreatableMetaObject(Engine::staticMetaObject, "Engine", 1, 0, "StdTypesEngine", "Access to enums only");
-
-    qmlRegisterType<OrderBookModel>("EngineComponents", 1, 0, "OrderBookModel");
-    qmlRegisterType<Engine::stTicker>("EngineComponents", 1, 0, "stTicker");
-    qmlRegisterType<Engine::stOrderBook>("EngineComponents", 1, 0, "stOrderBook");
+    qmlRegisterType<OrderBookSideModel>("Engine.Components", 1, 0, "OrderBookSideModel");
+    qmlRegisterType<Engine::stTicker>("Engine.Components", 1, 0, "stTicker");
+    qmlRegisterType<Engine::stOrderBook>("Engine.Components", 1, 0, "stOrderBook");
+    qmlRegisterType<Engine::stKline>("Engine.Components", 1, 0, "stKline");
 
     QObject::connect(&qmlEngine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
         QCoreApplication::exit(-1);

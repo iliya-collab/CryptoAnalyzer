@@ -18,9 +18,10 @@ namespace Engine {
 
     public:
 
-        QString m_symbol; // Название пары
-        QMap<double, double> m_bids; // Покупки (цена, объем)
-        QMap<double, double> m_asks; // Продажи (цена, объем)
+        QString m_type = "";
+        QString m_symbol = ""; // Название пары
+        QMap<double, double> m_bids = {}; // Покупки (цена, объем)
+        QMap<double, double> m_asks = {}; // Продажи (цена, объем)
 
         QVariantList getBids() const { return mapToVariantList(m_bids); }
         QVariantList getAsks() const { return mapToVariantList(m_asks); }
@@ -53,6 +54,7 @@ namespace Engine {
 
     public:
 
+        QString m_symbol = ""; // Название пары
         double m_lastPrice = 0.0; // Последняя цена сделки
         double m_usdIndexPrice = 0; // Индексная цена доллара США
         double m_high24h = 0.0; // Максимальная цена за 24 часа
@@ -61,7 +63,29 @@ namespace Engine {
         double m_vol24h = 0.0; // Объем торгов в базовой валюте за 24ч (BTC)
         double m_prevPrice24h = 0.0; // Рыночная цена 24 часа назад
         double m_price24hPcnt = 0.0; // Процентное изменение рыночной цены относительно 24 часов
+
+    };
+
+    struct stKline {
+        Q_GADGET
+
+        Q_PROPERTY(QString symbol MEMBER m_symbol)
+        Q_PROPERTY(double open MEMBER m_open)
+        Q_PROPERTY(double close MEMBER m_close)
+        Q_PROPERTY(double high MEMBER m_high)
+        Q_PROPERTY(double low MEMBER m_low)
+        Q_PROPERTY(bool confirm MEMBER m_confirm)
+        Q_PROPERTY(qint64 timestamp MEMBER m_timestamp)
+
+    public:
+
         QString m_symbol = ""; // Название пары
+        double m_open = 0;
+        double m_close = 0;
+        double m_high = 0;
+        double m_low = 0;
+        qint64 m_timestamp = 0;
+        bool m_confirm = false;
 
     };
 
