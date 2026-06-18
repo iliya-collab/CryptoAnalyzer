@@ -3,7 +3,7 @@
 #include <QObject>
 #include <memory>
 
-#include "Engine/Tools/BybitWebSocket.hpp"
+#include "Tools/Network/BybitWebSocket.hpp"
  
 namespace Engine {
 
@@ -16,12 +16,12 @@ namespace Engine {
         bool m_isInterrupt = false;
         QString m_lastPair = "";
 
-        QMap<QString, stOrderBook> m_orderBooks; // Список ордеров
-        QList<stKline> m_savedCandles;
+        QMap<QString, Orderbook> m_orderBooks; // Список ордеров
+        QList<Kline> m_savedCandles;
 
-        void updateOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook);
-        void snapshotOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook);
-        void deltaUpdateOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook);
+        void updateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook);
+        void snapshotOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook);
+        void deltaUpdateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook);
 
     public:
 
@@ -40,9 +40,9 @@ namespace Engine {
         void stopped();
         void errorOccurred(const QString& error);
 
-        void tickerUpdated(const stTicker& newTicker);
-        void orderBookUpdated(const stOrderBook& newOrderBook);
-        void klineUpdated(const stKline& newKline);
+        void tickerUpdated(const Ticker& newTicker);
+        void orderBookUpdated(const Orderbook& newOrderBook);
+        void klineUpdated(const Kline& newKline);
 
     };
 

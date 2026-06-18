@@ -7,7 +7,10 @@ Item {
     id: root
 
     function updateKline(newKline) {
-        klineView.addCandle(newKline.timestamp, newKline.open, newKline.close, newKline.high, newKline.low)
+        if (newKline.confirm) {
+            klineView.addCandle(newKline.timestamp, newKline.open, newKline.close, newKline.high, newKline.low)
+            Engine.saveCandle(newKline)
+        }
     }
 
     function bindKline() {

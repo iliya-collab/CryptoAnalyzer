@@ -10,11 +10,7 @@ ToolBar {
     property var modelToolButtons: []
     signal toolButtonClicked(string id, string button)
 
-    background: Rectangle {
-        color: Theme.toolBarColor
-        border.color: Theme.borderColor
-        border.width: Theme.borderWidth
-    }
+    background: Rectangle { color: Theme.toolBarColor }
 
     RowLayout {
         anchors.fill: parent

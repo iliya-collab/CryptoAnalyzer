@@ -9,7 +9,7 @@
 namespace Engine {
     Q_NAMESPACE
 
-    struct stOrderBook {
+    struct Orderbook {
         Q_GADGET
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
@@ -39,7 +39,7 @@ namespace Engine {
 
     };
 
-    struct stTicker {
+    struct Ticker {
         Q_GADGET
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
@@ -66,7 +66,7 @@ namespace Engine {
 
     };
 
-    struct stKline {
+    struct Kline {
         Q_GADGET
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
@@ -79,7 +79,8 @@ namespace Engine {
 
     public:
 
-        QString m_symbol = ""; // Название пары
+        QString m_symbol = "";
+        QString m_interval = "";
         double m_open = 0;
         double m_close = 0;
         double m_high = 0;
@@ -102,12 +103,6 @@ namespace Engine {
         QString m_apiKey = ""; // API ключ
         QString m_secretKey = ""; // Секретный API ключ
         bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
-    };
-
-    struct TradingInfo {
-        QString symbol;
-        QString base_coin;
-        QString quote_coin;
     };
 
 } // namespace Engine

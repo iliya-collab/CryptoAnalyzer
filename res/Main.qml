@@ -22,21 +22,21 @@ ApplicationWindow {
     Component.onCompleted: {
         console.log("UI Loaded successfully")
 
-        Engine.loadingProgress.connect(function(step, current, total) {
-            statusWidget.progressValue = current / total * 100
-            statusWidget.text = step + " - completed " + statusWidget.progressValue + "%"
-        })
-
         Engine.errorOccurred.connect(function(error) {
             statusWidget.text = error
         })
 
-        Engine.loadingFinished.connect(function(success) {
-            statusWidget.text = (success) ? "Loading completed!" : "Loading failed!"
+        Engine.messageReceived.connect(function(msg) {
+            statusWidget.text = msg
+        })
+
+        Engine.downloadProgress.connect(function(received, total) {
+            if (total > 0)
+                statusWidget.progressValue = received / total * 100
         })
 
         Engine.engineStarted.connect(function() {
-            Engine.loadTradingPairs("ALL")
+            Engine.loadTradesFromRepository()
         })
 
         Engine.apiChecked.connect(function(isValid) {
@@ -45,55 +45,49 @@ ApplicationWindow {
             else
                 console.log("API is not valid");
         })
-    }
 
-    header: CustomToolBar {
-        modelToolButtons: [
-            { id: "btn_run", icon: "qrc:/icons/icon_play.png" },
-            { id: "btn_restart", icon: "qrc:/icons/icon_restart.png" },
-            { id: "btn_stop", icon: "qrc:/icons/icon_stop.png" }
-        ]
-        onToolButtonClicked: function(id, name) {
-            if (id === "btn_run")
-                Engine.run()
-            else if (id === "btn_restart")
-                Engine.restart()
-            else if (id === "btn_stop")
-                Engine.interrupt()
-        }
+        Engine.init()
     }
 
     // Меню
     menuBar: CustomMenuBar {
         menuModel: [
             {
-                title: "Account",
+                text: "Account",
                 items: [
                     { text: "Connect API" }
                 ]
             },
             {
-                title: "Trade",
+                text: "Trade",
                 items: [
+                    {
+                        text: "Load",
+                        items: [
+                            { text: "Spot pairs" },
+                            { text: "Candles" }
+                        ]
+                    },
+                    { text: "---" },
                     { text: "Spot" }
                 ]
             },
             {
-                title: "View",
+                text: "View",
                 items: [
                     {
                         text: "Orderbook",
                         checkable: true,
-                        checked: mainWindow.visibleOrderbook
+                        checked: true
                     }
                 ]
             },
-            {
-                title: "Settings"
-            }
+            { text: "Settings" }
         ]
 
-        onItemTriggered: function(menuTitle, itemText, checkedState) {
+        onItemTriggered: function(itemText, itemPath, checkedState) {
+            //console.log("Item:", itemText, " Full path:", itemPath)
+
             if (itemText === "Connect API")
                 mainStack.showConnectAPI()
             else if (itemText === "Orderbook") {
@@ -103,18 +97,38 @@ ApplicationWindow {
             }
             else if (itemText === "Spot")
                 mainStack.showTradePage()
+            else if (itemPath === "Load > Spot pairs")
+                Engine.loadTradesFromNetwork()
+            else if (itemPath === "Load > Candles") {}
         }
     }
 
     // Главное окно
-    ColumnLayout {
-        id: mainLayout
+    Page {
+        id: mainPage
         anchors.fill: parent
+
+        background: Rectangle { color: Theme.windowColor }
+
+        header: CustomToolBar {
+            modelToolButtons: [
+                { id: "btn_run", icon: "qrc:/icons/icon_play.png" },
+                { id: "btn_restart", icon: "qrc:/icons/icon_restart.png" },
+                { id: "btn_stop", icon: "qrc:/icons/icon_stop.png" }
+            ]
+            onToolButtonClicked: function(id, name) {
+                if (id === "btn_run")
+                    Engine.run()
+                else if (id === "btn_restart")
+                    Engine.restart()
+                else if (id === "btn_stop")
+                    Engine.interrupt()
+            }
+        }
 
         StackView {
             id: mainStack
-            Layout.fillHeight: true
-            Layout.fillWidth: true
+            anchors.fill: parent
 
             // Стартовый пустой экран
             initialItem: Item {}
@@ -135,25 +149,23 @@ ApplicationWindow {
                 mainStack.replace("Views/TradeScreen.qml")
             }
         } // mainStack
-    } // mainLayout
 
-    footer: Rectangle {
-        border.color: Theme.borderColor
-        border.width: Theme.borderWidth
-        color: Theme.windowColor
-        height: 30
+        footer: Rectangle {
+            color: Theme.toolBarColor
+            height: 30
 
-        RowLayout {
-            anchors.fill: parent
-            CustomStatusBar {
-                id: statusWidget
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                autoHide: false
+            RowLayout {
+                anchors.fill: parent
+                CustomStatusBar {
+                    id: statusWidget
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    autoHide: false
+                    //visibleProgressBar: false
+                }
             }
         }
-    }
 
-    Loader { id: windowLoader }
+    } // mainLayout
 
 }

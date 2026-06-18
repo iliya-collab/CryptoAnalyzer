@@ -1,15 +1,12 @@
 #pragma once
-
 #include <QQmlContext>
-
 #include <QObject>
 #include <QThread>
+#include <atomic>
 #include <memory>
-
-#include "Engine/App/AppEngine.hpp"
-#include "Engine/App/AppEngineLoader.hpp"
-
-#include "Engine/Tools/OrderBookModel.hpp"
+#include "Engine/AppEngine.hpp"
+#include "Engine/AppEngineLoader.hpp"
+#include "Engine/Tools/DataModels/OrderbookModel.hpp"
 
 class AppWorker : public QObject {
     Q_OBJECT
@@ -25,8 +22,8 @@ private:
 
     QString m_lastTrade = "";
     QVariantList m_lstTrades;
-    QVariantList m_lstAPI;
     Engine::API m_curAPI;
+    std::atomic<bool> wasInit{false};
 
     void setupLoaderConnections();
     void setupEngineConnections();
@@ -37,18 +34,22 @@ private:
 
 public:
 
-    static AppWorker *create(QQmlEngine *engine, QJSEngine *scriptEngine) {
-        return new AppWorker();
-    }
+    static AppWorker *create(QQmlEngine *engine, QJSEngine *scriptEngine);
 
     // ------ Методы доступные в контексте QML ------
+    Q_INVOKABLE void init();
     // Запускает движок
     Q_INVOKABLE void run();
     // Перезапускает движок
     Q_INVOKABLE void restart();
     // Прерывает работу движка
     Q_INVOKABLE void interrupt();
-    Q_INVOKABLE void loadTradingPairs(const QString& category);
+
+    Q_INVOKABLE void loadTradesFromRepository(const QString& category = "ALL");
+    Q_INVOKABLE void loadTradesFromNetwork();
+    Q_INVOKABLE void loadCandlesFromNetwork(const QString& symbol, const QString& interval, int start, int end);
+    Q_INVOKABLE void saveCandle(const Engine::Kline& candle);
+
     Q_INVOKABLE void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
     Q_INVOKABLE void checkAPI();
     // Запускает trade по выбранной паре pair
@@ -57,18 +58,18 @@ public:
 
 signals:
 
-    // ------ Сигналы для уведомления об измении свойства ------
+    // Сигнал для уведомления об измении свойства tradeList
     void tradeListChanged();
 
-    void loadingProgress(const QString& step, int current, int total);
     void errorOccurred(const QString& error);
-    void loadingFinished(bool success);
+    void messageReceived(const QString& msg);
+    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
     void apiChecked(bool isValid);
     void engineStarted();
     void engineStopped();
 
-    void tickerUpdated(const Engine::stTicker& newTicker);
-    void orderBookUpdated(const Engine::stOrderBook& newOrderBook);
-    void klineUpdated(const Engine::stKline& newKline);
+    void tickerUpdated(const Engine::Ticker& newTicker);
+    void orderbookUpdated(const Engine::Orderbook& newOrderbook);
+    void klineUpdated(const Engine::Kline& newKline);
 
 };

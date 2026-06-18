@@ -12,6 +12,7 @@ Rectangle {
     property bool autoHide: true
     property alias durationHide: hideAnimation.duration
     property alias intervalHide: hideTimer.interval
+    property alias visibleProgressBar: progressBar.visible
 
     // Значения по умолчанию
     implicitWidth: contantLayout.width

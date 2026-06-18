@@ -1,4 +1,4 @@
-#include "Engine/Tools/BybitWebSocket.hpp"
+#include "BybitWebSocket.hpp"
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -219,7 +219,7 @@ namespace Engine {
         QJsonObject data = json["data"].toObject();
         QString symbol = data["symbol"].toString();
 
-        stTicker ticker = {};
+        Ticker ticker = {};
 
         ticker.m_symbol = symbol;
         ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
@@ -244,17 +244,17 @@ namespace Engine {
         QString symbol = data["s"].toString();
         QString type = json["type"].toString();
 
-        stOrderBook orderBook = {};
+        Orderbook orderbook = {};
 
-        orderBook.m_type = type;
-        orderBook.m_symbol = symbol;
+        orderbook.m_type = type;
+        orderbook.m_symbol = symbol;
 
         QJsonArray bidsArray = data.value("b").toArray();
         for (const auto& bidVal : bidsArray) {
             QJsonArray bid = bidVal.toArray();
             double price = bid[0].toString().toDouble();
             double size = bid[1].toString().toDouble();
-            orderBook.m_bids.insert(price, size);
+            orderbook.m_bids.insert(price, size);
         }
 
         QJsonArray asksArray = data.value("a").toArray();
@@ -262,10 +262,10 @@ namespace Engine {
             QJsonArray ask = askVal.toArray();
             double price = ask[0].toString().toDouble();
             double size = ask[1].toString().toDouble();
-            orderBook.m_asks.insert(price, size);
+            orderbook.m_asks.insert(price, size);
         }
 
-        emit updatedOrderbook(orderBook);
+        emit updatedOrderbook(orderbook);
     }
 
     void BybitWebSocket::updateKline(const QJsonObject& json) {
@@ -277,21 +277,21 @@ namespace Engine {
         QJsonArray arrData = json["data"].toArray();
         QString symbol = json["topic"].toString().section('.', -1);;
 
-        stKline newKline;
-        newKline.m_symbol = symbol;
+        Kline kline;
+        kline.m_symbol = symbol;
 
         for (const auto& val : arrData) {
             QJsonObject data = val.toObject();
-            newKline.m_open = data["open"].toString().toDouble();
-            newKline.m_close = data["close"].toString().toDouble();
-            newKline.m_high = data["high"].toString().toDouble();
-            newKline.m_low = data["low"].toString().toDouble();
-            newKline.m_confirm = data["confirm"].toBool();
-            newKline.m_timestamp = data["timestamp"].toVariant().toLongLong();
+            kline.m_open = data["open"].toString().toDouble();
+            kline.m_close = data["close"].toString().toDouble();
+            kline.m_high = data["high"].toString().toDouble();
+            kline.m_low = data["low"].toString().toDouble();
+            kline.m_confirm = data["confirm"].toBool();
+            kline.m_timestamp = data["timestamp"].toVariant().toLongLong();
+            kline.m_interval = data["interval"].toString();
         }
 
-        if (newKline.m_confirm)
-            emit updatedKline(newKline);
+        emit updatedKline(kline);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {

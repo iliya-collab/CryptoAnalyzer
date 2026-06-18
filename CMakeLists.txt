@@ -23,7 +23,6 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 set(SOURCE_DIR "${CMAKE_SOURCE_DIR}/src")
-set(HEADER_DIR "${CMAKE_SOURCE_DIR}/inc")
 set(RESOURCE_DIR "${CMAKE_SOURCE_DIR}/res")
 set(QML_MODULES "${CMAKE_BINARY_DIR}/qml_modules")
 set(QML_IMPORT_PATH "${QML_MODULES}" CACHE STRING "Extra QML Import Paths" FORCE)
@@ -45,8 +44,8 @@ file(GLOB_RECURSE MY_SOURCES
 )
 
 file(GLOB_RECURSE MY_HEADERS
-    "${HEADER_DIR}/*.h"
-    "${HEADER_DIR}/*.hpp"
+    "${SOURCE_DIR}/*.h"
+    "${SOURCE_DIR}/*.hpp"
 )
 
 add_executable(${PROJECT_NAME}

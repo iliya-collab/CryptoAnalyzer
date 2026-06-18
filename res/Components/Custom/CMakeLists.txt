@@ -13,4 +13,5 @@ qt_add_qml_module(CustomComponents
         CustomTextField.qml
         CustomToolBar.qml
         CustomTabBar.qml
+
 )

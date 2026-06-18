@@ -10,10 +10,7 @@
 #include <QThread>
 #include <expected>
 
-#include "Engine/Tools/StdTypes.hpp"
-
-// Вынести обработку delta обнавлений в AppEngine
-// Убрать m_orderBooks из BybitWebSocket
+#include "../StdTypes.hpp"
 
 namespace Engine {
     /*
@@ -95,9 +92,9 @@ namespace Engine {
 
     signals:
 
-        void updatedTicker(const stTicker& newTicker);
-        void updatedOrderbook(const stOrderBook& newOrderBook);
-        void updatedKline(const stKline& newKline);
+        void updatedTicker(const Ticker& newTicker);
+        void updatedOrderbook(const Orderbook& newOrderBook);
+        void updatedKline(const Kline& newKline);
 
         // Испускается, когда websocket успешно открылся
         void connected();

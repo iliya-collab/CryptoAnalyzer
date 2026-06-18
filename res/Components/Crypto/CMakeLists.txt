@@ -4,9 +4,9 @@ qt_add_qml_module(CryptoComponents
     RESOURCE_PREFIX "/qt/qml"
     OUTPUT_DIRECTORY "${QML_MODULES}/Components/Crypto"
     QML_FILES
-        OrderBookTableView.qml
+    OrderbookTableView.qml
         SelecterTradeWidget.qml
-        OrderBookWidget.qml
+        OrderbookWidget.qml
         TickerItem.qml
         TickerWidget.qml
         KlineChartView.qml

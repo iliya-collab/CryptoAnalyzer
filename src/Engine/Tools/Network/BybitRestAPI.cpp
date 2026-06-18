@@ -1,4 +1,4 @@
-#include "Engine/Tools/BybitRestAPI.hpp"
+#include "BybitRestAPI.hpp"
 
 #include <QCryptographicHash>
 #include <QMessageAuthenticationCode>
@@ -77,8 +77,8 @@ namespace Engine {
 
         QNetworkReply* reply = m_manager->get(request);
 
-        connect(reply, &QNetworkReply::finished, this, &Engine::BybitRestAPI::handleResponse);
-        connect(reply, &QNetworkReply::downloadProgress, this, &Engine::BybitRestAPI::downloadProgress);
+        connect(reply, &QNetworkReply::finished, this, &Engine::BybitRestAPI::handleResponse, Qt::SingleShotConnection);
+        connect(reply, &QNetworkReply::downloadProgress, this, &Engine::BybitRestAPI::downloadProgress, Qt::UniqueConnection);
     }
 
     QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString) {

@@ -11,27 +11,27 @@ Rectangle {
 
     color: Theme.windowColor
 
-    OrderBookSideModel {
+    OrderbookSideModel {
         id: bidsModel
-        side: OrderBookSideModel.Bid
+        side: OrderbookSideModel.Bid
     }
 
-    OrderBookSideModel {
+    OrderbookSideModel {
         id: asksModel
-        side: OrderBookSideModel.Ask
+        side: OrderbookSideModel.Ask
     }
 
-    function updateOrderBook(newOrderBook) {
-        bidsModel.updateData(newOrderBook.bids)
-        asksModel.updateData(newOrderBook.asks)
+    function updateOrderbook(newOrderbook) {
+        bidsModel.updateData(newOrderbook.bids)
+        asksModel.updateData(newOrderbook.asks)
     }
 
     function bindOrderbook() {
-        Engine.orderBookUpdated.connect(root.updateOrderBook)
+        Engine.orderbookUpdated.connect(root.updateOrderbook)
     }
 
     function unbindOrderbook() {
-        Engine.orderBookUpdated.disconnect(root.updateOrderBook)
+        Engine.orderbookUpdated.disconnect(root.updateOrderbook)
     }
 
     RowLayout {
@@ -54,7 +54,7 @@ Rectangle {
                 verticalAlignment: CustomText.AlignVCenter
             }
 
-            OrderBookTableView {
+            OrderbookTableView {
                 id: tblBids
                 model: bidsModel
                 priceColor: "#00ff66"
@@ -78,7 +78,7 @@ Rectangle {
                 verticalAlignment: CustomText.AlignVCenter
             }
 
-            OrderBookTableView {
+            OrderbookTableView {
                 id: tblAsks
                 model: asksModel
                 priceColor: "#ff4444"

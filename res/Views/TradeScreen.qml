@@ -64,7 +64,7 @@ Rectangle {
                         Engine.addTrade(item)
                     }
                     onFilterSelected: function(filter) {
-                        Engine.loadTradingPairs(filter)
+                        Engine.loadTradesFromRepository(filter)
                     }
                 }
                 TickerWidget {
@@ -102,7 +102,7 @@ Rectangle {
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Theme.margins
-            OrderBookWidget {
+            OrderbookWidget {
                 id: orderbookWidget
                 Layout.fillWidth: true
                 Layout.fillHeight: true

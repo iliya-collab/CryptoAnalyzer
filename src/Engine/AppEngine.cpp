@@ -1,4 +1,4 @@
-#include "Engine/App/AppEngine.hpp"
+#include "AppEngine.hpp"
 
 namespace Engine {
 
@@ -17,19 +17,19 @@ namespace Engine {
         });
         connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const stTicker& newTicker) {
+        connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const Ticker& newTicker) {
             if (m_lastPair == newTicker.m_symbol)
                 emit tickerUpdated(newTicker);
         });
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedOrderbook, this, [this](const stOrderBook& newOrderBook) {
-            if (m_lastPair == newOrderBook.m_symbol) {
-                updateOrderbook(m_orderBooks[newOrderBook.m_symbol], newOrderBook);
-                emit orderBookUpdated(m_orderBooks[newOrderBook.m_symbol]);
+        connect(m_webSocket.get(), &BybitWebSocket::updatedOrderbook, this, [this](const Orderbook& newOrderbook) {
+            if (m_lastPair == newOrderbook.m_symbol) {
+                updateOrderbook(m_orderBooks[newOrderbook.m_symbol], newOrderbook);
+                emit orderBookUpdated(m_orderBooks[newOrderbook.m_symbol]);
             }
         });
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedKline, this, [this](const stKline& newKline) {
+        connect(m_webSocket.get(), &BybitWebSocket::updatedKline, this, [this](const Kline& newKline) {
             if (m_lastPair == newKline.m_symbol) {
                 m_savedCandles.append(newKline);
                 emit klineUpdated(newKline);
@@ -46,23 +46,21 @@ namespace Engine {
 
         if (hasRunned())
             m_webSocket->close();
-
-        qDebug() << Q_FUNC_INFO << "finished";
     }
 
-    void AppEngine::updateOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook) {
+    void AppEngine::updateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
         if (newOrderbook.m_type == "snapshot")
             snapshotOrderbook(oldOrderbook, newOrderbook);
         else
             deltaUpdateOrderbook(oldOrderbook, newOrderbook);
     }
 
-    void AppEngine::snapshotOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook) {
+    void AppEngine::snapshotOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
         oldOrderbook.m_bids = newOrderbook.m_bids;
         oldOrderbook.m_asks = newOrderbook.m_asks;
     }
 
-    void AppEngine::deltaUpdateOrderbook(stOrderBook& oldOrderbook, const stOrderBook& newOrderbook) {
+    void AppEngine::deltaUpdateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
         for (const auto& bidVal : newOrderbook.m_bids.asKeyValueRange()) {
             double price = bidVal.first;
             double size = bidVal.second;

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Engine/Tools/StdTypes.hpp"
-
+#include "../StdTypes.hpp"
 #include <QObject>
 #include <QJsonDocument>
 #include <QJsonObject>
