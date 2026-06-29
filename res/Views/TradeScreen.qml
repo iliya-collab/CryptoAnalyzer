@@ -75,6 +75,7 @@ Rectangle {
 
             KlineWidget {
                 id: klineWidget
+                Layout.margins: Theme.margins
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }
@@ -88,9 +89,6 @@ Rectangle {
         width: root.width / 3
 
         color: Theme.windowColor
-        border.width: Theme.borderWidth
-        border.color: Theme.borderColor
-        radius: Theme.radius
 
         anchors.right: parent.right
         anchors.top: parent.top

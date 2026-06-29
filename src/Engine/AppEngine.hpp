@@ -1,8 +1,6 @@
 #pragma once
-
 #include <QObject>
 #include <memory>
-
 #include "Tools/Network/BybitWebSocket.hpp"
  
 namespace Engine {
@@ -13,6 +11,7 @@ namespace Engine {
 
         std::unique_ptr<BybitWebSocket> m_webSocket;
 
+        qint64 m_startTime;
         bool m_isInterrupt = false;
         QString m_lastPair = "";
 
@@ -33,6 +32,7 @@ namespace Engine {
         void setAPI(const API& api);
         void addTrade(const QString& pair);
         bool hasRunned();
+        qint64 getStartTime();
 
     signals:
 

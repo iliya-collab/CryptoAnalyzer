@@ -12,12 +12,15 @@
 
 namespace Engine {
 
+    using ItemTrade = CryptoRepository::TradeInfo;
+    using TradeList = QList<ItemTrade>;
+    using ItemCandle = Kline;
+    using CandleList = QList<ItemCandle>;
+
     class AppEngineLoader : public QObject {
         Q_OBJECT
     private:
 
-        using TradeInfo = CryptoRepository::TradeInfo;
-        using TradeList = QList<CryptoRepository::TradeInfo>;
 
         mutable QMutex m_mutex;
         std::unique_ptr<CryptoRepository> m_cryptoRep;
@@ -25,7 +28,7 @@ namespace Engine {
         BybitRestAPI* m_currentApi = nullptr;
 
         void processRequestTradePairs(TradeList& pairs, const QJsonObject& data);
-        void processRequestCandles(QList<Kline>& candles, const QJsonObject& data);
+        void processRequestCandles(CandleList& candles, const QJsonObject& data);
 
     public:
 
@@ -43,8 +46,10 @@ namespace Engine {
         void clearCryptoRepository();
         // Сохранение данных в крипторепозитории
         void saveToCryptoRepository(const TradeList& tradePairs);
-        void saveToCandleRepository(const Kline& newCandle);
-        void saveToCandlesRepository(const QList<Kline>& newCandles);
+        void saveToCandleRepository(const ItemCandle& newCandle);
+        void saveToCandlesRepository(const CandleList& newCandles);
+
+        TradeList getTradeList() { return m_cryptoRep->getSelectedData(); }
 
         // Работа с сетью
         // Загрузка информации об аккаунте
@@ -60,7 +65,7 @@ namespace Engine {
         void messageSent(const QString& msg); // Отправляет сообщение в движок
         void downloadProgress(qint64 bytesReceived, qint64 bytesTotal); // Уведомляет основной движок об загрузочном процессе
         void infoAboutAccountReceived(bool isValid);
-        void candlesReceived(const QList<Kline>& candles);
+        void candlesReceived(const CandleList& candles);
         void tradePairsReceived(const TradeList& pairs);
 
     };

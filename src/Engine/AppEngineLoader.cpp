@@ -35,7 +35,7 @@ namespace Engine {
             emit errorOccurred(m_cryptoRep->error());
     }
 
-    AppEngineLoader::TradeList AppEngineLoader::loadAllFromCryptoRepository() {
+    TradeList AppEngineLoader::loadAllFromCryptoRepository() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->selectTrades()) {
@@ -45,7 +45,7 @@ namespace Engine {
         return m_cryptoRep->getSelectedData();
     }
 
-    AppEngineLoader::TradeList AppEngineLoader::loadFromCryptoRepository(const QString& quoteCoin) {
+    TradeList AppEngineLoader::loadFromCryptoRepository(const QString& quoteCoin) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->selectTrades(quoteCoin)) {
@@ -73,14 +73,14 @@ namespace Engine {
         }
     }
 
-    void AppEngineLoader::saveToCandleRepository(const Kline& newCandle) {
+    void AppEngineLoader::saveToCandleRepository(const ItemCandle& newCandle) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_candleRep->insertCandle(newCandle))
             emit errorOccurred(m_candleRep->error());
     }
 
-    void AppEngineLoader::saveToCandlesRepository(const QList<Kline>& newCandles) {
+    void AppEngineLoader::saveToCandlesRepository(const CandleList& newCandles) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_candleRep->insertCandles(newCandles))
@@ -120,7 +120,7 @@ namespace Engine {
         emit messageSent("Loading candles...");
 
         connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
-            QList<Kline> candles;
+            CandleList candles;
             processRequestCandles(candles, data);
             saveToCandlesRepository(candles);
             emit candlesReceived(candles);
@@ -157,8 +157,24 @@ namespace Engine {
         m_currentApi->requestEndpoint("/v5/account/info", QUrlQuery(), LOADING_TIMEOUT);
     }
 
-    void AppEngineLoader::processRequestCandles(QList<Kline>& candles, const QJsonObject& data) {
+    void AppEngineLoader::processRequestCandles(CandleList& candles, const QJsonObject& data) {
+        QJsonObject result = data["result"].toObject();
+        QString category = result["category"].toString();
+        QString symbol = result["symbol"].toString();
+        QJsonArray list = result["list"].toArray();
 
+        QMutexLocker locker(&m_mutex);
+        for (const auto& obj : list) {
+            QJsonObject item = obj.toObject();
+            QJsonArray itemArr = obj.toArray();
+            ItemCandle candle;
+            candle.m_open = itemArr[1].toString().toDouble();
+            candle.m_high = itemArr[2].toString().toDouble();
+            candle.m_low = itemArr[3].toString().toDouble();
+            candle.m_close = itemArr[4].toString().toDouble();
+            candle.m_confirm = true;
+            candles.append(candle);
+        }
     }
 
     void AppEngineLoader::processRequestTradePairs(TradeList& pairs, const QJsonObject& data) {
@@ -169,7 +185,7 @@ namespace Engine {
         QMutexLocker locker(&m_mutex);
         for (const auto& obj : list) {
             QJsonObject item = obj.toObject();
-            TradeInfo info;
+            ItemTrade info;
             info.symbol = item["symbol"].toString();
             info.base_coin = item["baseCoin"].toString();
             info.quote_coin = item["quoteCoin"].toString();

@@ -1,4 +1,5 @@
 #include "AppEngine.hpp"
+#include <QDateTime>
 
 namespace Engine {
 
@@ -86,6 +87,10 @@ namespace Engine {
         return m_webSocket && m_webSocket->isOpen();
     }
 
+    qint64 AppEngine::getStartTime() {
+        return m_startTime;
+    }
+
     void AppEngine::setAPI(const API& api) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!m_webSocket)
@@ -95,6 +100,7 @@ namespace Engine {
 
     void AppEngine::start() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        m_startTime = QDateTime::currentMSecsSinceEpoch();
         if (!hasRunned())
             m_webSocket->open();
         else

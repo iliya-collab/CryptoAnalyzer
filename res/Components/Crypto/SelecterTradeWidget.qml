@@ -12,11 +12,9 @@ Rectangle {
     property alias popupList: lstTrades.model
     property alias popupWidth: mainPopup.width
     property alias popupHeight: mainPopup.height
+    readonly property alias currentTrade: lblTitle.text
 
     color: Theme.windowColor
-    border.width: Theme.borderWidth
-    border.color: Theme.borderColor
-    radius: Theme.radius
     implicitHeight: lblTitle.implicitHeight + (lblTitle.anchors.margins * 2)
     implicitWidth: lblTitle.implicitWidth + (lblTitle.anchors.margins * 2)
     opacity: hoverHandler.hovered ? 0.8 : 1.0

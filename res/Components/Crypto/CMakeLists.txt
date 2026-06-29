@@ -9,7 +9,6 @@ qt_add_qml_module(CryptoComponents
         OrderbookWidget.qml
         TickerItem.qml
         TickerWidget.qml
-        KlineChartView.qml
         KlineWidget.qml
 
 )

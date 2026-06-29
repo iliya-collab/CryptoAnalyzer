@@ -84,12 +84,14 @@ namespace Engine {
     }
 
     bool CryptoRepository::selectTrades() {
+        m_selectedData.clear();
         return m_dbManager.executeQuery(m_dbPath, "SELECT symbol, base_coin, quote_coin FROM crypto", [this](QSqlQuery& query) {
             handleSelectedTrades(query);
         });
     }
 
     bool CryptoRepository::selectTrades(const QString& quoteCoin) {
+        m_selectedData.clear();
         return m_dbManager.executePrepared(m_dbPath, "SELECT symbol, base_coin, quote_coin FROM crypto WHERE quote_coin = ?", {quoteCoin}, [this](QSqlQuery& query) {
             handleSelectedTrades(query);
         });

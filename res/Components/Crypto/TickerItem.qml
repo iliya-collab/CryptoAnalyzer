@@ -13,9 +13,6 @@ Rectangle {
     property alias contentItem: lblContent.text
 
     color: "transparent"
-    border.width: Theme.borderWidth
-    border.color: Theme.borderColor
-    radius: Theme.radius
 
     // Автоматический расчет высоты на основе содержимого
     implicitHeight: contentLayout.implicitHeight + (contentLayout.anchors.margins * 2)
