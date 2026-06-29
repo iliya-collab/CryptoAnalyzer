@@ -25,13 +25,11 @@ Rectangle {
     function bindWithEngine() {
         tickerWidget.bindTicker()
         orderbookWidget.bindOrderbook()
-        klineWidget.bindKline()
     }
 
     function unbindWithEngine() {
         tickerWidget.unbindTicker()
         orderbookWidget.unbindOrderbook()
-        klineWidget.unbindKline()
     }
 
     Item {
@@ -74,7 +72,6 @@ Rectangle {
             } // RowLayout
 
             KlineWidget {
-                id: klineWidget
                 Layout.margins: Theme.margins
                 Layout.fillHeight: true
                 Layout.fillWidth: true

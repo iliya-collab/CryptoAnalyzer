@@ -33,6 +33,9 @@ private:
     void setupEngineConnections();
     void setupConnections();
 
+    void addCandle(const Engine::ItemCandle& candle);
+    void updateCandle(const Engine::ItemCandle& candle);
+
     explicit AppCore(QObject* parent = nullptr);
     ~AppCore();
 
@@ -52,7 +55,6 @@ public:
     Q_INVOKABLE void loadTradesFromRepository(const QString& category = "ALL");
     Q_INVOKABLE void loadTradesFromNetwork();
     Q_INVOKABLE void loadCandlesFromNetwork(const QString& symbol, const QString& interval, int start, int end);
-    Q_INVOKABLE void saveCandle(const Engine::ItemCandle& candle);
 
     Q_INVOKABLE void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
     Q_INVOKABLE void checkAPI();

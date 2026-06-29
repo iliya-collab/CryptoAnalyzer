@@ -13,16 +13,18 @@ namespace Engine {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 symbol TEXT NOT NULL,
                 interval TEXT NOT NULL,
-                timestamp INTEGER NOT NULL,
+                start INTEGER NOT NULL,
+                end INTEGER NOT NULL,
                 open REAL,
                 close REAL,
                 high REAL,
                 low REAL,
-                UNIQUE(symbol, interval, timestamp)
+                UNIQUE(symbol, interval, start, end)
             )
         )";
 
-        queries << "CREATE INDEX IF NOT EXISTS idx_candles_timestamp ON candles(timestamp)";
+        queries << "CREATE INDEX IF NOT EXISTS idx_candles_start ON candles(start)";
+        queries << "CREATE INDEX IF NOT EXISTS idx_candles_end ON candles(end)";
         queries << "CREATE INDEX IF NOT EXISTS idx_candles_interval ON candles(interval)";
 
 
@@ -68,16 +70,16 @@ namespace Engine {
         for (const auto& item : newCandles)
             if (!m_dbManager.executePrepared(m_dbPath,
                 R"(
-                    INSERT INTO candles (symbol, interval, timestamp, open, close, high, low)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(symbol, interval, timestamp)
+                    INSERT INTO candles (symbol, interval, start, end, open, close, high, low)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
                         high = EXCLUDED.high,
                         low = EXCLUDED.low;
                 )",
-                { item.m_symbol, item.m_interval, item.m_timestamp, item.m_open, item.m_close, item.m_high, item.m_low }))
+                { item.m_symbol, item.m_interval, item.m_start, item.m_end, item.m_open, item.m_close, item.m_high, item.m_low }))
             {
                 m_dbManager.rollbackTransaction(m_dbPath);
                 return false;
@@ -89,15 +91,15 @@ namespace Engine {
     bool CandleRepository::insertCandle(const Kline& newCandle) {
         return m_dbManager.executePrepared(m_dbPath,
             R"(
-                INSERT INTO candles (symbol, interval, timestamp, open, close, high, low)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(symbol, interval, timestamp)
+                INSERT INTO candles (symbol, interval, start, end, open, close, high, low)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
                         high = EXCLUDED.high,
                         low = EXCLUDED.low;
             )",
-            { newCandle.m_symbol, newCandle.m_interval, newCandle.m_timestamp, newCandle.m_open, newCandle.m_close, newCandle.m_high, newCandle.m_low });
+            { newCandle.m_symbol, newCandle.m_interval, newCandle.m_start, newCandle.m_end, newCandle.m_open, newCandle.m_close, newCandle.m_high, newCandle.m_low });
     }
 }

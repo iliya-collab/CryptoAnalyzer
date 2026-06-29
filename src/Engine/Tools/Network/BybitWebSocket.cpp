@@ -287,7 +287,8 @@ namespace Engine {
             kline.m_high = data["high"].toString().toDouble();
             kline.m_low = data["low"].toString().toDouble();
             kline.m_confirm = data["confirm"].toBool();
-            kline.m_timestamp = data["timestamp"].toVariant().toLongLong();
+            kline.m_start = data["start"].toVariant().toLongLong();
+            kline.m_end = data["end"].toVariant().toLongLong();
             kline.m_interval = data["interval"].toString();
         }
 

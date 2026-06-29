@@ -32,6 +32,7 @@ AppCore* AppCore::create(QQmlEngine *engine, QJSEngine *scriptEngine) {
     return new AppCore();
 }
 
+
 void AppCore::setupLoaderConnections() {
     // Ошибки загрузки
     connect(m_loader.get(), &Engine::AppEngineLoader::errorOccurred, this,  [this](const QString& error) {
@@ -78,8 +79,23 @@ void AppCore::setupEngineConnections() {
         emit orderbookUpdated(newOrderbook);
     });
     connect(m_engine.get(), &Engine::AppEngine::klineUpdated, this, [this](const Engine::Kline& newKline) {
-        //qDebug().noquote() << "Kline received - latest update" << newKline.m_symbol << newKline.m_timestamp << QTime::currentTime().toString();
-        saveCandle(newKline);
+        //qDebug().noquote() << "Kline received - latest update" << newKline.m_confirm;
+        static bool waitNewCandle = true;
+
+        if (waitNewCandle) {
+            addCandle(newKline);
+            waitNewCandle = false;
+            emit loadedCandlesChanged();
+            return;
+        }
+
+        updateCandle(newKline);
+
+        if (newKline.m_confirm) {
+            waitNewCandle = true;
+            m_loader->saveToCandleRepository(newKline);
+        }
+
         emit klineUpdated(newKline);
     });
 
@@ -142,18 +158,6 @@ void AppCore::loadTradesFromRepository(const QString& category) {
         m_tradeList.append(iTrade.symbol);
 
     emit tradeListChanged();
-
-    /*QMetaObject::invokeMethod(m_loader.get(), [this, category]() {
-        auto newTradeList = (category == "ALL") ? m_loader->loadAllFromCryptoRepository() :
-                                                m_loader->loadFromCryptoRepository(category);
-
-        m_tradeList.clear();
-
-        for (const auto& iTrade : newTradeList)
-            m_tradeList.append(iTrade.symbol);
-
-        emit tradeListChanged();
-    }, Qt::QueuedConnection);*/
 }
 
 void AppCore::loadTradesFromNetwork() {
@@ -175,12 +179,13 @@ void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& inter
     connect(m_loader.get(), &Engine::AppEngineLoader::candlesReceived, this, [this](const Engine::CandleList& newCandleList) {
         for (const auto& iCandle : newCandleList) {
             QVariantMap map;
-            map["timestamp"] = iCandle.m_timestamp;
+            map["start"] = iCandle.m_start;
+            map["end"] = iCandle.m_end;
             map["open"] = iCandle.m_open;
             map["close"] = iCandle.m_close;
             map["high"] = iCandle.m_high;
             map["low"] = iCandle.m_low;
-            map["isOpen"] = iCandle.m_confirm;
+            map["isConfirm"] = iCandle.m_confirm;
             m_loadedCandles.insert(0, map);
         }
         emit loadedCandlesChanged();
@@ -212,19 +217,33 @@ void AppCore::addTrade(const QString& pair) {
     QMetaObject::invokeMethod(m_engine.get(), [this, pair]() { m_engine->addTrade(pair); }, Qt::QueuedConnection);
 }
 
-void AppCore::saveCandle(const Engine::ItemCandle& candle) {
+void AppCore::addCandle(const Engine::ItemCandle& candle) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
     QVariantMap map;
-    map["timestamp"] = candle.m_timestamp;
+    map["start"] = candle.m_start;
+    map["end"] = candle.m_end;
     map["open"] = candle.m_open;
     map["close"] = candle.m_close;
     map["high"] = candle.m_high;
     map["low"] = candle.m_low;
-    map["isOpen"] = candle.m_confirm;
+    map["isConfirm"] = candle.m_confirm;
+
     m_loadedCandles.append(map);
-
-    m_loader->saveToCandleRepository(candle);
-
     emit loadedCandlesChanged();
+}
+
+void AppCore::updateCandle(const Engine::ItemCandle& candle) {
+    qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+    if (!m_loadedCandles.isEmpty()) {
+        QVariantMap map = m_loadedCandles.last().toMap();
+
+        map["close"] = candle.m_close;
+        map["high"] = candle.m_high;
+        map["low"] = candle.m_low;
+
+        m_loadedCandles.replace(m_loadedCandles.count() - 1, map);  // Заменяем последний элемент
+        emit loadedCandlesChanged();
+    }
 }

@@ -75,7 +75,8 @@ namespace Engine {
         Q_PROPERTY(double high MEMBER m_high)
         Q_PROPERTY(double low MEMBER m_low)
         Q_PROPERTY(bool confirm MEMBER m_confirm)
-        Q_PROPERTY(qint64 timestamp MEMBER m_timestamp)
+        Q_PROPERTY(qint64 start MEMBER m_start)
+        Q_PROPERTY(qint64 end MEMBER m_end)
 
     public:
 
@@ -85,7 +86,8 @@ namespace Engine {
         double m_close = 0;
         double m_high = 0;
         double m_low = 0;
-        qint64 m_timestamp = 0;
+        qint64 m_start = 0;
+        qint64 m_end = 0;
         bool m_confirm = false;
 
     };
