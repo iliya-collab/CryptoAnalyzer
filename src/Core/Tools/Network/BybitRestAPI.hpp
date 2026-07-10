@@ -10,7 +10,7 @@
 #include <QNetworkAccessManager>
 #include <QUrlQuery>
 
-namespace Engine {
+namespace Core::Tools {
     /*
     *   Класс для создания запросов к бирже ByBit
     */

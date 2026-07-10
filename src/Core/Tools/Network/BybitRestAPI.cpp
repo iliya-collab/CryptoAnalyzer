@@ -5,7 +5,7 @@
 #include <QDate>
 #include <QTimer>
 
-namespace Engine {
+namespace Core::Tools {
 
     BybitRestAPI::BybitRestAPI(QObject* parent) : QObject(parent) {
         m_manager = new QNetworkAccessManager(parent);
@@ -61,7 +61,7 @@ namespace Engine {
         if (!params.isEmpty())
             url.setQuery(params);
 
-        //qDebug() << "Request URL:" << url.toString(QUrl::FullyEncoded);
+        //qInfo() << "Request URL:" << url.toString(QUrl::FullyEncoded);
 
         QNetworkRequest request(url);
 
@@ -77,8 +77,8 @@ namespace Engine {
 
         QNetworkReply* reply = m_manager->get(request);
 
-        connect(reply, &QNetworkReply::finished, this, &Engine::BybitRestAPI::handleResponse, Qt::SingleShotConnection);
-        connect(reply, &QNetworkReply::downloadProgress, this, &Engine::BybitRestAPI::downloadProgress, Qt::UniqueConnection);
+        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::handleResponse, Qt::SingleShotConnection);
+        connect(reply, &QNetworkReply::downloadProgress, this, &BybitRestAPI::downloadProgress, Qt::UniqueConnection);
     }
 
     QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString) {

@@ -1,6 +1,6 @@
 #include "CandleRepository.hpp"
 
-namespace Engine {
+namespace Core::Tools {
 
     CandleRepository::CandleRepository(const QString& dbPath, IDatabaseManager& manager) :
         m_dbPath(dbPath), m_dbManager(manager) {}

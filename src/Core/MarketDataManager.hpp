@@ -10,32 +10,32 @@
 
 #define LOADING_TIMEOUT 30000
 
-namespace Engine {
+namespace Core {
 
-    using ItemTrade = CryptoRepository::TradeInfo;
+    using ItemTrade = Tools::CryptoRepository::TradeInfo;
     using TradeList = QList<ItemTrade>;
-    using ItemCandle = Kline;
+    using ItemCandle = Tools::Kline;
     using CandleList = QList<ItemCandle>;
 
-    class AppEngineLoader : public QObject {
+    class MarketDataManager : public QObject {
         Q_OBJECT
     private:
 
 
         mutable QMutex m_mutex;
-        std::unique_ptr<CryptoRepository> m_cryptoRep;
-        std::unique_ptr<CandleRepository> m_candleRep;
-        BybitRestAPI* m_currentApi = nullptr;
+        std::unique_ptr<Tools::CryptoRepository> m_cryptoRep;
+        std::unique_ptr<Tools::CandleRepository> m_candleRep;
+        Tools::BybitRestAPI* m_currentApi = nullptr;
 
         void processRequestTradePairs(TradeList& pairs, const QJsonObject& data);
         void processRequestCandles(CandleList& candles, const QJsonObject& data);
 
     public:
 
-        explicit AppEngineLoader(QObject* parent = nullptr);
-        ~AppEngineLoader();
+        explicit MarketDataManager(QObject* parent = nullptr);
+        ~MarketDataManager();
 
-        void setAPI(const API& api);
+        void setAPI(const Tools::API& api);
         void init();
 
         // Работа с репозиториями
@@ -57,7 +57,7 @@ namespace Engine {
         // Загрузка споторых пар
         void requestTradePairs();
         // Загрузка свеч
-        void requestCandles(const QString& symbol, const QString& interval, int start, int end);
+        void requestCandles(const QString& symbol, const QString& interval, qint64 start, qint64 end);
 
     signals:
 

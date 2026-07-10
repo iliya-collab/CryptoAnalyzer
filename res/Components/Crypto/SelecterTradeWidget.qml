@@ -6,7 +6,7 @@ import Theme 1.0
 import Components.Custom 1.0
 import Engine.Components 1.0
 
-Rectangle {
+Item {
     id: root
 
     property alias popupList: lstTrades.model
@@ -14,7 +14,6 @@ Rectangle {
     property alias popupHeight: mainPopup.height
     readonly property alias currentTrade: lblTitle.text
 
-    color: Theme.windowColor
     implicitHeight: lblTitle.implicitHeight + (lblTitle.anchors.margins * 2)
     implicitWidth: lblTitle.implicitWidth + (lblTitle.anchors.margins * 2)
     opacity: hoverHandler.hovered ? 0.8 : 1.0

@@ -4,7 +4,7 @@
 #include <QString>
 #include <QSqlQuery>
 
-namespace Engine {
+namespace Core::Tools {
 
     class IDatabaseManager {
     public:

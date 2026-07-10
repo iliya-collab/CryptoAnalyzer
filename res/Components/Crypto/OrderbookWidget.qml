@@ -1,29 +1,19 @@
 import QtQuick
 import QtQuick.Layouts
-
 import Engine 1.0
 import Theme 1.0
 import Components.Custom 1.0
-import Engine.Components 1.0
 
-Rectangle {
+Item {
     id: root
 
-    color: Theme.windowColor
-
-    OrderbookSideModel {
-        id: bidsModel
-        side: OrderbookSideModel.Bid
-    }
-
-    OrderbookSideModel {
-        id: asksModel
-        side: OrderbookSideModel.Ask
-    }
+    property double totalVolumeOrderbook: orderbook.bids.total + orderbook.asks.total
+    property double percentAsk: totalVolumeOrderbook > 0 ? Math.round(orderbook.asks.total / totalVolumeOrderbook * 100) : 50
+    property double percentBid: totalVolumeOrderbook > 0 ? Math.round(orderbook.bids.total / totalVolumeOrderbook * 100) : 50
 
     function updateOrderbook(newOrderbook) {
-        bidsModel.updateData(newOrderbook.bids)
-        asksModel.updateData(newOrderbook.asks)
+        orderbook.bids.update(newOrderbook.bids)
+        orderbook.asks.update(newOrderbook.asks)
     }
 
     function bindOrderbook() {
@@ -34,59 +24,26 @@ Rectangle {
         Engine.orderbookUpdated.disconnect(root.updateOrderbook)
     }
 
-    RowLayout {
+    ColumnLayout {
         id: contentLayout
         anchors.fill: parent
-        anchors.margins: Theme.margins
+        spacing: 0
 
-        // Колонка Bids
-        ColumnLayout {
-            Layout.fillWidth: true
+        OrderbookTableView {
+            id: orderbook
             Layout.fillHeight: true
-            Layout.preferredWidth: 1
-
-            CustomText {
-                text: "BIDS"
-                font.bold: true
-                color: "#00ff66"
-                Layout.fillWidth: true
-                horizontalAlignment: CustomText.AlignHCenter
-                verticalAlignment: CustomText.AlignVCenter
-            }
-
-            OrderbookTableView {
-                id: tblBids
-                model: bidsModel
-                priceColor: "#00ff66"
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
+            Layout.fillWidth: true
+            Layout.margins: Theme.margins
         }
 
-        // Колонка Asks
-        ColumnLayout {
+        IndicatorMarketSentiment {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.preferredWidth: 1
+            Layout.margins: Theme.margins
+            Layout.preferredHeight: 20
 
-            CustomText {
-                text: "ASKS"
-                font.bold: true
-                color: "#ff4444"
-                Layout.fillWidth: true
-                horizontalAlignment: CustomText.AlignHCenter
-                verticalAlignment: CustomText.AlignVCenter
-            }
-
-            OrderbookTableView {
-                id: tblAsks
-                model: asksModel
-                priceColor: "#ff4444"
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
+            percentAsk: root.percentAsk
+            percentBid: root.percentBid
         }
     }
 
-    //Component.onCompleted: Engine.orderBookUpdated.connect(updateOrderBook)
 }

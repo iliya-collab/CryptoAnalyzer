@@ -1,32 +1,32 @@
-#include "AppEngineLoader.hpp"
+#include "MarketDataManager.hpp"
 #include "Tools/Database/SqliteDatabaseManager.hpp"
 #include <QUrlQuery>
 #include <QDebug>
 #include <QThread>
 
-namespace Engine {
+namespace Core {
 
-    AppEngineLoader::AppEngineLoader(QObject* parent) : QObject(parent) {
+    MarketDataManager::MarketDataManager(QObject* parent) : QObject(parent) {
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
-        m_currentApi = new BybitRestAPI(this);
-        connect(m_currentApi, &BybitRestAPI::downloadProgress, this, &AppEngineLoader::downloadProgress, Qt::UniqueConnection);
+        m_currentApi = new Tools::BybitRestAPI(this);
+        connect(m_currentApi, &Tools::BybitRestAPI::downloadProgress, this, &MarketDataManager::downloadProgress, Qt::UniqueConnection);
     }
 
-    AppEngineLoader::~AppEngineLoader() {
+    MarketDataManager::~MarketDataManager() {
         qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
     }
 
-    void AppEngineLoader::init() {
+    void MarketDataManager::init() {
 
         const QString dbFile = "db/crypto.db";
 
-        auto& manager = SqliteDatabaseManager::instance();
+        auto& manager = Tools::SqliteDatabaseManager::instance();
 
         if (!manager.open(dbFile))
             emit errorOccurred(manager.error());
 
-        m_cryptoRep = std::move(RepositoryCreater::instance().createCryptoRepository(dbFile, manager));
-        m_candleRep = std::move(RepositoryCreater::instance().createCandleRepository(dbFile, manager));
+        m_cryptoRep = std::move(Tools::RepositoryCreater::instance().createCryptoRepository(dbFile, manager));
+        m_candleRep = std::move(Tools::RepositoryCreater::instance().createCandleRepository(dbFile, manager));
 
         if (!m_cryptoRep->init())
             emit errorOccurred(m_cryptoRep->error());
@@ -35,7 +35,7 @@ namespace Engine {
             emit errorOccurred(m_cryptoRep->error());
     }
 
-    TradeList AppEngineLoader::loadAllFromCryptoRepository() {
+    TradeList MarketDataManager::loadAllFromCryptoRepository() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->selectTrades()) {
@@ -45,7 +45,7 @@ namespace Engine {
         return m_cryptoRep->getSelectedData();
     }
 
-    TradeList AppEngineLoader::loadFromCryptoRepository(const QString& quoteCoin) {
+    TradeList MarketDataManager::loadFromCryptoRepository(const QString& quoteCoin) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->selectTrades(quoteCoin)) {
@@ -55,7 +55,7 @@ namespace Engine {
         return m_cryptoRep->getSelectedData();
     }
 
-    void AppEngineLoader::clearCryptoRepository() {
+    void MarketDataManager::clearCryptoRepository() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->clear()) {
@@ -64,7 +64,7 @@ namespace Engine {
         }
     }
 
-    void AppEngineLoader::saveToCryptoRepository(const TradeList& tradePairs) {
+    void MarketDataManager::saveToCryptoRepository(const TradeList& tradePairs) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_cryptoRep->insertTrades(tradePairs)) {
@@ -73,21 +73,21 @@ namespace Engine {
         }
     }
 
-    void AppEngineLoader::saveToCandleRepository(const ItemCandle& newCandle) {
+    void MarketDataManager::saveToCandleRepository(const ItemCandle& newCandle) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_candleRep->insertCandle(newCandle))
             emit errorOccurred(m_candleRep->error());
     }
 
-    void AppEngineLoader::saveToCandlesRepository(const CandleList& newCandles) {
+    void MarketDataManager::saveToCandlesRepository(const CandleList& newCandles) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
         if (!m_candleRep->insertCandles(newCandles))
             emit errorOccurred(m_candleRep->error());
     }
 
-    void AppEngineLoader::requestTradePairs() {
+    void MarketDataManager::requestTradePairs() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_currentApi)
@@ -95,7 +95,7 @@ namespace Engine {
 
         emit messageSent("Loading spot pairs...");
 
-        connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+        connect(m_currentApi, &Tools::BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
             TradeList pairs;
             processRequestTradePairs(pairs, data);
             clearCryptoRepository();
@@ -104,14 +104,14 @@ namespace Engine {
             emit messageSent("Spot pairs loaded");
         }, Qt::SingleShotConnection);
 
-        connect(m_currentApi, &BybitRestAPI::errorOccurred, this, &AppEngineLoader::errorOccurred, Qt::SingleShotConnection);
+        connect(m_currentApi, &Tools::BybitRestAPI::errorOccurred, this, &MarketDataManager::errorOccurred, Qt::SingleShotConnection);
 
         QUrlQuery params;
         params.addQueryItem("category", "spot");
         m_currentApi->requestEndpoint("/v5/market/instruments-info", params, LOADING_TIMEOUT);
     }
 
-    void AppEngineLoader::requestCandles(const QString& symbol, const QString& interval, int start, int end) {
+    void MarketDataManager::requestCandles(const QString& symbol, const QString& interval, qint64 start, qint64 end) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_currentApi)
@@ -119,15 +119,21 @@ namespace Engine {
 
         emit messageSent("Loading candles...");
 
-        connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+        /*qInfo() << "Start:" << QDateTime::fromMSecsSinceEpoch(start).toString("dd.MM.yyyy HH:mm") << start
+                << "End:" << QDateTime::fromMSecsSinceEpoch(end).toString("dd.MM.yyyy HH:mm") << end;*/
+
+        connect(m_currentApi, &Tools::BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+            /*QJsonDocument doc(data);
+            qInfo().noquote() << doc.toJson(QJsonDocument::Indented);*/
             CandleList candles;
             processRequestCandles(candles, data);
+            //qInfo() << "Candles received:" << candles.size();
             saveToCandlesRepository(candles);
             emit candlesReceived(candles);
             emit messageSent("Candles loaded");
         }, Qt::SingleShotConnection);
 
-        connect(m_currentApi, &BybitRestAPI::errorOccurred, this, &AppEngineLoader::errorOccurred, Qt::SingleShotConnection);
+        connect(m_currentApi, &Tools::BybitRestAPI::errorOccurred, this, &MarketDataManager::errorOccurred, Qt::SingleShotConnection);
 
         QUrlQuery params;
         params.addQueryItem("category", "spot");
@@ -139,7 +145,7 @@ namespace Engine {
         m_currentApi->requestEndpoint("/v5/market/kline", params, LOADING_TIMEOUT);
     }
 
-    void AppEngineLoader::requestInfoAboutAccount() {
+    void MarketDataManager::requestInfoAboutAccount() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_currentApi)
@@ -147,27 +153,27 @@ namespace Engine {
 
         emit messageSent("Getting account information...");
 
-        connect(m_currentApi, &BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+        connect(m_currentApi, &Tools::BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
             emit infoAboutAccountReceived(data["retMsg"] == "OK");
             emit messageSent("Account information received");
         }, Qt::SingleShotConnection);
 
-        connect(m_currentApi, &BybitRestAPI::errorOccurred, this, &AppEngineLoader::errorOccurred, Qt::SingleShotConnection);
+        connect(m_currentApi, &Tools::BybitRestAPI::errorOccurred, this, &MarketDataManager::errorOccurred, Qt::SingleShotConnection);
 
         m_currentApi->requestEndpoint("/v5/account/info", QUrlQuery(), LOADING_TIMEOUT);
     }
 
-    void AppEngineLoader::processRequestCandles(CandleList& candles, const QJsonObject& data) {
+    void MarketDataManager::processRequestCandles(CandleList& candles, const QJsonObject& data) {
         QJsonObject result = data["result"].toObject();
-        QString category = result["category"].toString();
         QString symbol = result["symbol"].toString();
         QJsonArray list = result["list"].toArray();
 
         QMutexLocker locker(&m_mutex);
         for (const auto& obj : list) {
-            QJsonObject item = obj.toObject();
             QJsonArray itemArr = obj.toArray();
             ItemCandle candle;
+            candle.m_start = itemArr[0].toString().toDouble();
+            candle.m_end = candle.m_start + 60000;
             candle.m_open = itemArr[1].toString().toDouble();
             candle.m_high = itemArr[2].toString().toDouble();
             candle.m_low = itemArr[3].toString().toDouble();
@@ -177,7 +183,7 @@ namespace Engine {
         }
     }
 
-    void AppEngineLoader::processRequestTradePairs(TradeList& pairs, const QJsonObject& data) {
+    void MarketDataManager::processRequestTradePairs(TradeList& pairs, const QJsonObject& data) {
         QJsonObject result = data["result"].toObject();
         QString category = result["category"].toString();
         QJsonArray list = result["list"].toArray();
@@ -193,7 +199,7 @@ namespace Engine {
         }
     }
 
-    void AppEngineLoader::setAPI(const API& api) {
+    void MarketDataManager::setAPI(const Tools::API& api) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_currentApi)

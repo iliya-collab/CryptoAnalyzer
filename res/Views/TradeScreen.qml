@@ -4,22 +4,23 @@ import QtQuick.Layouts 1.15
 
 import Engine 1.0
 import Components.Crypto 1.0
+import Components.Custom 1.0
 import Theme 1.0
 
-Rectangle {
+Item {
     id: root
 
     Layout.fillWidth: true
     Layout.fillHeight: true
 
-    color: Theme.windowColor
+    property real orderbookWidth: 300
 
-    property real rightPanelWidth: 0
+    property bool orderbookVisible: true
 
-    property bool orderbookVisible: rightPanel.visible
+    //onOrderbookVisibleChanged:
 
     function setOrderbookVisible(visible) {
-        rightPanel.visible = visible
+        orderbookPanel.visible = visible
     }
 
     function bindWithEngine() {
@@ -34,76 +35,124 @@ Rectangle {
 
     Item {
         id: leftContentContainer
-        anchors.left: parent.left
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.right: rightPanel.visible ? rightPanel.left : parent.right
+        anchors.fill: parent
 
         ColumnLayout {
             id: mainContent
             anchors.fill: parent
-            spacing: Theme.spacing
+            spacing: -1
 
-            RowLayout {
+            Rectangle {
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: true
+                color: Theme.windowColor
+                border.width: 1
+                border.color: Theme.borderColor
+                clip: true
 
                 implicitHeight: Math.max(selecterTrade.implicitHeight, tickerWidget.implicitHeight)
 
-                SelecterTradeWidget {
-                    id: selecterTrade
-                    Layout.fillWidth: true
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    spacing: Theme.spacing
 
-                    popupList: Engine.tradeList
-                    //popupWidth: 200
-                    //popupHeight: 200
+                    SelecterTradeWidget {
+                        id: selecterTrade
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: parent.width / 6
 
-                    onItemSelected: function(item) {
-                        Engine.addTrade(item)
+                        popupList: Engine.tradeList
+
+                        onItemSelected: function(item) {
+                            Engine.addTrade(item)
+                        }
+                        onFilterSelected: function(filter) {
+                            Engine.loadTradesFromRepository(filter)
+                        }
                     }
-                    onFilterSelected: function(filter) {
-                        Engine.loadTradesFromRepository(filter)
+
+                    TickerWidget {
+                        id: tickerWidget
+                        Layout.fillWidth: true
                     }
                 }
-                TickerWidget {
-                    id: tickerWidget
-                    Layout.fillWidth: true
-                }
-            } // RowLayout
+            } // Rectangle
 
-            KlineWidget {
-                Layout.margins: Theme.margins
-                Layout.fillHeight: true
+            RowLayout {
                 Layout.fillWidth: true
-            }
+                Layout.fillHeight: true
+
+                KlineWidget {
+                    Layout.margins: Theme.margins
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+
+                    currentTrade: selecterTrade.currentTrade
+                } // Candle chart
+
+                Rectangle {
+                    id: orderbookPanel
+                    color: Theme.windowColor
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: root.orderbookVisible ? orderbookWidth : 0
+                    visible: root.orderbookVisible
+                    clip: true
+                    border.width: 1
+                    border.color: Theme.borderColor
+
+                    onVisibleChanged: {
+                        root.orderbookWidth = visible ? width : 0
+                    }
+
+                    Behavior on Layout.preferredWidth {
+                        NumberAnimation { duration: 200 }
+                    }
+
+                    OrderbookWidget {
+                        id: orderbookWidget
+                        anchors.fill: parent
+                        anchors.margins: Theme.margins
+                    } // orderbookWidget
+
+                    CustomButton {
+                        id: hideButton
+                        text: ">"
+
+                        implicitWidth: 20
+                        implicitHeight: 20
+
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.leftMargin: 4
+                        anchors.topMargin: 4
+                        z: 2
+
+                        contentItem: Text {
+                            text: hideButton.text
+                            font.pixelSize: 12
+                            color: Theme.textColor
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        background: Rectangle {
+                            color: hideButton.hovered ? Theme.borderColor : "transparent"
+                            border.width: 1
+                            border.color: Theme.borderColor
+                            radius: 2
+                        }
+
+                        onClicked: {
+                            root.setOrderbookVisible(false)
+                        }
+                    } // hideButton
+                } // orderbookPanel
+            } // RowLayout
 
         } // mainContent
     } // leftContentContainer
 
-    Rectangle {
-        id: rightPanel
-        height: root.height
-        width: root.width / 3
-
-        color: Theme.windowColor
-
-        anchors.right: parent.right
-        anchors.top: parent.top
-
-        onVisibleChanged: {
-            root.rightPanelWidth = visible ? width : 0
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: Theme.margins
-            OrderbookWidget {
-                id: orderbookWidget
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-        }
-    } // rightPanel
 
     Component.onCompleted: {
         root.unbindWithEngine()

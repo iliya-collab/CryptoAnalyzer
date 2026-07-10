@@ -7,7 +7,7 @@ Rectangle {
     border.width: 1
     border.color: "#3a3a3a"
 
-    Rectangle {
+    /*Rectangle {
         id: statsIndicator
         anchors.bottom: timeAxisContainer.top
         anchors.bottomMargin: 5
@@ -36,7 +36,7 @@ Rectangle {
                 }
             }
         }
-    }
+    }*/
 
     QtObject {
         id: internal
@@ -181,6 +181,11 @@ Rectangle {
 
             var maxScrollX = Math.max(0, chartScrollView.contentWidth - chartScrollView.width);
 
+            if (maxScrollX <= 0) {
+                chartScrollView.contentX = 0
+                return
+            }
+
             if (animated) {
                 scrollAnimation.to = maxScrollX;
                 scrollAnimation.start();
@@ -317,10 +322,6 @@ Rectangle {
                 }
 
                 chartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth)
-
-                /*if (internal.autoScrollEnabled && root.candleSeries.length > 0)
-                    internal.scrollToLastCandle(true)*/
-
 
                 internal.updateVisibleRange()
 
@@ -656,7 +657,7 @@ Rectangle {
         contentWidth: Math.max(parent.width, internal.totalChartWidth)
         contentHeight: height
         boundsBehavior: Flickable.StopAtBounds
-        interactive: internal.totalChartWidth > width
+        //interactive: internal.totalChartWidth > width
         clip: true
 
         MouseArea {
@@ -733,9 +734,9 @@ Rectangle {
             if (internal.totalChartWidth <= width) {
                 chartScrollView.contentX = 0;
                 internal.scrollPosition = 0;
-            } else if (internal.autoScrollEnabled && !internal.isUserInteracting) {
-                internal.scrollToLastCandle(false);
-            } else {
+            } else if (internal.autoScrollEnabled && !internal.isUserInteracting)
+                internal.scrollToLastCandle(false)
+            else {
                 var maxScrollX = Math.max(0, chartScrollView.contentWidth - chartScrollView.width);
                 chartScrollView.contentX = Math.min(internal.scrollPosition * maxScrollX, maxScrollX);
             }
@@ -769,10 +770,10 @@ Rectangle {
 
             onTriggered: {
                 if (root.enableAutoScroll) {
-                    internal.autoScrollEnabled = true;
-                    if (internal.totalChartWidth > chartScrollView.width) {
-                        internal.scrollToLastCandle(true);
-                    }
+                    internal.autoScrollEnabled = true
+                    if (internal.totalChartWidth > chartScrollView.width)
+                        internal.scrollToLastCandle(true)
+
                 }
             }
         }
@@ -816,7 +817,7 @@ Rectangle {
 
                 var color;
                 if (!candle.isConfirm)
-                    color = candle.close > candle.open ? "#66BB6A" : "#EF5350";
+                    color = candle.close > candle.open ? "#91ffa8" : "#ff9191";
                 else
                     color = candle.close > candle.open ? "#00C853" : "#FF5252";
 

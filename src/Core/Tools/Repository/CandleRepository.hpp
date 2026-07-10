@@ -3,7 +3,7 @@
 #include "../StdTypes.hpp"
 #include "../Database/IDatabaseManager.hpp"
 
-namespace Engine {
+namespace Core::Tools {
 
     class CandleRepository {
     private:

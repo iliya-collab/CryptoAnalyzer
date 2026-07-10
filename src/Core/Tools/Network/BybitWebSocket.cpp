@@ -4,7 +4,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-namespace Engine {
+namespace Core::Tools {
 
     BybitWebSocket::BybitWebSocket(QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
         setupWebSocket();
@@ -52,6 +52,18 @@ namespace Engine {
             if (isOpen()) {
                 disconnectFromStreams();
                 closeAfterFlush();
+            }
+        }
+    }
+
+    void BybitWebSocket::cleanupPingTimestamps() {
+        qint64 now = QDateTime::currentMSecsSinceEpoch();
+        QMutableMapIterator<QString, qint64> it(m_pingTimestamps);
+        while (it.hasNext()) {
+            it.next();
+            if (now - it.value() > 10000) {
+                qWarning() << "Ping timeout for req_id:" << it.key();
+                it.remove();
             }
         }
     }
@@ -125,6 +137,8 @@ namespace Engine {
             sendSubscriptionMessage(newStreams);
     }
 
+// ==================================   SLOTS   ==================================
+
     void BybitWebSocket::onConnected() {
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
         connectToStreams();
@@ -175,9 +189,15 @@ namespace Engine {
     }
 
     void BybitWebSocket::onPing() {
-        if (isOpen())
+        if (isOpen()) {
             sendPingMessage();
+            static int pingCounter = 0;
+            if (++pingCounter % 10 == 0)
+                cleanupPingTimestamps();
+        }
     }
+
+// ====================================================================
 
     std::expected<QJsonObject, QString> BybitWebSocket::parseTextMessage(const QString &message) {
         QJsonParseError parseError;
@@ -194,6 +214,16 @@ namespace Engine {
 
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
         //qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+
+        if (obj.contains("op") && obj["op"].toString() == "pong") {
+            QString reqId = obj["req_id"].toString();
+            if (m_pingTimestamps.contains(reqId)) {
+                m_lastPingMs = QDateTime::currentMSecsSinceEpoch() - m_pingTimestamps[reqId];
+                emit pingMeasured(m_lastPingMs);
+                m_pingTimestamps.remove(reqId);
+            }
+            return;
+        }
 
         if (obj.contains("success")) {
             bool isSuccess = obj["success"].toBool();
@@ -336,9 +366,17 @@ namespace Engine {
 
     void BybitWebSocket::sendPingMessage() {
         QJsonObject pingMessage;
+        QString reqId = QString::number(m_nextReqId++);
         pingMessage["op"] = "ping";
-        pingMessage["req_id"] = QString::number(m_nextReqId++);
+        pingMessage["req_id"] = reqId;
+
+        m_pingTimestamps[reqId] = QDateTime::currentMSecsSinceEpoch();
+
         m_webSocket->sendTextMessage(QJsonDocument(pingMessage).toJson());
+
+    }
+
+    void BybitWebSocket::sendAuthMessage() {
 
     }
 

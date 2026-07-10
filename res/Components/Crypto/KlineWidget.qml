@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 2.15
-import Components.Custom 1.0
+import Components.Crypto 1.0
 import Engine 1.0
 
 Item {
@@ -14,18 +14,19 @@ Item {
     RowLayout {
         anchors.fill: parent
 
-        CustomCandleChart {
+        CandleChart {
             Layout.fillHeight: true
             Layout.fillWidth: true
 
-            candleSeries: Engine.loadedCandles
+            candleSeries: Engine.candleSeries
 
             onLeftBoundaryReached: {
-                console.log("The chart reached left boundary")
+                //console.info("The chart reached left boundary")
                 var firstCandle = candleSeries[0]
                 if (firstCandle && firstCandle.start) {
-                    var startTime = firstCandle.start
-                    var endTime = startTime + root.numberHistoricalCandles * 60000
+                    var endTime = firstCandle.start
+                    var startTime = endTime - root.numberHistoricalCandles * 60000
+                    //console.info(firstCandle.start, startTime, endTime)
                     Engine.loadCandlesFromNetwork(currentTrade, "1", startTime, endTime)
                 }
             }

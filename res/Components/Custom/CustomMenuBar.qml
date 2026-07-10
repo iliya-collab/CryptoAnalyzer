@@ -32,7 +32,7 @@ MenuBar {
     }
 
     // Instantiator для меню верхнего уровня
-    Instantiator {
+    /*Instantiator {
         model: root.menuModel
         onObjectAdded: (index, object) => {
             if (object && object.item) {
@@ -79,7 +79,70 @@ MenuBar {
                 }
             }
         } // Loader
-    } // Instantiator
+    } // Instantiator*/
+
+    property var menuItems: []
+
+    // Очистка меню
+    function clearMenu() {
+        for (var i = menuItems.length - 1; i >= 0; i--) {
+            var item = menuItems[i]
+            if (item && item.parent === root) {
+                if (item instanceof Menu) {
+                    root.removeMenu(item)
+                } else if (item instanceof MenuBarItem) {
+                    root.removeItem(item)
+                }
+            }
+        }
+        menuItems = []
+    }
+
+    // Перестройка меню
+    function rebuildMenu() {
+        clearMenu()
+
+        for (var i = 0; i < root.menuModel.length; i++) {
+            var itemData = root.menuModel[i]
+            var menuItem = createMenuItem(itemData)
+            if (menuItem) {
+                if (itemData.items && itemData.items.length > 0) {
+                    root.insertMenu(i, menuItem)
+                } else {
+                    root.insertItem(i, menuItem)
+                }
+                menuItems.push(menuItem)
+            }
+        }
+    }
+
+    // Создание элемента меню
+    function createMenuItem(data) {
+        if (data.items && data.items.length > 0) {
+            // Создаем подменю
+            var menu = submenuComponent.createObject(root, {
+                menuTitle: data.text,
+                menuEnabled: data.enabled !== undefined ? data.enabled : true,
+                menuItems: data.items || [],
+                parentPath: ""
+            })
+            return menu
+        } else {
+            // Создаем пункт меню
+            var item = topMenuBarItemComponent.createObject(root, {
+                itemText: data.text,
+                itemEnabled: data.enabled !== undefined ? data.enabled : true,
+                itemShortcut: data.shortcut || "",
+                itemParentPath: ""
+            })
+            return item
+        }
+    }
+
+    // Обработчик изменения модели
+    onMenuModelChanged: {
+        rebuildMenu()
+    }
 
     // Компонент меню (без подпунктов)
     Component {

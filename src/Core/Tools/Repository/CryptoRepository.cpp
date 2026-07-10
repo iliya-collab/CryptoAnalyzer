@@ -2,7 +2,7 @@
 #include <QDir>
 #include <QFileInfo>
 
-namespace Engine {
+namespace Core::Tools {
 
     CryptoRepository::CryptoRepository(const QString& dbPath, IDatabaseManager& manager) :
         m_dbPath(dbPath), m_dbManager(manager) {};

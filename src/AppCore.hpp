@@ -4,37 +4,40 @@
 #include <QThread>
 #include <atomic>
 #include <memory>
-#include "Engine/AppEngine.hpp"
-#include "Engine/AppEngineLoader.hpp"
-#include "Engine/Tools/DataModels/OrderbookModel.hpp"
+#include "Core/MarketDataManager.hpp"
+#include "Core/MarketDataStreamer.hpp"
+#include "Core/Tools/DataModels/OrderbookModel.hpp"
+
+using namespace Core;
+using namespace Core::Tools;
 
 class AppCore : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(QVariantList tradeList MEMBER m_tradeList NOTIFY tradeListChanged)
-    Q_PROPERTY(QVariantList loadedCandles MEMBER m_loadedCandles NOTIFY loadedCandlesChanged)
+    Q_PROPERTY(QVariantList candleSeries MEMBER m_candleSeries NOTIFY candleSeriesChanged)
     Q_PROPERTY(qint64 startTime MEMBER m_startTime NOTIFY startTimeChanged)
 
 private:
 
-    std::unique_ptr<Engine::AppEngineLoader> m_loader;
-    std::unique_ptr<Engine::AppEngine> m_engine;
+    std::unique_ptr<MarketDataManager> m_manager;
+    std::unique_ptr<MarketDataStreamer> m_streamer;
 
     QThread* m_workerThread;
 
     qint64 m_startTime = 0;
     QString m_lastTrade = "";
     QVariantList m_tradeList;
-    QVariantList m_loadedCandles;
-    Engine::API m_curAPI;
+    QVariantList m_candleSeries;
+    API m_curAPI;
     std::atomic<bool> wasInit{false};
 
     void setupLoaderConnections();
     void setupEngineConnections();
     void setupConnections();
 
-    void addCandle(const Engine::ItemCandle& candle);
-    void updateCandle(const Engine::ItemCandle& candle);
+    void addCandle(const ItemCandle& candle);
+    void updateCandle(const ItemCandle& candle);
 
     explicit AppCore(QObject* parent = nullptr);
     ~AppCore();
@@ -54,7 +57,7 @@ public:
 
     Q_INVOKABLE void loadTradesFromRepository(const QString& category = "ALL");
     Q_INVOKABLE void loadTradesFromNetwork();
-    Q_INVOKABLE void loadCandlesFromNetwork(const QString& symbol, const QString& interval, int start, int end);
+    Q_INVOKABLE void loadCandlesFromNetwork(const QString& symbol, const QString& interval, qint64 start, qint64 end);
 
     Q_INVOKABLE void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
     Q_INVOKABLE void checkAPI();
@@ -66,7 +69,7 @@ signals:
 
     // Сигнал для уведомления об измении свойства tradeList
     void tradeListChanged();
-    void loadedCandlesChanged();
+    void candleSeriesChanged();
     void startTimeChanged(qint64 msTime);
 
     void errorOccurred(const QString& error);
@@ -76,8 +79,7 @@ signals:
     void engineStarted();
     void engineStopped();
 
-    void tickerUpdated(const Engine::Ticker& newTicker);
-    void orderbookUpdated(const Engine::Orderbook& newOrderbook);
-    void klineUpdated(const Engine::Kline& newKline);
+    void tickerUpdated(const Ticker& newTicker);
+    void orderbookUpdated(const Orderbook& newOrderbook);
 
 };

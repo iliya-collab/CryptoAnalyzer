@@ -4,7 +4,7 @@
 #include "CandleRepository.hpp"
 #include <memory>
 
-namespace Engine {
+namespace Core::Tools {
 
     class RepositoryCreater {
     public:

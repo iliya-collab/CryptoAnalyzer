@@ -1,6 +1,6 @@
 #include "OrderbookModel.hpp"
 
-namespace Engine {
+namespace Core::Tools {
 
     OrderbookSideModel::OrderbookSideModel(QObject *parent)
         : QAbstractListModel(parent), m_side(Bid) {}
@@ -19,7 +19,7 @@ namespace Engine {
 
         switch (role) {
             case PriceRole:  return level.price;
-            case AmountRole: return level.amount;
+            case VolumeRole: return level.volume;
             default:         return QVariant();
         }
     }
@@ -28,8 +28,8 @@ namespace Engine {
         QHash<int, QByteArray> roles;
 
         roles[PriceRole]  = "price";
-        roles[AmountRole] = "amount";
-        roles[TotalAmountRole] = "total";
+        roles[VolumeRole] = "volume";
+        roles[TotalVolumeRole] = "total";
 
         return roles;
     }
@@ -43,7 +43,22 @@ namespace Engine {
         emit sideChanged();
     }
 
-    void OrderbookSideModel::updateData(const QVariantList& data) {
+    QVariantMap OrderbookSideModel::get(int index) const {
+        QVariantMap res;
+
+        if (index < 0 || index >= m_levels.count())
+            return res;
+
+        auto item = m_levels[index];
+
+        res["price"] = item.price;
+        res["volume"] = item.volume;
+        res["total"] = item.total;
+
+        return res;
+    }
+
+    void OrderbookSideModel::update(const QVariantList& data) {
         std::vector<Level> new_levels;
         new_levels.reserve(data.size());
 
@@ -65,7 +80,7 @@ namespace Engine {
         if (!new_levels.empty()) {
             double total = 0;
             for (auto& lvl : new_levels) {
-                total += lvl.amount;
+                total += lvl.volume;
                 lvl.total += total;
             }
         }
@@ -105,8 +120,21 @@ namespace Engine {
             }
         }
 
+        if (m_count != m_levels.count()) {
+            m_count = m_levels.count();
+            emit countChanged();
+        }
+
         if (data_changed && first_changed != -1)
             emit dataChanged(index(first_changed, 0), index(last_changed, 0));
+
+        m_total = m_levels.last().total;
+        emit totalChanged();
+
+        m_maxVolume = 0;
+        for (auto i : m_levels)
+            m_maxVolume = std::max(m_maxVolume, i.volume);
+        emit maxVolumeChanged();
     }
 
 }

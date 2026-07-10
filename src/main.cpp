@@ -13,11 +13,11 @@ int main(int argc, char *argv[]) {
     qDebug() << "Import paths:" << qmlEngine.importPathList();
 
     // Регистрируем модели данных
-    qmlRegisterType<Engine::OrderbookSideModel>("Engine.Components", 1, 0, "OrderbookSideModel");
+    qmlRegisterType<OrderbookSideModel>("Engine.Components", 1, 0, "OrderbookSideModel");
     // Регистрируем стандартные типы движка
-    qmlRegisterType<Engine::Ticker>("Engine.Components", 1, 0, "ticker");
-    qmlRegisterType<Engine::Orderbook>("Engine.Components", 1, 0, "orderbook");
-    qmlRegisterType<Engine::Kline>("Engine.Components", 1, 0, "kline");
+    qmlRegisterType<Ticker>("Engine.Components", 1, 0, "ticker");
+    qmlRegisterType<Orderbook>("Engine.Components", 1, 0, "orderbook");
+    qmlRegisterType<Kline>("Engine.Components", 1, 0, "kline");
     // Регистрируем тип движка как Singleton
     qmlRegisterSingletonType<AppCore>("Engine", 1, 0, "Engine", AppCore::create);
 

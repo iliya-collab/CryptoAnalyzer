@@ -6,7 +6,7 @@
 #include <QObject>
 #include <QVariant>
 
-namespace Engine {
+namespace Core::Tools {
     Q_NAMESPACE
 
     struct Orderbook {

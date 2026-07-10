@@ -12,10 +12,7 @@
 
 #include "../StdTypes.hpp"
 
-namespace Engine {
-    /*
-    *   Класс для работы с WebSocket на бирже Bybit
-    */
+namespace Core::Tools {
     class BybitWebSocket : public QObject {
         Q_OBJECT
 
@@ -27,6 +24,7 @@ namespace Engine {
         void sendUnsubscriptionMessage(const QStringList& streams);
         // Отправка сообщения о пинге
         void sendPingMessage();
+        void sendAuthMessage();
         // Обработка сообщения
         void messageReceived(const QJsonObject& obj);
         // Превращает строковое сообщение в json объект
@@ -50,6 +48,7 @@ namespace Engine {
         void cleanup();
         // Метод для освобождения и закрытия
         void closeAfterFlush();
+        void cleanupPingTimestamps();
 
         QWebSocket* m_webSocket; // Веб-сокет
         API m_api; // API для работы с приватными каналами
@@ -57,6 +56,8 @@ namespace Engine {
         QSet<QString> m_usedStreams; // Используемые каналы
         quint64 m_nextReqId = 1; // Уникальный id для подписки на каналы
         bool m_pendingClose = false;
+        QMap<QString, qint64> m_pingTimestamps;
+        double m_lastPingMs = 0;
 
         // Максимальное кол-во каналов в 1ой подписке
         const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
@@ -90,11 +91,15 @@ namespace Engine {
         // Потправляет сообщение об отписке на все используемые каналы
         void disconnectFromStreams();
 
+        double getLastPing() { return m_lastPingMs; };
+
     signals:
 
         void updatedTicker(const Ticker& newTicker);
         void updatedOrderbook(const Orderbook& newOrderBook);
         void updatedKline(const Kline& newKline);
+
+        void pingMeasured(double lastPing);
 
         // Испускается, когда websocket успешно открылся
         void connected();

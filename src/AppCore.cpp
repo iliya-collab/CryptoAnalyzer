@@ -1,12 +1,17 @@
 #include "AppCore.hpp"
+#include "Core/Tools/LogManager.hpp"
 #include <QVariant>
 #include <QList>
 #include <QVariantList>
 
 AppCore::AppCore(QObject* parent) : QObject(parent) {
+
+    LogManager::instance().setDebugEnabled(false);
+
     qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
-    m_loader = std::make_unique<Engine::AppEngineLoader>();
-    m_engine = std::make_unique<Engine::AppEngine>();
+
+    m_manager = std::make_unique<MarketDataManager>();
+    m_streamer = std::make_unique<MarketDataStreamer>();
     m_workerThread = new QThread(this);
 }
 
@@ -14,10 +19,10 @@ AppCore::~AppCore() {
     qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
 
     // Останавливаем движок перед удалением
-    if (m_engine->hasRunned()) {
+    if (m_streamer->hasRunned()) {
         QEventLoop loop;
         // Подключаемся к сигналу stopped
-        connect(m_engine.get(), &Engine::AppEngine::stopped, &loop, &QEventLoop::quit, Qt::SingleShotConnection);
+        connect(m_streamer.get(), &MarketDataStreamer::stopped, &loop, &QEventLoop::quit, Qt::SingleShotConnection);
         // Останавливаем движок в его потоке
         interrupt();
         loop.exec();
@@ -35,57 +40,57 @@ AppCore* AppCore::create(QQmlEngine *engine, QJSEngine *scriptEngine) {
 
 void AppCore::setupLoaderConnections() {
     // Ошибки загрузки
-    connect(m_loader.get(), &Engine::AppEngineLoader::errorOccurred, this,  [this](const QString& error) {
+    connect(m_manager.get(), &MarketDataManager::errorOccurred, this,  [this](const QString& error) {
         qDebug().noquote() << " * Loader error:" << error;
         emit errorOccurred(error);
     });
 
-    connect(m_loader.get(), &Engine::AppEngineLoader::messageSent, this, &AppCore::messageReceived);
+    connect(m_manager.get(), &MarketDataManager::messageSent, this, &AppCore::messageReceived);
 
-    connect(m_loader.get(), &Engine::AppEngineLoader::downloadProgress, this, &AppCore::downloadProgress);
+    connect(m_manager.get(), &MarketDataManager::downloadProgress, this, &AppCore::downloadProgress);
 
 }
 
 void AppCore::setupEngineConnections() {
     // Движок запущен
-    connect(m_engine.get(), &Engine::AppEngine::started, this, [this]() {
+    connect(m_streamer.get(), &MarketDataStreamer::started, this, [this]() {
         qDebug().noquote() << "------------------------------ Engine started ------------------------------";
         if (m_lastTrade.length() > 0)
-            m_engine->addTrade(m_lastTrade);
-        m_startTime = m_engine->getStartTime();
+            m_streamer->addTrade(m_lastTrade);
+        m_startTime = m_streamer->getStartTime();
         qDebug() << "Start time:" << QDateTime::fromMSecsSinceEpoch(m_startTime).toString("hh:mm:ss");
         emit startTimeChanged(m_startTime);
         emit engineStarted();
     });
 
     // Движок остановлен
-    connect(m_engine.get(), &Engine::AppEngine::stopped, this, [this]() {
+    connect(m_streamer.get(), &MarketDataStreamer::stopped, this, [this]() {
         qDebug().noquote() << "------------------------------ Engine stopped ------------------------------";
         emit engineStopped();
     });
 
     // Ошибки движка
-    connect(m_engine.get(), &Engine::AppEngine::errorOccurred, this, [this](const QString& error) {
+    connect(m_streamer.get(), &MarketDataStreamer::errorOccurred, this, [this](const QString& error) {
         qDebug() << " * Engine error:" << error;
         emit errorOccurred(error);
     });
 
-    connect(m_engine.get(), &Engine::AppEngine::tickerUpdated, this, [this](const Engine::Ticker& newTicker) {
+    connect(m_streamer.get(), &MarketDataStreamer::tickerUpdated, this, [this](const Ticker& newTicker) {
         //qDebug().noquote() << "Ticker received - latest update" << newTicker.m_symbol << QTime::currentTime().toString();
         emit tickerUpdated(newTicker);
     });
-    connect(m_engine.get(), &Engine::AppEngine::orderBookUpdated, this, [this](const Engine::Orderbook& newOrderbook) {
+    connect(m_streamer.get(), &MarketDataStreamer::orderBookUpdated, this, [this](const Orderbook& newOrderbook) {
         //qDebug().noquote() << "Orderbook received - latest update" << newOrderBook.m_symbol << QTime::currentTime().toString();
         emit orderbookUpdated(newOrderbook);
     });
-    connect(m_engine.get(), &Engine::AppEngine::klineUpdated, this, [this](const Engine::Kline& newKline) {
+    connect(m_streamer.get(), &MarketDataStreamer::klineUpdated, this, [this](const Kline& newKline) {
         //qDebug().noquote() << "Kline received - latest update" << newKline.m_confirm;
         static bool waitNewCandle = true;
 
         if (waitNewCandle) {
             addCandle(newKline);
             waitNewCandle = false;
-            emit loadedCandlesChanged();
+            emit candleSeriesChanged();
             return;
         }
 
@@ -93,10 +98,12 @@ void AppCore::setupEngineConnections() {
 
         if (newKline.m_confirm) {
             waitNewCandle = true;
-            m_loader->saveToCandleRepository(newKline);
+            auto& lastCandle = m_candleSeries.last();
+            auto map = lastCandle.toMap();
+            map["isConfirm"] = true;
+            lastCandle = map;
+            m_manager->saveToCandleRepository(newKline);
         }
-
-        emit klineUpdated(newKline);
     });
 
 }
@@ -118,13 +125,13 @@ void AppCore::init() {
 
     wasInit.store(true);
 
-    m_loader->moveToThread(m_workerThread);
-    m_engine->moveToThread(m_workerThread);
+    m_manager->moveToThread(m_workerThread);
+    m_streamer->moveToThread(m_workerThread);
 
-    m_loader->init();
+    m_manager->init();
 
-    m_engine->setAPI(m_curAPI);
-    m_loader->setAPI(m_curAPI);
+    m_streamer->setAPI(m_curAPI);
+    m_manager->setAPI(m_curAPI);
 
     setupConnections();
 
@@ -133,24 +140,24 @@ void AppCore::init() {
 
 void AppCore::run() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-    QMetaObject::invokeMethod(m_engine.get(), [this]() { m_engine->start(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_streamer.get(), [this]() { m_streamer->start(); }, Qt::QueuedConnection);
 }
 
 void AppCore::restart() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-    QMetaObject::invokeMethod(m_engine.get(), [this]() { m_engine->stop(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_streamer.get(), [this]() { m_streamer->stop(); }, Qt::QueuedConnection);
 }
 
 void AppCore::interrupt() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-    QMetaObject::invokeMethod(m_engine.get(), [this]() { m_engine->stop(true); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_streamer.get(), [this]() { m_streamer->stop(true); }, Qt::QueuedConnection);
 }
 
 void AppCore::loadTradesFromRepository(const QString& category) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    auto newTradeList = (category == "ALL") ? m_loader->loadAllFromCryptoRepository() :
-                            m_loader->loadFromCryptoRepository(category);
+    auto newTradeList = (category == "ALL") ? m_manager->loadAllFromCryptoRepository() :
+                            m_manager->loadFromCryptoRepository(category);
 
     m_tradeList.clear();
 
@@ -163,20 +170,20 @@ void AppCore::loadTradesFromRepository(const QString& category) {
 void AppCore::loadTradesFromNetwork() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    connect(m_loader.get(), &Engine::AppEngineLoader::tradePairsReceived, this, [this](const Engine::TradeList& newTradeList) {
+    connect(m_manager.get(), &MarketDataManager::tradePairsReceived, this, [this](const TradeList& newTradeList) {
         m_tradeList.clear();
         for (const auto& iTrade : newTradeList)
             m_tradeList.append(iTrade.symbol);
         emit tradeListChanged();
     }, Qt::SingleShotConnection);
 
-    QMetaObject::invokeMethod(m_loader.get(), [this]() { m_loader->requestTradePairs(); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_manager.get(), [this]() { m_manager->requestTradePairs(); }, Qt::QueuedConnection);
 }
 
-void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& interval, int start, int end) {
+void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& interval, qint64 start, qint64 end) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    connect(m_loader.get(), &Engine::AppEngineLoader::candlesReceived, this, [this](const Engine::CandleList& newCandleList) {
+    connect(m_manager.get(), &MarketDataManager::candlesReceived, this, [this](const CandleList& newCandleList) {
         for (const auto& iCandle : newCandleList) {
             QVariantMap map;
             map["start"] = iCandle.m_start;
@@ -186,12 +193,13 @@ void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& inter
             map["high"] = iCandle.m_high;
             map["low"] = iCandle.m_low;
             map["isConfirm"] = iCandle.m_confirm;
-            m_loadedCandles.insert(0, map);
+            m_candleSeries.insert(0, map);
         }
-        emit loadedCandlesChanged();
+        //qInfo() << "Updated candle series:" << m_candleSeries.size();
+        emit candleSeriesChanged();
     }, Qt::SingleShotConnection);
 
-    QMetaObject::invokeMethod(m_loader.get(), [this, symbol, interval, start, end]() { m_loader->requestCandles(symbol, interval, start, end); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_manager.get(), [this, symbol, interval, start, end]() { m_manager->requestCandles(symbol, interval, start, end); }, Qt::QueuedConnection);
 }
 
 void AppCore::setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet) {
@@ -201,23 +209,23 @@ void AppCore::setAPI(const QString& apiKey, const QString& secretKey, bool isTes
     m_curAPI.m_secretKey = secretKey;
     m_curAPI.m_isTestnet = isTestnet;
 
-    m_engine->setAPI(m_curAPI);
-    m_loader->setAPI(m_curAPI);
+    m_streamer->setAPI(m_curAPI);
+    m_manager->setAPI(m_curAPI);
 }
 
 void AppCore::checkAPI() {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-    connect(m_loader.get(), &Engine::AppEngineLoader::infoAboutAccountReceived, this, &AppCore::apiChecked, Qt::SingleShotConnection);
-    QMetaObject::invokeMethod(m_engine.get(), [this]() { m_loader->requestInfoAboutAccount(); }, Qt::QueuedConnection);
+    connect(m_manager.get(), &MarketDataManager::infoAboutAccountReceived, this, &AppCore::apiChecked, Qt::SingleShotConnection);
+    QMetaObject::invokeMethod(m_streamer.get(), [this]() { m_manager->requestInfoAboutAccount(); }, Qt::QueuedConnection);
 }
 
 void AppCore::addTrade(const QString& pair) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
     m_lastTrade = pair;
-    QMetaObject::invokeMethod(m_engine.get(), [this, pair]() { m_engine->addTrade(pair); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_streamer.get(), [this, pair]() { m_streamer->addTrade(pair); }, Qt::QueuedConnection);
 }
 
-void AppCore::addCandle(const Engine::ItemCandle& candle) {
+void AppCore::addCandle(const ItemCandle& candle) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
     QVariantMap map;
@@ -229,21 +237,21 @@ void AppCore::addCandle(const Engine::ItemCandle& candle) {
     map["low"] = candle.m_low;
     map["isConfirm"] = candle.m_confirm;
 
-    m_loadedCandles.append(map);
-    emit loadedCandlesChanged();
+    m_candleSeries.append(map);
+    emit candleSeriesChanged();
 }
 
-void AppCore::updateCandle(const Engine::ItemCandle& candle) {
+void AppCore::updateCandle(const ItemCandle& candle) {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    if (!m_loadedCandles.isEmpty()) {
-        QVariantMap map = m_loadedCandles.last().toMap();
+    if (!m_candleSeries.isEmpty()) {
+        QVariantMap map = m_candleSeries.last().toMap();
 
         map["close"] = candle.m_close;
         map["high"] = candle.m_high;
         map["low"] = candle.m_low;
 
-        m_loadedCandles.replace(m_loadedCandles.count() - 1, map);  // Заменяем последний элемент
-        emit loadedCandlesChanged();
+        m_candleSeries.replace(m_candleSeries.count() - 1, map);
+        emit candleSeriesChanged();
     }
 }

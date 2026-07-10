@@ -6,7 +6,7 @@
 #include <QHash>
 #include <QMutex>
 
-namespace Engine {
+namespace Core::Tools {
 
 
     class SqliteDatabaseManager : public IDatabaseManager {

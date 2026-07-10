@@ -75,11 +75,7 @@ ApplicationWindow {
             {
                 text: "View",
                 items: [
-                    {
-                        text: "Orderbook",
-                        checkable: true,
-                        checked: true
-                    }
+                    { text: "Orderbook" }
                 ]
             },
             { text: "Settings" }
@@ -91,7 +87,7 @@ ApplicationWindow {
             if (itemText === "Connect API")
                 mainStack.showConnectAPI()
             else if (itemText === "Orderbook") {
-                mainWindow.visibleOrderbook = checkedState
+                mainWindow.visibleOrderbook = !mainWindow.visibleOrderbook
                 if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
                     mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
             }
@@ -130,14 +126,12 @@ ApplicationWindow {
             id: mainStack
             anchors.fill: parent
 
-            // Стартовый пустой экран
             initialItem: Item {}
 
             onCurrentItemChanged: {
                 if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
-                    mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
+                    mainStack.currentItem.orderbookVisible = mainWindow.visibleOrderbook
             }
-
 
             // Метод для вызова экрана подключения API
             function showConnectAPI() {

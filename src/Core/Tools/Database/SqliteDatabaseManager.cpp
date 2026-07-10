@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QDir>
 
-namespace Engine {
+namespace Core::Tools {
 
     SqliteDatabaseManager& SqliteDatabaseManager::instance() {
         static SqliteDatabaseManager manager;

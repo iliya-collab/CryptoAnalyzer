@@ -1,14 +1,15 @@
-#include "AppEngine.hpp"
+#include "MarketDataStreamer.hpp"
 #include <QDateTime>
 
-namespace Engine {
+namespace Core {
 
-    AppEngine::AppEngine(QObject* parent) : QObject(parent) {
-        m_webSocket = std::make_unique<BybitWebSocket>(this);
+    MarketDataStreamer::MarketDataStreamer(QObject* parent) : QObject(parent) {
+        m_webSocket = std::make_unique<Tools::BybitWebSocket>(this);
 
         // Обработка основных сигналов
-        connect(m_webSocket.get(), &BybitWebSocket::connected, this, &AppEngine::started);
-        connect(m_webSocket.get(), &BybitWebSocket::disconnected, this, [this]() {
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::connected, this, &MarketDataStreamer::started);
+
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::disconnected, this, [this]() {
             if (!m_isInterrupt)
                 start();
             else {
@@ -16,21 +17,33 @@ namespace Engine {
                 emit stopped();
             }
         });
-        connect(m_webSocket.get(), &BybitWebSocket::errorOccurred, this, &AppEngine::errorOccurred);
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedTicker, this, [this](const Ticker& newTicker) {
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::errorOccurred, this, &MarketDataStreamer::errorOccurred);
+
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::pingMeasured, this, [this](double pingMs) {
+            if (pingMs < 50)
+                qInfo() << "Ping:" << pingMs << "ms" << "- Great";
+            else if (pingMs >= 50 && pingMs < 150)
+                qInfo() << "Ping:" << pingMs << "ms" << "- Good";
+            else if (pingMs >= 150 && pingMs < 300)
+                qInfo() << "Ping:" << pingMs << "ms" << "- Middle";
+            else if (pingMs > 300)
+                qInfo() << "Ping:" << pingMs << "ms" << "- Bad";
+        });
+
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedTicker, this, [this](const Tools::Ticker& newTicker) {
             if (m_lastPair == newTicker.m_symbol)
                 emit tickerUpdated(newTicker);
         });
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedOrderbook, this, [this](const Orderbook& newOrderbook) {
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedOrderbook, this, [this](const Tools::Orderbook& newOrderbook) {
             if (m_lastPair == newOrderbook.m_symbol) {
                 updateOrderbook(m_orderBooks[newOrderbook.m_symbol], newOrderbook);
                 emit orderBookUpdated(m_orderBooks[newOrderbook.m_symbol]);
             }
         });
 
-        connect(m_webSocket.get(), &BybitWebSocket::updatedKline, this, [this](const Kline& newKline) {
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedKline, this, [this](const Tools::Kline& newKline) {
             if (m_lastPair == newKline.m_symbol) {
                 m_savedCandles.append(newKline);
                 emit klineUpdated(newKline);
@@ -42,26 +55,26 @@ namespace Engine {
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
     }
 
-    AppEngine::~AppEngine() {
+    MarketDataStreamer::~MarketDataStreamer() {
         qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
 
         if (hasRunned())
             m_webSocket->close();
     }
 
-    void AppEngine::updateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
+    void MarketDataStreamer::updateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
         if (newOrderbook.m_type == "snapshot")
             snapshotOrderbook(oldOrderbook, newOrderbook);
         else
             deltaUpdateOrderbook(oldOrderbook, newOrderbook);
     }
 
-    void AppEngine::snapshotOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
+    void MarketDataStreamer::snapshotOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
         oldOrderbook.m_bids = newOrderbook.m_bids;
         oldOrderbook.m_asks = newOrderbook.m_asks;
     }
 
-    void AppEngine::deltaUpdateOrderbook(Orderbook& oldOrderbook, const Orderbook& newOrderbook) {
+    void MarketDataStreamer::deltaUpdateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
         for (const auto& bidVal : newOrderbook.m_bids.asKeyValueRange()) {
             double price = bidVal.first;
             double size = bidVal.second;
@@ -83,22 +96,22 @@ namespace Engine {
         }
     }
 
-    bool AppEngine::hasRunned() {
+    bool MarketDataStreamer::hasRunned() {
         return m_webSocket && m_webSocket->isOpen();
     }
 
-    qint64 AppEngine::getStartTime() {
+    qint64 MarketDataStreamer::getStartTime() {
         return m_startTime;
     }
 
-    void AppEngine::setAPI(const API& api) {
+    void MarketDataStreamer::setAPI(const Tools::API& api) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!m_webSocket)
             return;
         m_webSocket->initAPI(api);
     }
 
-    void AppEngine::start() {
+    void MarketDataStreamer::start() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_startTime = QDateTime::currentMSecsSinceEpoch();
         if (!hasRunned())
@@ -107,7 +120,7 @@ namespace Engine {
             emit errorOccurred("The engine was started");
     }
 
-    void AppEngine::stop(bool interrupt) {
+    void MarketDataStreamer::stop(bool interrupt) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!hasRunned())
             emit errorOccurred("The engine failed to run");
@@ -117,16 +130,16 @@ namespace Engine {
         }
     }
 
-    void AppEngine::addTrade(const QString& pair) {
+    void MarketDataStreamer::addTrade(const QString& pair) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_lastPair = pair;
         if (!hasRunned())
             emit errorOccurred("The engine failed to run");
         else
             m_webSocket->subscribeToStream(m_lastPair, {
-                BybitWebSocket::Stream::Ticker,
-                BybitWebSocket::Stream::Orderbook,
-                BybitWebSocket::Stream::Kline
+                Tools::BybitWebSocket::Stream::Ticker,
+                Tools::BybitWebSocket::Stream::Orderbook,
+                Tools::BybitWebSocket::Stream::Kline
             });
     }
 
