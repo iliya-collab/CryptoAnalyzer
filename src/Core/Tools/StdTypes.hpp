@@ -1,16 +1,17 @@
 #pragma once
-
 #include <QString>
 #include <QList>
 #include <QMap>
 #include <QObject>
 #include <QVariant>
+#include <QtQml>
 
 namespace Core::Tools {
     Q_NAMESPACE
 
     struct Orderbook {
         Q_GADGET
+        QML_VALUE_TYPE(orderbook)
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
         Q_PROPERTY(QVariantList bids READ getBids)
@@ -41,6 +42,7 @@ namespace Core::Tools {
 
     struct Ticker {
         Q_GADGET
+        QML_VALUE_TYPE(ticker)
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
         Q_PROPERTY(double lastPrice MEMBER m_lastPrice)
@@ -68,6 +70,7 @@ namespace Core::Tools {
 
     struct Kline {
         Q_GADGET
+        QML_VALUE_TYPE(kline)
 
         Q_PROPERTY(QString symbol MEMBER m_symbol)
         Q_PROPERTY(double open MEMBER m_open)
@@ -95,6 +98,7 @@ namespace Core::Tools {
     // Структура для хранения информации об API ключах
     struct API {
         Q_GADGET
+        QML_VALUE_TYPE(api)
 
         Q_PROPERTY(QString apiKey MEMBER m_apiKey)
         Q_PROPERTY(QString secretKey MEMBER m_secretKey)
@@ -107,4 +111,4 @@ namespace Core::Tools {
         bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
     };
 
-} // namespace Engine
+}

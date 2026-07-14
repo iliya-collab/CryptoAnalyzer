@@ -1,8 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
-import Engine 1.0
+import MainApplication 1.0
 import Components.Crypto 1.0
 import Components.Custom 1.0
 import Theme 1.0
@@ -21,16 +20,6 @@ Item {
 
     function setOrderbookVisible(visible) {
         orderbookPanel.visible = visible
-    }
-
-    function bindWithEngine() {
-        tickerWidget.bindTicker()
-        orderbookWidget.bindOrderbook()
-    }
-
-    function unbindWithEngine() {
-        tickerWidget.unbindTicker()
-        orderbookWidget.unbindOrderbook()
     }
 
     Item {
@@ -60,15 +49,15 @@ Item {
                     SelecterTradeWidget {
                         id: selecterTrade
                         Layout.fillWidth: true
-                        Layout.preferredWidth: parent.width / 6
+                        Layout.preferredWidth: parent.width / 10
 
-                        popupList: Engine.tradeList
+                        popupList: AppCore.tradeList
 
                         onItemSelected: function(item) {
-                            Engine.addTrade(item)
+                            AppCore.addTrade(item)
                         }
                         onFilterSelected: function(filter) {
-                            Engine.loadTradesFromRepository(filter)
+                            AppCore.loadTradesFromRepository(filter)
                         }
                     }
 
@@ -155,11 +144,7 @@ Item {
 
 
     Component.onCompleted: {
-        root.unbindWithEngine()
-        root.bindWithEngine()
         root.setOrderbookVisible(true)
     }
-
-    Component.onDestruction: root.unbindWithEngine()
 
 } // TradePage

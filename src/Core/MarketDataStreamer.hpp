@@ -11,7 +11,6 @@ namespace Core {
 
         std::unique_ptr<Tools::BybitWebSocket> m_webSocket;
 
-        qint64 m_startTime;
         bool m_isInterrupt = false;
         QString m_lastPair = "";
 
@@ -32,7 +31,6 @@ namespace Core {
         void setAPI(const Tools::API& api);
         void addTrade(const QString& pair);
         bool hasRunned();
-        qint64 getStartTime();
 
     signals:
 

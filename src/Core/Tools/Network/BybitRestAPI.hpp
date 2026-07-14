@@ -11,9 +11,6 @@
 #include <QUrlQuery>
 
 namespace Core::Tools {
-    /*
-    *   Класс для создания запросов к бирже ByBit
-    */
     class BybitRestAPI : public QObject {
         Q_OBJECT
     private:

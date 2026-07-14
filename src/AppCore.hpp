@@ -1,85 +1,85 @@
 #pragma once
 #include <QQmlContext>
 #include <QObject>
-#include <QThread>
+#include <QtQml>
 #include <atomic>
 #include <memory>
 #include "Core/MarketDataManager.hpp"
 #include "Core/MarketDataStreamer.hpp"
-#include "Core/Tools/DataModels/OrderbookModel.hpp"
-
-using namespace Core;
-using namespace Core::Tools;
+#include "Core/ConfigurationManager.hpp"
+#include "Core/Tools/DataModels/OrderbookSideModel.hpp"
 
 class AppCore : public QObject {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
-    Q_PROPERTY(QVariantList tradeList MEMBER m_tradeList NOTIFY tradeListChanged)
-    Q_PROPERTY(QVariantList candleSeries MEMBER m_candleSeries NOTIFY candleSeriesChanged)
-    Q_PROPERTY(qint64 startTime MEMBER m_startTime NOTIFY startTimeChanged)
+    Q_PROPERTY(QVariantList tradeList MEMBER m_tradeList NOTIFY tradeListChanged FINAL)
+    Q_PROPERTY(QVariantList candleSeries MEMBER m_candleSeries NOTIFY candleSeriesChanged FINAL)
+    Q_PROPERTY(Core::Tools::Ticker ticker READ ticker NOTIFY tickerChanged FINAL)
+    Q_PROPERTY(Core::Tools::OrderbookSideModel* asks READ asks NOTIFY asksChanged FINAL)
+    Q_PROPERTY(Core::Tools::OrderbookSideModel* bids READ bids NOTIFY bidsChanged FINAL)
+    Q_PROPERTY(Core::Tools::API api READ getAPI NOTIFY apiChanged FINAL)
 
 private:
 
-    std::unique_ptr<MarketDataManager> m_manager;
-    std::unique_ptr<MarketDataStreamer> m_streamer;
+    std::unique_ptr<Core::MarketDataManager> m_manager;
+    std::unique_ptr<Core::MarketDataStreamer> m_streamer;
 
-    QThread* m_workerThread;
-
-    qint64 m_startTime = 0;
     QString m_lastTrade = "";
     QVariantList m_tradeList;
     QVariantList m_candleSeries;
-    API m_curAPI;
+    Core::Tools::API m_api;
+    Core::Tools::Ticker m_ticker;
+    std::unique_ptr<Core::Tools::OrderbookSideModel> m_asks;
+    std::unique_ptr<Core::Tools::OrderbookSideModel> m_bids;
     std::atomic<bool> wasInit{false};
 
-    void setupLoaderConnections();
-    void setupEngineConnections();
+    void setupManagerConnections();
+    void setupStreamerConnections();
     void setupConnections();
 
-    void addCandle(const ItemCandle& candle);
-    void updateCandle(const ItemCandle& candle);
+    void addCandle(const Core::ItemCandle& candle);
+    void updateCandle(const Core::ItemCandle& candle);
+
+public:
 
     explicit AppCore(QObject* parent = nullptr);
     ~AppCore();
 
-public:
-
-    static AppCore *create(QQmlEngine *engine, QJSEngine *scriptEngine);
-
-    // ------ Методы доступные в контексте QML ------
+    // Методы доступные в контексте QML
     Q_INVOKABLE void init();
-    // Запускает движок
     Q_INVOKABLE void run();
-    // Перезапускает движок
     Q_INVOKABLE void restart();
-    // Прерывает работу движка
     Q_INVOKABLE void interrupt();
-
     Q_INVOKABLE void loadTradesFromRepository(const QString& category = "ALL");
     Q_INVOKABLE void loadTradesFromNetwork();
     Q_INVOKABLE void loadCandlesFromNetwork(const QString& symbol, const QString& interval, qint64 start, qint64 end);
-
     Q_INVOKABLE void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
-    Q_INVOKABLE void checkAPI();
-    // Запускает trade по выбранной паре pair
-    Q_INVOKABLE void addTrade(const QString& pair);
+    Q_INVOKABLE void saveAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
+    Q_INVOKABLE void requestAccount();
+    Q_INVOKABLE void addTrade(const QString& pair); // Запускает trade по выбранной паре pair
 
+    // READ-методы
+    Core::Tools::Ticker ticker() const { return m_ticker; }
+    Core::Tools::OrderbookSideModel* asks() const { return m_asks.get(); }
+    Core::Tools::OrderbookSideModel* bids() const { return m_bids.get(); }
+    Core::Tools::API getAPI() const { return m_api; }
 
 signals:
 
-    // Сигнал для уведомления об измении свойства tradeList
+    // Сигналы для уведомления об измении свойств
     void tradeListChanged();
     void candleSeriesChanged();
-    void startTimeChanged(qint64 msTime);
+    void apiChanged();
+    void tickerChanged();
+    void asksChanged();
+    void bidsChanged();
 
+    // Сигналы работы самого приложения
     void errorOccurred(const QString& error);
     void messageReceived(const QString& msg);
     void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void apiChecked(bool isValid);
-    void engineStarted();
-    void engineStopped();
-
-    void tickerUpdated(const Ticker& newTicker);
-    void orderbookUpdated(const Orderbook& newOrderbook);
-
+    void started();
+    void stopped();
 };

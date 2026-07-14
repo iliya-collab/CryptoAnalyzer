@@ -1,12 +1,14 @@
 #include "BybitWebSocket.hpp"
-
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QCryptographicHash>
+#include <QMessageAuthenticationCode>
 
 namespace Core::Tools {
 
-    BybitWebSocket::BybitWebSocket(QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
+    BybitWebSocket::BybitWebSocket(SocketType type, QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
+        m_type = type;
         setupWebSocket();
         setupConnections();
     }
@@ -73,7 +75,20 @@ namespace Core::Tools {
     }
 
     void BybitWebSocket::open() {
-        QString url = m_api.m_isTestnet ? "wss://stream-testnet.bybit.com/v5/public/spot" : "wss://stream.bybit.com/v5/public/spot";
+        QString url;
+        switch (m_type) {
+            case SocketType::Public: // Публичное соединение (без аутентификации)
+                url = m_api.m_isTestnet ?
+                    "wss://stream-testnet.bybit.com/v5/public/spot" :
+                    "wss://stream.bybit.com/v5/public/spot";
+                break;
+
+            case SocketType::Private: // Приватное соединение (с аутентификацией)
+                url = m_api.m_isTestnet ?
+                    "wss://stream-testnet.bybit.com/v5/private" :
+                    "wss://stream.bybit.com/v5/private";
+                break;
+        }
         m_webSocket->open(url);
     }
 
@@ -140,6 +155,10 @@ namespace Core::Tools {
 // ==================================   SLOTS   ==================================
 
     void BybitWebSocket::onConnected() {
+        // Отправляем авторизацию для приватных потоков
+        /*if (!m_api.m_apiKey.isEmpty() && !m_api.m_secretKey.isEmpty())
+            sendAuthMessage();*/
+
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
         connectToStreams();
         emit connected();
@@ -213,8 +232,9 @@ namespace Core::Tools {
     }
 
     void BybitWebSocket::messageReceived(const QJsonObject &obj) {
-        //qDebug() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+        //qInfo() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 
+        // Обработа ping
         if (obj.contains("op") && obj["op"].toString() == "pong") {
             QString reqId = obj["req_id"].toString();
             if (m_pingTimestamps.contains(reqId)) {
@@ -225,17 +245,28 @@ namespace Core::Tools {
             return;
         }
 
+        // Обработка auth
+        if (obj.contains("op") && obj["op"].toString() == "auth") {
+            if (obj["success"].toBool())
+                emit authenticated();
+            else
+                emit authenticationError(obj["ret_msg"].toString());
+            return;
+        }
+
+        // Обработка topic
         if (obj.contains("success")) {
-            bool isSuccess = obj["success"].toBool();
-            if (!isSuccess)
+            if (!obj["success"].toBool())
                 emit errorOccurred(obj["op"].toString() + "failed: " + obj["ret_msg"].toString());
+
         } else if (obj.contains("topic")) {
-            QString channel = obj["topic"].toString();
-            if (channel.startsWith("tickers."))
+            QString topic = obj["topic"].toString();
+
+            if (topic.startsWith("tickers."))
                 updateTicker(obj);
-            else if (channel.startsWith("orderbook."))
+            else if (topic.startsWith("orderbook."))
                 updateOrderbook(obj);
-            else if (channel.startsWith("kline."))
+            else if (topic.startsWith("kline."))
                 updateKline(obj);
         }
     }
@@ -376,9 +407,39 @@ namespace Core::Tools {
 
     }
 
-    void BybitWebSocket::sendAuthMessage() {
+    QString BybitWebSocket::generateSignature(const QString& apiKey, const QString& apiSecret, const QString& expires) {
+        // Для Bybit V5 Private формула подписи: "GET/realtime" + expires
+        QString signaturePayload = "GET/realtime" + expires;
 
+        QMessageAuthenticationCode code(QCryptographicHash::Sha256);
+        code.setKey(apiSecret.toUtf8());
+        code.addData(signaturePayload.toUtf8());
+
+        QByteArray hmacResult = code.result();
+        return hmacResult.toHex();
     }
+
+
+    void BybitWebSocket::sendAuthMessage() {
+        qint64 currentMs = QDateTime::currentMSecsSinceEpoch();
+        QString expires = QString::number(currentMs + 10000);
+
+        QString signature = generateSignature(m_api.m_apiKey, m_api.m_secretKey, expires);
+
+        QJsonObject authMessage;
+        authMessage["op"] = "auth";
+
+        QJsonArray args;
+        args.append(m_api.m_apiKey);
+        args.append(expires);
+        args.append(signature);
+
+        authMessage["args"] = args;
+        authMessage["req_id"] = QString::number(m_nextReqId++);
+
+        m_webSocket->sendTextMessage(QJsonDocument(authMessage).toJson(QJsonDocument::Compact));
+    }
+
 
     QString BybitWebSocket::createTickerStream(const QString &coin) {
         return QString("tickers.%1").arg(coin);

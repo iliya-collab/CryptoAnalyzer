@@ -1,8 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-
-import Engine 1.0
 import MainApplication 1.0
 import Theme 1.0
 import Components.Custom 1.0
@@ -19,53 +17,39 @@ ApplicationWindow {
 
     property bool visibleOrderbook: true
 
-    Component.onCompleted: {
-        console.log("UI Loaded successfully")
+    Connections {
+        target: AppCore
 
-        Engine.errorOccurred.connect(function(error) {
-            statusWidget.text = error
-        })
+        function onErrorOccurred(error) { statusWidget.text = error }
 
-        Engine.messageReceived.connect(function(msg) {
-            statusWidget.text = msg
-        })
+        function onMessageReceived(msg) { statusWidget.text = msg }
 
-        Engine.downloadProgress.connect(function(received, total) {
+        function onDownloadProgress(received, total) {
             if (total > 0)
                 statusWidget.progressValue = received / total * 100
-        })
+        }
+    }
 
-        Engine.engineStarted.connect(function() {
-            Engine.loadTradesFromRepository()
-        })
-
-        Engine.apiChecked.connect(function(isValid) {
-            if (isValid)
-                console.log("API is valid");
-            else
-                console.log("API is not valid");
-        })
-
-        Engine.init()
+    Component.onCompleted: {
+        // Инициализируем ядро приложения
+        AppCore.init()
+        // Загружаем пары для трейдинга
+        AppCore.loadTradesFromRepository()
+        // Проверям валидность API, запрашивая информацию об аккаунте
+        AppCore.requestAccount()
     }
 
     // Меню
     menuBar: CustomMenuBar {
         menuModel: [
             {
-                text: "Account",
-                items: [
-                    { text: "Connect API" }
-                ]
-            },
-            {
                 text: "Trade",
                 items: [
                     {
-                        text: "Load",
+                        text: "Repository",
                         items: [
-                            { text: "Spot pairs" },
-                            { text: "Candles" }
+                            { text: "Load spot pairs" },
+                            { text: "Load candles" }
                         ]
                     },
                     { text: "---" },
@@ -84,8 +68,10 @@ ApplicationWindow {
         onItemTriggered: function(itemText, itemPath, checkedState) {
             //console.log("Item:", itemText, " Full path:", itemPath)
 
-            if (itemText === "Connect API")
-                mainStack.showConnectAPI()
+            if (itemText === "Settings") {
+                if (!settingsWindowLoader.active)
+                    settingsWindowLoader.active = true
+            }
             else if (itemText === "Orderbook") {
                 mainWindow.visibleOrderbook = !mainWindow.visibleOrderbook
                 if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
@@ -93,9 +79,9 @@ ApplicationWindow {
             }
             else if (itemText === "Spot")
                 mainStack.showTradePage()
-            else if (itemPath === "Load > Spot pairs")
-                Engine.loadTradesFromNetwork()
-            else if (itemPath === "Load > Candles") {}
+            else if (itemPath === "Repository > Load spot pairs")
+                AppCore.loadTradesFromNetwork()
+            else if (itemPath === "Repository > Load candles") {}
         }
     }
 
@@ -114,11 +100,11 @@ ApplicationWindow {
             ]
             onToolButtonClicked: function(id, name) {
                 if (id === "btn_run")
-                    Engine.run()
+                    AppCore.run()
                 else if (id === "btn_restart")
-                    Engine.restart()
+                    AppCore.restart()
                 else if (id === "btn_stop")
-                    Engine.interrupt()
+                    AppCore.interrupt()
             }
         }
 
@@ -131,11 +117,6 @@ ApplicationWindow {
             onCurrentItemChanged: {
                 if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
                     mainStack.currentItem.orderbookVisible = mainWindow.visibleOrderbook
-            }
-
-            // Метод для вызова экрана подключения API
-            function showConnectAPI() {
-                mainStack.replace("Views/ConnectAPIScreen.qml")
             }
 
             // Метод для вызова экрана торговли
@@ -161,5 +142,19 @@ ApplicationWindow {
         }
 
     } // mainLayout
+
+    Loader {
+        id: settingsWindowLoader
+        active: false
+        source: "Views/SettingsWindow.qml"
+
+        Connections {
+            target: settingsWindowLoader.item
+            function onVisibleChanged() {
+                if (settingsWindowLoader.item && !settingsWindowLoader.item.visible)
+                    settingsWindowLoader.active = false
+            }
+        }
+    }
 
 }

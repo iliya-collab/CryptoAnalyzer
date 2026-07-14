@@ -4,7 +4,7 @@
 namespace Core {
 
     MarketDataStreamer::MarketDataStreamer(QObject* parent) : QObject(parent) {
-        m_webSocket = std::make_unique<Tools::BybitWebSocket>(this);
+        m_webSocket = std::make_unique<Tools::BybitWebSocket>(Tools::BybitWebSocket::SocketType::Public, this);
 
         // Обработка основных сигналов
         connect(m_webSocket.get(), &Tools::BybitWebSocket::connected, this, &MarketDataStreamer::started);
@@ -29,6 +29,10 @@ namespace Core {
                 qInfo() << "Ping:" << pingMs << "ms" << "- Middle";
             else if (pingMs > 300)
                 qInfo() << "Ping:" << pingMs << "ms" << "- Bad";
+        });
+
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::authenticationError, this, [](const QString& msgError) {
+            qWarning() << msgError;
         });
 
         connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedTicker, this, [this](const Tools::Ticker& newTicker) {
@@ -100,10 +104,6 @@ namespace Core {
         return m_webSocket && m_webSocket->isOpen();
     }
 
-    qint64 MarketDataStreamer::getStartTime() {
-        return m_startTime;
-    }
-
     void MarketDataStreamer::setAPI(const Tools::API& api) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!m_webSocket)
@@ -113,17 +113,16 @@ namespace Core {
 
     void MarketDataStreamer::start() {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        m_startTime = QDateTime::currentMSecsSinceEpoch();
         if (!hasRunned())
             m_webSocket->open();
         else
-            emit errorOccurred("The engine was started");
+            emit errorOccurred("The core was started");
     }
 
     void MarketDataStreamer::stop(bool interrupt) {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!hasRunned())
-            emit errorOccurred("The engine failed to run");
+            emit errorOccurred("The core failed to run");
         else {
             m_isInterrupt = interrupt;
             m_webSocket->close();
@@ -134,7 +133,7 @@ namespace Core {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_lastPair = pair;
         if (!hasRunned())
-            emit errorOccurred("The engine failed to run");
+            emit errorOccurred("The core failed to run");
         else
             m_webSocket->subscribeToStream(m_lastPair, {
                 Tools::BybitWebSocket::Stream::Ticker,

@@ -16,65 +16,22 @@ namespace Core::Tools {
     class BybitWebSocket : public QObject {
         Q_OBJECT
 
-    private:
-
-        // Отправка сообщения о подписке
-        void sendSubscriptionMessage(const QStringList& streams);
-        // Отправка сообщения об отписке
-        void sendUnsubscriptionMessage(const QStringList& streams);
-        // Отправка сообщения о пинге
-        void sendPingMessage();
-        void sendAuthMessage();
-        // Обработка сообщения
-        void messageReceived(const QJsonObject& obj);
-        // Превращает строковое сообщение в json объект
-        std::expected<QJsonObject, QString> parseTextMessage(const QString &message);
-        // Обнавление тикера
-        void updateTicker(const QJsonObject& json);
-        // Обнавление стакана цен
-        void updateOrderbook(const QJsonObject& json);
-        void updateKline(const QJsonObject& json);
-
-        // Метод для создания канала ticker
-        QString createTickerStream(const QString& coin);
-        // Метод для создания канала orderbook
-        QString createOrderbookStream(const QString& coin);
-        QString createKlineStream(const QString& coin);
-        // Методы настройки веб-сокета
-        void setupWebSocket();
-        // Метода для настройки соединений
-        void setupConnections();
-        // Метод для правильного закрытия веб-сокеты
-        void cleanup();
-        // Метод для освобождения и закрытия
-        void closeAfterFlush();
-        void cleanupPingTimestamps();
-
-        QWebSocket* m_webSocket; // Веб-сокет
-        API m_api; // API для работы с приватными каналами
-        QTimer* m_pingTimer; // Таймер проверки доступности соединения (активный ping)
-        QSet<QString> m_usedStreams; // Используемые каналы
-        quint64 m_nextReqId = 1; // Уникальный id для подписки на каналы
-        bool m_pendingClose = false;
-        QMap<QString, qint64> m_pingTimestamps;
-        double m_lastPingMs = 0;
-
-        // Максимальное кол-во каналов в 1ой подписке
-        const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
-        // каждые 20 с
-        const int ACTIVE_PING_INTERVAL = 20000;
-
     public:
-
-        explicit BybitWebSocket(QObject* parent = nullptr);
-        ~BybitWebSocket();
+        // Тип сокета: публичный (рыночные данные) или приватный (данные аккаунта)
+        enum class SocketType {
+            Public,
+            Private
+        };
 
         // Каналы для подклячения
         enum class Stream {
-            Ticker,     // Тикер
-            Orderbook,  // Стакан ордеров
-            Kline       // Свечи
+            Ticker,     // Публичный: Тикер
+            Orderbook,  // Публичный: Стакан ордеров
+            Kline       // Публичный: Свечи
         };
+
+        explicit BybitWebSocket(SocketType type, QObject* parent = nullptr);
+        ~BybitWebSocket();
 
         void initAPI(const API& api);
 
@@ -84,6 +41,7 @@ namespace Core::Tools {
         void close();
         // Проверяет открыт ли websocket
         bool isOpen();
+
         // Формирует каналы для монеты и отправляет сообщение о подписке на них, если websocket открыт
         void subscribeToStream(const QString& coin, QSet<Stream> streams);
         // Потправляет сообщение о подписке на все используемые каналы
@@ -92,21 +50,23 @@ namespace Core::Tools {
         void disconnectFromStreams();
 
         double getLastPing() { return m_lastPingMs; };
+        SocketType getType() const { return m_type; }
 
     signals:
 
+        // Сигналы для обновления публичных каналов
         void updatedTicker(const Ticker& newTicker);
         void updatedOrderbook(const Orderbook& newOrderBook);
         void updatedKline(const Kline& newKline);
 
         void pingMeasured(double lastPing);
 
-        // Испускается, когда websocket успешно открылся
-        void connected();
-        // Испускается, когда websocket закрылся
-        void disconnected();
-        // Испускается, когда появилась ошибка или при подключении websocket, или при ssl ошибках
-        void errorOccurred(const QString& error);
+        // Системные сигналы сокета
+        void connected(); // Испускается, когда websocket успешно открылся
+        void disconnected(); // Испускается, когда websocket закрылся
+        void errorOccurred(const QString& error); // Испускается, когда появилась ошибка или при подключении websocket, или при ssl ошибках
+        void authenticated(); // Успешная аутентификация
+        void authenticationError(const QString& errorMessage); // Ошибка аутентификации
 
     private slots:
 
@@ -120,11 +80,58 @@ namespace Core::Tools {
         void onSslErrors(const QList<QSslError>& errors);
         // Обработка принятого сообщения
         void onTextMessageReceived(const QString& message);
-
         void onBytesWritten(qint64 bytes);
+        void onPing(); // Вызывается по таймеру m_pingTimer
 
-        void onPing();
+    private:
 
+        // Внутренние методы отправки запросов
+        void sendSubscriptionMessage(const QStringList& streams); // Отправка сообщения о подписке
+        void sendUnsubscriptionMessage(const QStringList& streams); // Отправка сообщения об отписке
+        void sendAuthMessage(); // Отправка сообщения об авторизации
+        void sendPingMessage(); // Отправка сообщения о пинге
+
+        // Криптография для приватного канала
+        QString generateSignature(const QString& apiKey, const QString& apiSecret, const QString& expires);
+
+        // Обработка входящих данных
+        void messageReceived(const QJsonObject& obj); // Обработка сообщения
+        std::expected<QJsonObject, QString> parseTextMessage(const QString &message); // Превращает строковое сообщение в json объект
+
+        // Обновление публичных данных
+        void updateTicker(const QJsonObject& json);
+        void updateOrderbook(const QJsonObject& json);
+        void updateKline(const QJsonObject& json);
+
+        // Генерация строк топиков для Bybit
+        QString createTickerStream(const QString& coin);
+        QString createOrderbookStream(const QString& coin);
+        QString createKlineStream(const QString& coin);
+
+        // Настройка и очистка
+        void setupWebSocket(); // Методы настройки веб-сокета
+        void setupConnections(); // Метода для настройки соединений
+        void cleanup(); // Метод для правильного закрытия веб-сокеты
+        void closeAfterFlush(); // Метод для освобождения и закрытия
+        void cleanupPingTimestamps();
+
+
+        // Переменные состояния
+        SocketType m_type;           // Тип этого экземпляра сокета
+        API m_api;                   // Структура с API
+        QWebSocket* m_webSocket;     // Веб-сокета
+        QTimer* m_pingTimer;         // Таймер для отправки ping сообщений
+        QSet<QString> m_usedStreams; // Список активных подписок (например, "order", "tickers.BTCUSDT")
+        quint64 m_nextReqId = 1;     // Счетчик ID для запросов
+        bool m_pendingClose = false;
+
+        // Измерение пинга
+        QMap<QString, qint64> m_pingTimestamps; // req_id -> timestamp отправки
+        double m_lastPingMs = 0;
+
+        // Константы ограничений Bybit
+        const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
+        const int ACTIVE_PING_INTERVAL = 20000; // 20 секунд
     };
     
 }

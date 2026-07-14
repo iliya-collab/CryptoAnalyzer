@@ -1,11 +1,12 @@
 #pragma once
-
 #include <QAbstractListModel>
+#include <QtQml>
 
 namespace Core::Tools {
 
     class OrderbookSideModel : public QAbstractListModel {
         Q_OBJECT
+        QML_ELEMENT
 
         Q_PROPERTY(int count MEMBER m_count NOTIFY countChanged)
         Q_PROPERTY(Side side READ getSide WRITE setSide NOTIFY sideChanged)
@@ -26,7 +27,8 @@ namespace Core::Tools {
             TotalVolumeRole
         };
 
-        explicit OrderbookSideModel(QObject *parent = nullptr);
+        explicit OrderbookSideModel(QObject* parent = nullptr);
+        explicit OrderbookSideModel(Side side, QObject* parent = nullptr);
 
         // Обязательные методы QAbstractListModel
         int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -35,11 +37,14 @@ namespace Core::Tools {
 
         Side getSide() const { return m_side; }
         void setSide(Side side);
+        void update(const QMap<double, double>& data);
 
-        Q_INVOKABLE void update(const QVariantList &data);
+        Q_INVOKABLE void update(const QVariantList& data);
+        Q_INVOKABLE void clear();
         Q_INVOKABLE QVariantMap get(int index) const;
 
     signals:
+
         void countChanged();
         void sideChanged();
         void totalChanged();
@@ -67,7 +72,7 @@ namespace Core::Tools {
         int m_count = 0;
         double m_total = 0;
         double m_maxVolume = 0;
-        Side m_side = Bid;
+        Side m_side;
         QVector<Level> m_levels;
 
     };

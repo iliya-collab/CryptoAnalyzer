@@ -13,12 +13,12 @@ namespace Core::Tools {
         qInstallMessageHandler(LogManager::messageHandler);
     }
 
-    void LogManager::setDebugEnabled(bool enabled)   { m_debugEnabled = enabled; }
-    void LogManager::setInfoEnabled(bool enabled)    { m_infoEnabled = enabled; }
+    void LogManager::setDebugEnabled(bool enabled) { m_debugEnabled = enabled; }
+    void LogManager::setInfoEnabled(bool enabled) { m_infoEnabled = enabled; }
     void LogManager::setWarningEnabled(bool enabled) { m_warningEnabled = enabled; }
 
-    bool LogManager::isDebugEnabled() const   { return m_debugEnabled; }
-    bool LogManager::isInfoEnabled() const    { return m_infoEnabled; }
+    bool LogManager::isDebugEnabled() const { return m_debugEnabled; }
+    bool LogManager::isInfoEnabled() const { return m_infoEnabled; }
     bool LogManager::isWarningEnabled() const { return m_warningEnabled; }
 
     void LogManager::messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {

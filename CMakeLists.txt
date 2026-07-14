@@ -49,8 +49,6 @@ file(GLOB_RECURSE MY_HEADERS
 )
 
 add_executable(${PROJECT_NAME}
-    ${MY_SOURCES}
-    ${MY_HEADERS}
     ${RESOURCE_DIR}/res.qrc
 )
 
@@ -60,14 +58,17 @@ qt_add_qml_module(${PROJECT_NAME}
     VERSION 1.0
     RESOURCE_PREFIX "/qt/qml"
     OUTPUT_DIRECTORY "${QML_MODULES}/MainApplication"
+    SOURCES
+        ${MY_SOURCES}
+        ${MY_HEADERS}
     QML_FILES
         res/Main.qml
-        res/Views/ConnectAPIScreen.qml
+        res/Views/APIScreen.qml
         res/Views/TradeScreen.qml
         res/Views/SettingsWindow.qml
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${HEADER_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/src")
 
 add_subdirectory(res)
 

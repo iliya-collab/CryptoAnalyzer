@@ -12,15 +12,6 @@ int main(int argc, char *argv[]) {
     // Пути поиска
     qDebug() << "Import paths:" << qmlEngine.importPathList();
 
-    // Регистрируем модели данных
-    qmlRegisterType<OrderbookSideModel>("Engine.Components", 1, 0, "OrderbookSideModel");
-    // Регистрируем стандартные типы движка
-    qmlRegisterType<Ticker>("Engine.Components", 1, 0, "ticker");
-    qmlRegisterType<Orderbook>("Engine.Components", 1, 0, "orderbook");
-    qmlRegisterType<Kline>("Engine.Components", 1, 0, "kline");
-    // Регистрируем тип движка как Singleton
-    qmlRegisterSingletonType<AppCore>("Engine", 1, 0, "Engine", AppCore::create);
-
     QObject::connect(&qmlEngine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
         QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
