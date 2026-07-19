@@ -19,6 +19,8 @@ namespace Core::Tools {
                 close REAL,
                 high REAL,
                 low REAL,
+                volume REAL,
+                turnover REAL,
                 UNIQUE(symbol, interval, start, end)
             )
         )";
@@ -70,16 +72,18 @@ namespace Core::Tools {
         for (const auto& item : newCandles)
             if (!m_dbManager.executePrepared(m_dbPath,
                 R"(
-                    INSERT INTO candles (symbol, interval, start, end, open, close, high, low)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
                         high = EXCLUDED.high,
-                        low = EXCLUDED.low;
+                        low = EXCLUDED.low,
+                        volume = EXCLUDED.volume,
+                        turnover = EXCLUDED.turnover;
                 )",
-                { item.m_symbol, item.m_interval, item.m_start, item.m_end, item.m_open, item.m_close, item.m_high, item.m_low }))
+                { item.m_symbol, item.m_interval, item.m_start, item.m_end, item.m_open, item.m_close, item.m_high, item.m_low, item.m_volume, item.m_turnover }))
             {
                 m_dbManager.rollbackTransaction(m_dbPath);
                 return false;
@@ -91,15 +95,17 @@ namespace Core::Tools {
     bool CandleRepository::insertCandle(const Kline& newCandle) {
         return m_dbManager.executePrepared(m_dbPath,
             R"(
-                INSERT INTO candles (symbol, interval, start, end, open, close, high, low)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
                         high = EXCLUDED.high,
-                        low = EXCLUDED.low;
+                        low = EXCLUDED.low,
+                        volume = EXCLUDED.volume,
+                        turnover = EXCLUDED.turnover;
             )",
-            { newCandle.m_symbol, newCandle.m_interval, newCandle.m_start, newCandle.m_end, newCandle.m_open, newCandle.m_close, newCandle.m_high, newCandle.m_low });
+            { newCandle.m_symbol, newCandle.m_interval, newCandle.m_start, newCandle.m_end, newCandle.m_open, newCandle.m_close, newCandle.m_high, newCandle.m_low, newCandle.m_volume, newCandle.m_turnover });
     }
 }

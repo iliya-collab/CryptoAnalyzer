@@ -6,9 +6,9 @@ import Components.Custom 1.0
 Item {
     id: root
 
-    property double totalVolumeOrderbook: viewOrderbook.bids.total + viewOrderbook.asks.total
-    property double percentAsk: totalVolumeOrderbook > 0 ? Math.round(viewOrderbook.asks.total / totalVolumeOrderbook * 100) : 50
-    property double percentBid: totalVolumeOrderbook > 0 ? Math.round(viewOrderbook.bids.total / totalVolumeOrderbook * 100) : 50
+    property double totalVolumeOrderbook: viewOrderbook.bids.totalVolume + viewOrderbook.asks.totalVolume
+    property double percentAsk: totalVolumeOrderbook > 0 ? Math.round(viewOrderbook.asks.totalVolume / totalVolumeOrderbook * 100) : 50
+    property double percentBid: totalVolumeOrderbook > 0 ? Math.round(viewOrderbook.bids.totalVolume / totalVolumeOrderbook * 100) : 50
 
     ColumnLayout {
         id: contentLayout

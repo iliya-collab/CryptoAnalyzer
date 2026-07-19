@@ -12,8 +12,10 @@ ApplicationWindow {
     visible: true
     width: 1000
     height: 800
-    title: "Trader"
+    title: "EasyTrade"
     color: Theme.windowColor
+
+    visibility: "FullScreen"
 
     property bool visibleOrderbook: true
 

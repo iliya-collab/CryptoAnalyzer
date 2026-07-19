@@ -28,7 +28,7 @@ namespace Core {
         Tools::BybitRestAPI* m_currentApi = nullptr;
 
         void processRequestTradePairs(TradeList& pairs, const QJsonObject& data);
-        void processRequestCandles(CandleList& candles, const QJsonObject& data);
+        void processRequestCandles(CandleList& candles, const QString& interval, const QJsonObject& data);
 
     public:
 

@@ -12,5 +12,4 @@ qt_add_qml_module(CryptoComponents
         KlineWidget.qml
         IndicatorMarketSentiment.qml
         CandleChart.qml
-
 )

@@ -12,7 +12,7 @@ Item {
     Layout.fillWidth: true
     Layout.fillHeight: true
 
-    property real orderbookWidth: 300
+    property real orderbookWidth: 500
 
     property bool orderbookVisible: true
 
@@ -49,7 +49,7 @@ Item {
                     SelecterTradeWidget {
                         id: selecterTrade
                         Layout.fillWidth: true
-                        Layout.preferredWidth: parent.width / 10
+                        Layout.preferredWidth: 100
 
                         popupList: AppCore.tradeList
 

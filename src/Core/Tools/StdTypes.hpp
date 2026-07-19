@@ -80,6 +80,8 @@ namespace Core::Tools {
         Q_PROPERTY(bool confirm MEMBER m_confirm)
         Q_PROPERTY(qint64 start MEMBER m_start)
         Q_PROPERTY(qint64 end MEMBER m_end)
+        Q_PROPERTY(double volume MEMBER m_volume FINAL)
+        Q_PROPERTY(double turnover MEMBER m_turnover FINAL)
 
     public:
 
@@ -91,6 +93,8 @@ namespace Core::Tools {
         double m_low = 0;
         qint64 m_start = 0;
         qint64 m_end = 0;
+        double m_volume = 0;
+        double m_turnover = 0;
         bool m_confirm = false;
 
     };

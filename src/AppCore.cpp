@@ -166,7 +166,7 @@ void AppCore::loadTradesFromNetwork() {
 }
 
 void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& interval, qint64 start, qint64 end) {
-    connect(m_manager.get(), &Core::MarketDataManager::candlesReceived, this, [this](const Core::CandleList& newCandleList) {
+    connect(m_manager.get(), &Core::MarketDataManager::candlesReceived, this, [this, interval](const Core::CandleList& newCandleList) {
         for (const auto& iCandle : newCandleList) {
             QVariantMap map;
             map["start"] = iCandle.m_start;
@@ -175,7 +175,10 @@ void AppCore::loadCandlesFromNetwork(const QString& symbol, const QString& inter
             map["close"] = iCandle.m_close;
             map["high"] = iCandle.m_high;
             map["low"] = iCandle.m_low;
+            map["volume"] = iCandle.m_volume;
+            map["turnover"] = iCandle.m_turnover;
             map["isConfirm"] = iCandle.m_confirm;
+            map["interval"] = interval;
             m_candleSeries.insert(0, map);
         }
         emit candleSeriesChanged();
@@ -216,7 +219,10 @@ void AppCore::addCandle(const Core::ItemCandle& candle) {
     map["close"] = candle.m_close;
     map["high"] = candle.m_high;
     map["low"] = candle.m_low;
+    map["volume"] = candle.m_volume;
+    map["turnover"] = candle.m_turnover;
     map["isConfirm"] = candle.m_confirm;
+    map["interval"] = candle.m_interval;
 
     m_candleSeries.append(map);
     emit candleSeriesChanged();
@@ -229,6 +235,8 @@ void AppCore::updateCandle(const Core::ItemCandle& candle) {
         map["close"] = candle.m_close;
         map["high"] = candle.m_high;
         map["low"] = candle.m_low;
+        map["volume"] = candle.m_volume;
+        map["turnover"] = candle.m_turnover;
 
         m_candleSeries.replace(m_candleSeries.count() - 1, map);
         emit candleSeriesChanged();

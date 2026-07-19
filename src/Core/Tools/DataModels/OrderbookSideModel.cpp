@@ -21,9 +21,20 @@ namespace Core::Tools {
         const auto &level = m_levels.at(index.row());
 
         switch (role) {
-            case PriceRole:  return level.price;
-            case VolumeRole: return level.volume;
-            default:         return QVariant();
+            case PriceRole:
+                return level.price;
+            case VolumeRole:
+                return level.volume;
+            case TurnoverRole:
+                return level.turnover;
+            case TotalVolumeRole:
+                return level.totalVolume;
+            case TotalTurnoverRole:
+                return level.totalTurnover;
+            case AvgPriceRole:
+                return level.avgPrice;
+            default:
+                return QVariant();
         }
     }
 
@@ -32,7 +43,10 @@ namespace Core::Tools {
 
         roles[PriceRole]  = "price";
         roles[VolumeRole] = "volume";
-        roles[TotalVolumeRole] = "total";
+        roles[TurnoverRole] = "turnover";
+        roles[TotalVolumeRole] = "totalVolume";
+        roles[TotalTurnoverRole] = "totalTurnover";
+        roles[AvgPriceRole] = "avgPrice";
 
         return roles;
     }
@@ -60,16 +74,30 @@ namespace Core::Tools {
             }
         }
 
-        double cumulative = 0.0;
+        double cumulativeVolume = 0.0;
+        double cumulativeTurnover = 0.0;
+        double cumulativePrice = 0.0;
         double maxVol = 0.0;
+        int nLevel = 1;
         for (auto& level : new_levels) {
-            cumulative += level.volume;
-            level.total = cumulative;
+            level.turnover = level.price * level.volume;
+
+            cumulativePrice += level.price;
+            cumulativeVolume += level.volume;
+            cumulativeTurnover += level.turnover;
+
+            level.totalVolume = cumulativeVolume;
+            level.totalTurnover = cumulativeTurnover;
+            level.avgPrice = cumulativePrice / nLevel;
+
             if (level.volume > maxVol)
                 maxVol = level.volume;
+
+            nLevel++;
         }
-        m_total = cumulative;
         m_maxVolume = maxVol;
+        m_totalVolume = cumulativeVolume;
+        m_totalTurnover = cumulativeTurnover;
 
         int new_size = new_levels.size();
         int old_size = m_levels.size();
@@ -112,8 +140,9 @@ namespace Core::Tools {
         if (hasDataChanged && firstChanged != -1)
             emit dataChanged(index(firstChanged, 0), index(lastChanged, 0));
 
-        emit totalChanged();
         emit maxVolumeChanged();
+        emit totalVolumeChanged();
+        emit totalTurnoverChanged();
     }
 
     QVariantMap OrderbookSideModel::get(int index) const {
@@ -126,7 +155,10 @@ namespace Core::Tools {
 
         res["price"] = item.price;
         res["volume"] = item.volume;
-        res["total"] = item.total;
+        res["turnover"] = item.turnover;
+        res["totalVolume"] = item.totalVolume;
+        res["totalTurnover"] = item.totalTurnover;
+        res["avgPrice"] = item.avgPrice;
 
         return res;
     }
@@ -138,7 +170,7 @@ namespace Core::Tools {
         for (const auto& lvl : data) {
             QVariantList pair = lvl.toList();
             if (pair.size() >= 2)
-                new_levels.push_back({pair.at(0).toDouble(), pair.at(1).toDouble(), 0.0});
+                new_levels.push_back({pair.at(0).toDouble(), pair.at(1).toDouble(), 0.0, 0.0});
         }
 
         if (m_side == Bid)
@@ -150,16 +182,30 @@ namespace Core::Tools {
                 return a.price < b.price;
             });
 
-        double cumulative = 0.0;
+        double cumulativeVolume = 0.0;
+        double cumulativeTurnover = 0.0;
+        double cumulativePrice = 0.0;
         double maxVol = 0.0;
+        int nLevel = 1;
         for (auto& level : new_levels) {
-            cumulative += level.volume;
-            level.total = cumulative;
+            level.turnover = level.price * level.volume;
+
+            cumulativeVolume += level.volume;
+            cumulativeTurnover += level.turnover;
+            cumulativePrice += level.price;
+
+            level.totalVolume = cumulativeVolume;
+            level.totalTurnover = cumulativeTurnover;
+            level.avgPrice = cumulativePrice / nLevel;
+
             if (level.volume > maxVol)
                 maxVol = level.volume;
+
+            nLevel++;
         }
-        m_total = cumulative;
         m_maxVolume = maxVol;
+        m_totalVolume = cumulativeVolume;
+        m_totalTurnover = cumulativeTurnover;
 
         int new_size = new_levels.size();
         int old_size = m_levels.size();
@@ -202,97 +248,23 @@ namespace Core::Tools {
         if (hasDataChanged && firstChanged != -1)
             emit dataChanged(index(firstChanged, 0), index(lastChanged, 0));
 
-        emit totalChanged();
         emit maxVolumeChanged();
-
-        /*std::vector<Level> new_levels;
-        new_levels.reserve(data.size());
-
-        for (const auto& val : data) {
-            QVariantList pair = val.toList();
-            if (pair.size() >= 2)
-                new_levels.push_back({pair.at(0).toDouble(), pair.at(1).toDouble()});
-        }
-
-        if (m_side == Bid)
-            std::sort(new_levels.begin(), new_levels.end(), [](const Level &a, const Level &b) {
-                return a.price > b.price;
-            });
-        else
-            std::sort(new_levels.begin(), new_levels.end(), [](const Level &a, const Level &b) {
-                return a.price < b.price;
-            });
-
-        if (!new_levels.empty()) {
-            double total = 0;
-            for (auto& lvl : new_levels) {
-                total += lvl.volume;
-                lvl.total += total;
-            }
-        }
-
-        int new_size = static_cast<int>(new_levels.size());
-        int old_size = static_cast<int>(m_levels.size());
-
-        if (new_size < old_size) {
-            beginRemoveRows(QModelIndex(), new_size, old_size - 1);
-            m_levels.resize(new_size);
-            endRemoveRows();
-        } else if (new_size > old_size) {
-            beginInsertRows(QModelIndex(), old_size, new_size - 1);
-            m_levels.resize(new_size);
-            endInsertRows();
-        }
-
-        bool data_changed = false;
-        int first_changed = -1;
-        int last_changed = -1;
-
-        for (int i = 0; i < new_size; ++i) {
-            if (i < old_size && m_levels[i] != new_levels[i]) {
-                m_levels[i] = new_levels[i];
-                data_changed = true;
-
-                if (first_changed == -1)
-                    first_changed = i;
-                last_changed = i;
-            } else {
-                m_levels[i] = new_levels[i];
-                data_changed = true;
-
-                if (first_changed == -1)
-                    first_changed = i;
-                last_changed = i;
-            }
-        }
-
-        if (m_count != m_levels.count()) {
-            m_count = m_levels.count();
-            emit countChanged();
-        }
-
-        if (data_changed && first_changed != -1)
-            emit dataChanged(index(first_changed, 0), index(last_changed, 0));
-
-        m_total = m_levels.last().total;
-        emit totalChanged();
-
-        m_maxVolume = 0;
-        for (auto i : m_levels)
-            m_maxVolume = std::max(m_maxVolume, i.volume);
-        emit maxVolumeChanged();*/
+        emit totalVolumeChanged();
+        emit totalTurnoverChanged();
     }
 
     void OrderbookSideModel::clear() {
         beginResetModel();
         m_levels.clear();
         m_count = 0;
-        m_total = 0;
         m_maxVolume = 0;
+        m_totalVolume = 0;
+        m_totalTurnover = 0;
         endResetModel();
         emit countChanged();
-        emit totalChanged();
         emit maxVolumeChanged();
+        emit totalVolumeChanged();
+        emit totalTurnoverChanged();
     }
 
 }

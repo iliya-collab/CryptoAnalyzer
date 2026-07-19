@@ -8,10 +8,11 @@ namespace Core::Tools {
         Q_OBJECT
         QML_ELEMENT
 
-        Q_PROPERTY(int count MEMBER m_count NOTIFY countChanged)
-        Q_PROPERTY(Side side READ getSide WRITE setSide NOTIFY sideChanged)
-        Q_PROPERTY(double total MEMBER m_total NOTIFY totalChanged)
-        Q_PROPERTY(double maxVolume MEMBER m_maxVolume NOTIFY maxVolumeChanged)
+        Q_PROPERTY(int count MEMBER m_count NOTIFY countChanged FINAL)
+        Q_PROPERTY(Side side READ getSide WRITE setSide NOTIFY sideChanged FINAL)
+        Q_PROPERTY(double maxVolume MEMBER m_maxVolume NOTIFY maxVolumeChanged FINAL)
+        Q_PROPERTY(double totalVolume MEMBER m_totalVolume NOTIFY totalVolumeChanged FINAL)
+        Q_PROPERTY(double totalTurnover MEMBER m_totalTurnover NOTIFY totalTurnoverChanged FINAL)
 
     public:
 
@@ -24,7 +25,10 @@ namespace Core::Tools {
         enum Roles {
             PriceRole = Qt::UserRole + 1,
             VolumeRole,
-            TotalVolumeRole
+            TurnoverRole,
+            TotalVolumeRole,
+            TotalTurnoverRole,
+            AvgPriceRole
         };
 
         explicit OrderbookSideModel(QObject* parent = nullptr);
@@ -47,31 +51,39 @@ namespace Core::Tools {
 
         void countChanged();
         void sideChanged();
-        void totalChanged();
         void maxVolumeChanged();
+        void totalVolumeChanged();
+        void totalTurnoverChanged();
 
     private:
 
         struct Level {
-            double price = 0;
-            double volume = 0;
-            double total = 0;
+            double price = 0;           // Цена на уровне
+            double volume = 0;          // Обьем на уровне
+            double turnover = 0;        // Оборот на уровне
+
+            double totalVolume = 0;     // Весь обьем до n уровня
+            double totalTurnover = 0;   // Весь Оборот до n уровня
+            double avgPrice = 0;        // Средняя цена за n уровней
 
             bool operator!=(const Level& other) const {
                 return  this->price != other.price ||
-                        this->volume != other.volume;
+                        this->volume != other.volume ||
+                        this->turnover != other.turnover;
             }
 
             bool operator==(const Level& other) const {
                 return  this->price == other.price &&
-                        this->volume == other.volume;
+                        this->volume == other.volume &&
+                        this->turnover == other.turnover;
             }
 
         };
 
         int m_count = 0;
-        double m_total = 0;
         double m_maxVolume = 0;
+        double m_totalVolume = 0;
+        double m_totalTurnover = 0;
         Side m_side;
         QVector<Level> m_levels;
 

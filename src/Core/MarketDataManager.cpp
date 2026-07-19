@@ -122,11 +122,11 @@ namespace Core {
         /*qInfo() << "Start:" << QDateTime::fromMSecsSinceEpoch(start).toString("dd.MM.yyyy HH:mm") << start
                 << "End:" << QDateTime::fromMSecsSinceEpoch(end).toString("dd.MM.yyyy HH:mm") << end;*/
 
-        connect(m_currentApi, &Tools::BybitRestAPI::dataReceived, this, [this](const QJsonObject& data) {
+        connect(m_currentApi, &Tools::BybitRestAPI::dataReceived, this, [this, interval](const QJsonObject& data) {
             /*QJsonDocument doc(data);
             qInfo().noquote() << doc.toJson(QJsonDocument::Indented);*/
             CandleList candles;
-            processRequestCandles(candles, data);
+            processRequestCandles(candles, interval, data);
             //qInfo() << "Candles received:" << candles.size();
             saveToCandlesRepository(candles);
             emit candlesReceived(candles);
@@ -163,7 +163,7 @@ namespace Core {
         m_currentApi->requestEndpoint("/v5/account/info", QUrlQuery(), LOADING_TIMEOUT);
     }
 
-    void MarketDataManager::processRequestCandles(CandleList& candles, const QJsonObject& data) {
+    void MarketDataManager::processRequestCandles(CandleList& candles, const QString& interval, const QJsonObject& data) {
         QJsonObject result = data["result"].toObject();
         QString symbol = result["symbol"].toString();
         QJsonArray list = result["list"].toArray();
@@ -172,13 +172,17 @@ namespace Core {
         for (const auto& obj : list) {
             QJsonArray itemArr = obj.toArray();
             ItemCandle candle;
+            candle.m_symbol = symbol;
             candle.m_start = itemArr[0].toString().toDouble();
             candle.m_end = candle.m_start + 60000;
             candle.m_open = itemArr[1].toString().toDouble();
             candle.m_high = itemArr[2].toString().toDouble();
             candle.m_low = itemArr[3].toString().toDouble();
             candle.m_close = itemArr[4].toString().toDouble();
+            candle.m_volume = itemArr[5].toString().toDouble();
+            candle.m_turnover = itemArr[6].toString().toDouble();
             candle.m_confirm = true;
+            candle.m_interval = interval;
             candles.append(candle);
         }
     }

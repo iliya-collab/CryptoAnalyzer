@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-project(app LANGUAGES CXX)
+project(EasyTrade LANGUAGES CXX)
 
 # Включаем использование RPATH для установленных бинарников
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
