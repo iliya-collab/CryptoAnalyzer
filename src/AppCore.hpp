@@ -20,6 +20,7 @@ class AppCore : public QObject {
     Q_PROPERTY(Core::Tools::OrderbookSideModel* asks READ asks NOTIFY asksChanged FINAL)
     Q_PROPERTY(Core::Tools::OrderbookSideModel* bids READ bids NOTIFY bidsChanged FINAL)
     Q_PROPERTY(Core::Tools::API api READ getAPI NOTIFY apiChanged FINAL)
+    Q_PROPERTY(qint64 pingMs MEMBER m_pingMs NOTIFY pingMsChanged FINAL)
 
 private:
 
@@ -27,13 +28,14 @@ private:
     std::unique_ptr<Core::MarketDataStreamer> m_streamer;
 
     QString m_lastTrade = "";
-    QVariantList m_tradeList;
-    QVariantList m_candleSeries;
-    Core::Tools::API m_api;
-    Core::Tools::Ticker m_ticker;
-    std::unique_ptr<Core::Tools::OrderbookSideModel> m_asks;
-    std::unique_ptr<Core::Tools::OrderbookSideModel> m_bids;
+    QVariantList m_tradeList{};
+    QVariantList m_candleSeries{};
+    Core::Tools::API m_api{};
+    Core::Tools::Ticker m_ticker{};
+    std::unique_ptr<Core::Tools::OrderbookSideModel> m_asks{};
+    std::unique_ptr<Core::Tools::OrderbookSideModel> m_bids{};
     std::atomic<bool> wasInit{false};
+    qint64 m_pingMs = 0;
 
     void setupManagerConnections();
     void setupStreamerConnections();
@@ -75,6 +77,7 @@ signals:
     void tickerChanged();
     void asksChanged();
     void bidsChanged();
+    void pingMsChanged();
 
     // Сигналы работы самого приложения
     void errorOccurred(const QString& error);

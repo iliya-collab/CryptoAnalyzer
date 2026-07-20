@@ -99,6 +99,30 @@ namespace Core::Tools {
 
     };
 
+    struct PublicTrade {
+        Q_GADGET
+        QML_VALUE_TYPE(publicTrade)
+
+        Q_PROPERTY(QString symbol MEMBER m_symbol)
+        Q_PROPERTY(QString side MEMBER m_side)
+        Q_PROPERTY(QString direction MEMBER m_direction)
+        Q_PROPERTY(double price MEMBER m_price)
+        Q_PROPERTY(double volume MEMBER m_volume)
+        Q_PROPERTY(double turnover MEMBER m_turnover)
+        Q_PROPERTY(qint64 tradeTime MEMBER m_tradeTime)
+
+    public:
+
+        QString m_symbol = "";
+        QString m_side = "";
+        QString m_direction = "";
+        double m_price = 0;
+        double m_volume = 0;
+        double m_turnover = 0;
+        qint64 m_tradeTime = 0;
+
+    };
+
     // Структура для хранения информации об API ключах
     struct API {
         Q_GADGET

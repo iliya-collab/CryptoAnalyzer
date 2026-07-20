@@ -52,6 +52,11 @@ void AppCore::setupStreamerConnections() {
         emit errorOccurred(error);
     });
 
+    connect(m_streamer.get(), &Core::MarketDataStreamer::pingMeasured, this, [this](qint64 pingMs) {
+        m_pingMs = pingMs;
+        emit pingMsChanged();
+    });
+
     connect(m_streamer.get(), &Core::MarketDataStreamer::tickerUpdated, this, [this](const Core::Tools::Ticker& newTicker) {
         //qDebug().noquote() << "Ticker received - latest update" << newTicker.m_symbol << QTime::currentTime().toString();
         m_ticker = newTicker;

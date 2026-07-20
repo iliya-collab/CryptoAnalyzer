@@ -140,6 +140,11 @@ namespace Core::Tools {
             case Stream::Kline:
                 streamName = createKlineStream(coin);
                 break;
+            case Stream::PublicTrade:
+                streamName = createPublicTradeStream(coin);
+                break;
+            default:
+                streamName = "";
             }
 
             if (!m_usedStreams.contains(streamName)) {
@@ -156,8 +161,8 @@ namespace Core::Tools {
 
     void BybitWebSocket::onConnected() {
         // Отправляем авторизацию для приватных потоков
-        /*if (!m_api.m_apiKey.isEmpty() && !m_api.m_secretKey.isEmpty())
-            sendAuthMessage();*/
+        if (m_type == SocketType::Private)
+            sendAuthMessage();
 
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
         connectToStreams();
@@ -235,7 +240,7 @@ namespace Core::Tools {
         //qInfo() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 
         // Обработа ping
-        if (obj.contains("op") && obj["op"].toString() == "pong") {
+        if (obj.contains("op") && obj["op"].toString() == "ping") {
             QString reqId = obj["req_id"].toString();
             if (m_pingTimestamps.contains(reqId)) {
                 m_lastPingMs = QDateTime::currentMSecsSinceEpoch() - m_pingTimestamps[reqId];
@@ -258,7 +263,6 @@ namespace Core::Tools {
         if (obj.contains("success")) {
             if (!obj["success"].toBool())
                 emit errorOccurred(obj["op"].toString() + "failed: " + obj["ret_msg"].toString());
-
         } else if (obj.contains("topic")) {
             QString topic = obj["topic"].toString();
 
@@ -268,6 +272,8 @@ namespace Core::Tools {
                 updateOrderbook(obj);
             else if (topic.startsWith("kline."))
                 updateKline(obj);
+            else if (topic.startsWith("publicTrade."))
+                updatePublicTrade(obj);
         }
     }
 
@@ -280,7 +286,7 @@ namespace Core::Tools {
         QJsonObject data = json["data"].toObject();
         QString symbol = data["symbol"].toString();
 
-        Ticker ticker = {};
+        Ticker ticker{};
 
         ticker.m_symbol = symbol;
         ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
@@ -305,7 +311,7 @@ namespace Core::Tools {
         QString symbol = data["s"].toString();
         QString type = json["type"].toString();
 
-        Orderbook orderbook = {};
+        Orderbook orderbook{};
 
         orderbook.m_type = type;
         orderbook.m_symbol = symbol;
@@ -338,7 +344,7 @@ namespace Core::Tools {
         QJsonArray arrData = json["data"].toArray();
         QString symbol = json["topic"].toString().section('.', -1);;
 
-        Kline kline;
+        Kline kline{};
         kline.m_symbol = symbol;
 
         for (const auto& val : arrData) {
@@ -356,6 +362,28 @@ namespace Core::Tools {
         }
 
         emit updatedKline(kline);
+    }
+
+    void BybitWebSocket::updatePublicTrade(const QJsonObject &json) {
+        if (!json.contains("data") || !json["data"].isArray())
+            return;
+
+        QJsonObject data = json["data"].toObject();
+
+        PublicTrade publicTrade{};
+
+        for (const auto& val : data) {
+            QJsonObject data = val.toObject();
+            publicTrade.m_symbol = data["s"].toString();
+            publicTrade.m_side = data["S"].toString();
+            publicTrade.m_direction = data["L"].toString();
+            publicTrade.m_price = data["p"].toString().toDouble();
+            publicTrade.m_volume = data["v"].toString().toDouble();
+            publicTrade.m_turnover = publicTrade.m_price * publicTrade.m_volume;
+            publicTrade.m_tradeTime = data["T"].toString().toLongLong();
+        }
+
+        emit updatedPublicTrade(publicTrade);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {
@@ -410,7 +438,6 @@ namespace Core::Tools {
     }
 
     QString BybitWebSocket::generateSignature(const QString& apiKey, const QString& apiSecret, const QString& expires) {
-        // Для Bybit V5 Private формула подписи: "GET/realtime" + expires
         QString signaturePayload = "GET/realtime" + expires;
 
         QMessageAuthenticationCode code(QCryptographicHash::Sha256);
@@ -453,6 +480,10 @@ namespace Core::Tools {
 
     QString BybitWebSocket::createKlineStream(const QString& coin) {
         return QString("kline.1.%1").arg(coin);
+    }
+
+    QString BybitWebSocket::createPublicTradeStream(const QString &coin) {
+        return QString("publicTrade.%1").arg(coin);
     }
 
 }

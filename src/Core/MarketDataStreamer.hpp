@@ -37,10 +37,12 @@ namespace Core {
         void started();
         void stopped();
         void errorOccurred(const QString& error);
+        void pingMeasured(qint64 pingMs);
 
         void tickerUpdated(const Tools::Ticker& newTicker);
         void orderBookUpdated(const Tools::Orderbook& newOrderBook);
         void klineUpdated(const Tools::Kline& newKline);
+        void publicTradeUpdated(const Tools::PublicTrade& newPublicTrade);
 
     };
 

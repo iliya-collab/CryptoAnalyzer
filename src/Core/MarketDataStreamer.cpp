@@ -20,16 +20,7 @@ namespace Core {
 
         connect(m_webSocket.get(), &Tools::BybitWebSocket::errorOccurred, this, &MarketDataStreamer::errorOccurred);
 
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::pingMeasured, this, [this](double pingMs) {
-            if (pingMs < 50)
-                qInfo() << "Ping:" << pingMs << "ms" << "- Great";
-            else if (pingMs >= 50 && pingMs < 150)
-                qInfo() << "Ping:" << pingMs << "ms" << "- Good";
-            else if (pingMs >= 150 && pingMs < 300)
-                qInfo() << "Ping:" << pingMs << "ms" << "- Middle";
-            else if (pingMs > 300)
-                qInfo() << "Ping:" << pingMs << "ms" << "- Bad";
-        });
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::pingMeasured, this, &MarketDataStreamer::pingMeasured);
 
         connect(m_webSocket.get(), &Tools::BybitWebSocket::authenticationError, this, [](const QString& msgError) {
             qWarning() << msgError;
@@ -54,6 +45,11 @@ namespace Core {
             }
             else
                 m_savedCandles.clear();
+        });
+
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedPublicTrade, this, [this](const Tools::PublicTrade& newPublicTrade) {
+            if (m_lastPair == newPublicTrade.m_symbol)
+                emit publicTradeUpdated(newPublicTrade);
         });
 
         qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
@@ -138,7 +134,8 @@ namespace Core {
             m_webSocket->subscribeToStream(m_lastPair, {
                 Tools::BybitWebSocket::Stream::Ticker,
                 Tools::BybitWebSocket::Stream::Orderbook,
-                Tools::BybitWebSocket::Stream::Kline
+                Tools::BybitWebSocket::Stream::Kline,
+                Tools::BybitWebSocket::Stream::PublicTrade
             });
     }
 

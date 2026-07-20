@@ -25,9 +25,10 @@ namespace Core::Tools {
 
         // Каналы для подклячения
         enum class Stream {
-            Ticker,     // Публичный: Тикер
-            Orderbook,  // Публичный: Стакан ордеров
-            Kline       // Публичный: Свечи
+            Ticker,             // Публичный: Тикер
+            Orderbook,          // Публичный: Стакан ордеров
+            Kline,              // Публичный: Свечи
+            PublicTrade         // Публичный: Трейд
         };
 
         explicit BybitWebSocket(SocketType type, QObject* parent = nullptr);
@@ -58,6 +59,7 @@ namespace Core::Tools {
         void updatedTicker(const Ticker& newTicker);
         void updatedOrderbook(const Orderbook& newOrderBook);
         void updatedKline(const Kline& newKline);
+        void updatedPublicTrade(const PublicTrade& newPublicTrade);
 
         void pingMeasured(double lastPing);
 
@@ -70,16 +72,11 @@ namespace Core::Tools {
 
     private slots:
 
-        // Обработка подключения
-        void onConnected();
-        // Обработка отключения
-        void onDisconnected();
-        // Обработка ошибок при подключении
-        void onError(QAbstractSocket::SocketError error);
-        // Обработка ssl ошибок
-        void onSslErrors(const QList<QSslError>& errors);
-        // Обработка принятого сообщения
-        void onTextMessageReceived(const QString& message);
+        void onConnected(); // Обработка подключения
+        void onDisconnected(); // Обработка отключения
+        void onError(QAbstractSocket::SocketError error); // Обработка ошибок при подключении
+        void onSslErrors(const QList<QSslError>& errors); // Обработка ssl ошибок
+        void onTextMessageReceived(const QString& message); // Обработка принятого сообщения
         void onBytesWritten(qint64 bytes);
         void onPing(); // Вызывается по таймеру m_pingTimer
 
@@ -102,11 +99,13 @@ namespace Core::Tools {
         void updateTicker(const QJsonObject& json);
         void updateOrderbook(const QJsonObject& json);
         void updateKline(const QJsonObject& json);
+        void updatePublicTrade(const QJsonObject& json);
 
         // Генерация строк топиков для Bybit
         QString createTickerStream(const QString& coin);
         QString createOrderbookStream(const QString& coin);
         QString createKlineStream(const QString& coin);
+        QString createPublicTradeStream(const QString& coin);
 
         // Настройка и очистка
         void setupWebSocket(); // Методы настройки веб-сокета
@@ -115,11 +114,10 @@ namespace Core::Tools {
         void closeAfterFlush(); // Метод для освобождения и закрытия
         void cleanupPingTimestamps();
 
-
         // Переменные состояния
-        SocketType m_type;           // Тип этого экземпляра сокета
-        API m_api;                   // Структура с API
-        QWebSocket* m_webSocket;     // Веб-сокета
+        SocketType m_type;           // Тип сокета
+        API m_api;                   // API
+        QWebSocket* m_webSocket;     // Веб-сокет
         QTimer* m_pingTimer;         // Таймер для отправки ping сообщений
         QSet<QString> m_usedStreams; // Список активных подписок (например, "order", "tickers.BTCUSDT")
         quint64 m_nextReqId = 1;     // Счетчик ID для запросов

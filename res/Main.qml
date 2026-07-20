@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import MainApplication 1.0
 import Theme 1.0
 import Components.Custom 1.0
+import Components.Crypto 1.0
 
 // Главное окно
 ApplicationWindow {
@@ -159,4 +160,15 @@ ApplicationWindow {
         }
     }
 
+    PingIndicator {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Theme.margins
+
+        width: 30
+        height: 30
+        thickness: 2
+
+        pingValue: AppCore.pingMs
+    }
 }
