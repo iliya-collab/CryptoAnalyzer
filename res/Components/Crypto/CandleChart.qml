@@ -9,38 +9,31 @@ Rectangle {
 
     // Свойства
     property var candleSeries: null
-    property real maxPrice: 100
-    property real minPrice: 0
+
     property bool enableAutoScroll: true
     property bool enableCursorTime: true
     property bool enableCursorPrice: true
+    property bool enableCursorVolume: true
     property bool enableCursorInfo: true
     property bool enableDisplayOpenPrice: true
-    property bool showVolumes: true
+    property bool enableShowVolumes: true
+
     property int timeAutoScroll: 3000
-    property real volumeChartHeightRatio: 0.25 // 25% высоты для объемов
+    property real volumeChartHeightRatio: 0.25
 
     signal leftBoundaryReached()
 
     QtObject {
         id: internal
 
-        // Ширина свечи
-        property int candleWidth: 20
-        // Оступы между свечой
-        property int candleSpacing: 6
-        // Ширина оси цен
-        property int priceAxisWidth: 60
-        // Высота оси времени
-        property int timeAxisHeight: 40
-        // Общая ширина графика
-        property int totalChartWidth: candleSeries ? candleSeries.length * (candleWidth + candleSpacing) : 0
-        // Флаг автоматической прокрутки к последней свече
-        property bool autoScrollEnabled: true
-        // Флаг, показывающий, что идет ручная прокрутка
-        property bool isUserInteracting: false
-        // Флаг скроллинга
-        property bool isScrolling: false
+        property int candleWidth: 20 // Ширина свечи
+        property int candleSpacing: 6 // Оступы между свечой
+        property int priceAxisWidth: 60 // Ширина оси цен
+        property int timeAxisHeight: 40 // Высота оси времени
+        property int totalChartWidth: candleSeries ? candleSeries.length * (candleWidth + candleSpacing) : 0 // Общая ширина графика
+        property bool autoScrollEnabled: true // Флаг автоматической прокрутки к последней свече
+        property bool isUserInteracting: false // Флаг, показывающий, что идет ручная прокрутка
+        property bool isScrolling: false // Флаг скроллинга
 
         // Настройки зума
         property int minCandleWidth: 2
@@ -58,15 +51,40 @@ Rectangle {
         property real mouseGlobalY: -1
         property real mouseLocalX: -1
         property real mouseLocalY: -1
-        property bool mouseInside: false
+        property bool mouseInsidePriceChart: false
+        property bool mouseInsideVolumeChart: false
+        property bool mouseInsideTimeAxis: false
+        property bool mouseInside: mouseInsidePriceChart || mouseInsideVolumeChart || mouseInsideTimeAxis
         property int hoveredCandleIndex: -1
+
+        // Параметры новеденной свечи
+        property var hoveredCandle: candleSeries ? candleSeries[hoveredCandleIndex] : null
+        property color colorHoveredCandle: hoveredCandle ?
+            ((hoveredCandle.close > hoveredCandle.open) ? "#66BB6A" : "#EF5350") :
+            "#8a8a8a"
+        property var openHoveredCandle: hoveredCandle ? hoveredCandle.open.toFixed(2) : "-"
+        property var closeHoveredCandle: hoveredCandle ? hoveredCandle.close.toFixed(2) : "-"
+        property var highHoveredCandle: hoveredCandle ? hoveredCandle.high.toFixed(2) : "-"
+        property var lowHoveredCandle: hoveredCandle ? hoveredCandle.low.toFixed(2) : "-"
+        property var difHoveredCandle: hoveredCandle ? (hoveredCandle.close - hoveredCandle.open).toFixed(2) : "-"
+        property var difPercentHoveredCandle: hoveredCandle ? ((difHoveredCandle / hoveredCandle.open) * 100).toFixed(2) : "-"
+        property var volumeHoveredCandle: hoveredCandle ?
+            hoveredCandle.volume >= 1000000 ? (hoveredCandle.volume / 1000000).toFixed(2) + "M" :
+            hoveredCandle.volume >= 1000 ? (hoveredCandle.volume / 1000).toFixed(2) + "K" :
+            hoveredCandle.volume.toFixed(2) : "-"
+        property var turnoverHoveredCandle: hoveredCandle ?
+            hoveredCandle.turnover >= 1000000 ? (hoveredCandle.turnover / 1000000).toFixed(2) + "M" :
+            hoveredCandle.turnover >= 1000 ? (hoveredCandle.turnover / 1000).toFixed(2) + "K" :
+            hoveredCandle.turnover.toFixed(2) : "-"
 
         // Данные на осях
         property real priceAtCursor: 0
         property real volumeAtCursor: 0
         property string timeAtCursor: ""
 
-        // Максимальный объем
+        // Предельные значения
+        property real maxPrice: 100
+        property real minPrice: 0
         property real maxVolume: 1
 
         // Функция для рассчета шага сетки
@@ -108,7 +126,6 @@ Rectangle {
 
         // Обновляет макс и мин значения в облости видимых индексов и вызывает перерисовку всех компонентов
         function updateVisibleRange() {
-
             if (scrollAnimation.running)
                 return;
 
@@ -141,12 +158,12 @@ Rectangle {
                 var padding = priceRange * 0.15;
                 if (padding === 0)
                     padding = 1.0;
-                root.maxPrice = currentMax + padding;
-                root.minPrice = currentMin - padding;
+                internal.maxPrice = currentMax + padding;
+                internal.minPrice = currentMin - padding;
             }
 
             if (currentMaxVolume > internal.maxVolume)
-                internal.maxVolume = currentMaxVolume * 1.2;
+                internal.maxVolume = currentMaxVolume * 1.5;
 
             requestPaintAll();
         }
@@ -166,8 +183,6 @@ Rectangle {
                 internal.updatingScroll = true;
                 priceChartScrollView.contentX = maxScrollX;
                 Qt.callLater(function() {
-                    //internal.updateCrosshair()
-                    //internal.updateAxes()
                     internal.syncScrollViews()
                     internal.updateVisibleRange()
                     internal.updatingScroll = false
@@ -196,17 +211,17 @@ Rectangle {
         }
 
         function convertPriceToY(price, availableHeight) {
-            var range = root.maxPrice - root.minPrice
+            var range = internal.maxPrice - internal.minPrice
             if (range === 0)
                 return availableHeight / 2;
-            return availableHeight - ((price - root.minPrice) / range) * availableHeight;
+            return availableHeight - ((price - internal.minPrice) / range) * availableHeight;
         }
 
         function convertYToPrice(y, availableHeight) {
-            var range = root.maxPrice - root.minPrice;
+            var range = internal.maxPrice - internal.minPrice;
             if (range === 0)
-                return root.maxPrice;
-            return root.maxPrice - (y / availableHeight) * range;
+                return internal.maxPrice;
+            return internal.maxPrice - (y / availableHeight) * range;
         }
 
         function convertXToTime(x) {
@@ -235,9 +250,8 @@ Rectangle {
 
         function updateCrosshair() {
             if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0) {
-                priceCrosshairCanvas.requestPaint()
-                volumeCrosshairCanvas.requestPaint()
-                return;
+                crosshairCanvas.requestPaint()
+                return
             }
 
             var result = internal.getCandleAtX(internal.mouseGlobalX);
@@ -251,8 +265,7 @@ Rectangle {
             internal.timeAtCursor = (timestamp > 0) ? Qt.formatDateTime(new Date(timestamp), "dd.MM.yyyy HH:mm") : ""
             internal.priceAtCursor = internal.convertYToPrice(internal.mouseGlobalY, priceChartScrollView.height)
 
-            priceCrosshairCanvas.requestPaint()
-            volumeCrosshairCanvas.requestPaint()
+            crosshairCanvas.requestPaint()
         }
 
         function saveScrollPosition() {
@@ -304,7 +317,6 @@ Rectangle {
             // Устанавливаем ширину контента
             priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth);
             // Синхронизируем ширину для графика объемов
-            //volumeChartScrollView.contentWidth = priceChartScrollView.contentWidth;
             syncScrollViews()
 
             // Если включена автопрокрутка и контент шире видимой области – скроллим к последней свече
@@ -336,7 +348,6 @@ Rectangle {
         }
     }
 
-
     onCandleSeriesChanged: {
         internal.scrollPosition = 0;
         Qt.callLater(function() {
@@ -357,21 +368,24 @@ Rectangle {
         var newWidth = Math.min(internal.candleWidth + internal.zoomStep, internal.maxCandleWidth);
 
         if (newWidth !== internal.candleWidth) {
-            internal.saveScrollPosition()
+            var oldX = priceChartScrollView.contentX
             internal.updatingScroll = true
 
             internal.candleWidth = newWidth
             priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth)
 
-            if (internal.totalChartWidth <= priceChartScrollView.width) {
-                priceChartScrollView.contentX = 0
-                internal.scrollPosition = 0
-            } else
-                internal.restoreScrollPosition(false)
+            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width);
+            if (maxScrollX <= 0) {
+                priceChartScrollView.contentX = 0;
+            } else {
+                var newX = Math.min(oldX, maxScrollX);
+                priceChartScrollView.contentX = Math.max(0, newX);
+            }
 
-            internal.updatingScroll = false
-
-            internal.updateVisibleRange()
+            internal.saveScrollPosition();
+            internal.updatingScroll = false;
+            internal.syncScrollViews();
+            internal.updateVisibleRange();
         }
     }
 
@@ -379,42 +393,47 @@ Rectangle {
         var newWidth = Math.max(internal.candleWidth - internal.zoomStep, internal.minCandleWidth);
 
         if (newWidth !== internal.candleWidth) {
-            internal.saveScrollPosition();
-            internal.updatingScroll = true;
+            var oldX = priceChartScrollView.contentX
+            internal.updatingScroll = true
 
-            internal.candleWidth = newWidth;
-            priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth);
+            internal.candleWidth = newWidth
+            priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth)
 
-            if (internal.totalChartWidth <= priceChartScrollView.width) {
+            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width);
+            if (maxScrollX <= 0) {
                 priceChartScrollView.contentX = 0;
-                internal.scrollPosition = 0;
             } else {
-                internal.restoreScrollPosition(false);
+                var newX = Math.min(oldX, maxScrollX);
+                priceChartScrollView.contentX = Math.max(0, newX);
             }
 
+            internal.saveScrollPosition();
             internal.updatingScroll = false;
-
+            internal.syncScrollViews();
             internal.updateVisibleRange();
         }
     }
 
     function resetZoom() {
-        internal.saveScrollPosition();
+        var oldX = priceChartScrollView.contentX;
         internal.updatingScroll = true;
 
         internal.candleWidth = 20;
         priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth);
 
-        if (internal.totalChartWidth <= priceChartScrollView.width) {
+        var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width);
+        if (maxScrollX <= 0) {
             priceChartScrollView.contentX = 0;
-            internal.scrollPosition = 0;
         } else {
-            internal.restoreScrollPosition(true);
+            var newX = Math.min(oldX, maxScrollX);
+            priceChartScrollView.contentX = Math.max(0, newX);
         }
 
+        internal.saveScrollPosition();
         internal.updatingScroll = false;
-
+        internal.syncScrollViews();
         internal.updateVisibleRange();
+
     }
 
     NumberAnimation {
@@ -448,6 +467,7 @@ Rectangle {
         anchors.fill: parent
         acceptedButtons: Qt.NoButton
         hoverEnabled: true
+        preventStealing: true
 
         onWheel: function(wheel) {
             var hasData = root.candleSeries && root.candleSeries.length > 0;
@@ -477,20 +497,37 @@ Rectangle {
         }
 
         onPositionChanged: function(mouse) {
-            internal.mouseInside = true
+            internal.mouseInsidePriceChart = mouse.x >= priceArea.x && mouse.y >= priceArea.y &&
+                                            mouse.x <= priceArea.x + priceArea.width && mouse.y <= priceArea.y + priceArea.height
+
+            internal.mouseInsideVolumeChart = mouse.x >= volumeArea.x && mouse.y >= volumeArea.y &&
+                                            mouse.x <= volumeArea.x + volumeArea.width && mouse.y <= volumeArea.y + volumeArea.height
+
+            internal.mouseInsideTimeAxis = mouse.x >= timeAxisArea.x && mouse.y >= timeAxisArea.y &&
+                                            mouse.x <= timeAxisArea.x + timeAxisArea.width && mouse.y <= timeAxisArea.y + timeAxisArea.height
+
             internal.mouseGlobalX = mouse.x + priceChartScrollView.contentX
             internal.mouseGlobalY = mouse.y + priceChartScrollView.contentY
             internal.mouseLocalX = mouse.x
             internal.mouseLocalY = mouse.y
 
-            //console.info("Local:", internal.mouseLocalX, internal.mouseLocalY, "Global:", internal.mouseGlobalX, internal.mouseGlobalY)
+            /*console.info(" - Local:", internal.mouseLocalX, internal.mouseLocalY,
+                        "Global:", internal.mouseGlobalX, internal.mouseGlobalY)
+            console.info("Price chart:", priceArea.x, priceArea.y, priceArea.width, priceArea.height)
+            console.info("Volume chart:", volumeArea.x, volumeArea.y, volumeArea.width, volumeArea.height)
+            console.info("Inside price chart:", internal.mouseInsidePriceChart,
+                        "Inside volume chart:", internal.mouseInsideVolumeChart,
+                        "Inside:", internal.mouseInside)*/
 
             internal.updateCrosshair()
             internal.updateAxes()
         }
 
         onExited: {
-            internal.mouseInside = false
+            internal.mouseInsidePriceChart = false
+            internal.mouseInsideVolumeChart = false
+            internal.mouseInsideTimeAxis = false
+
             internal.mouseGlobalX = -1
             internal.mouseGlobalY = -1
             internal.mouseLocalX = -1
@@ -506,172 +543,147 @@ Rectangle {
         }
     } // zoomArea
 
-    // Область ценового графика (верхняя часть)
-    Rectangle {
-        id: priceArea
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: root.showVolumes ? (parent.height - internal.timeAxisHeight) * (1 - root.volumeChartHeightRatio)
-                                 : parent.height - internal.timeAxisHeight
-        color: "transparent"
+    Canvas {
+        id: crosshairCanvas
+        anchors.fill: parent
+        z: 10
 
-        // Обработчики изменения размеров для принудительной перерисовки
-        onWidthChanged: {
-            priceCanvas.requestPaint();
-            priceChartCanvas.requestPaint();
-        }
-        onHeightChanged: {
-            priceCanvas.requestPaint();
-            priceChartCanvas.requestPaint();
-        }
+        function drawCursorLines(ctx) {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+            ctx.lineWidth = 1
+            ctx.setLineDash([5, 5])
 
-        // Информация о свече
-        Rectangle {
-            id: candleInfoBox
-            anchors.left: parent.left
-            anchors.top: parent.top
-            width: infoLayout.width + 16
-            height: infoLayout.height + 16
-            color: "transparent"
-            enabled: root.enableCursorInfo
-            z: 20
+            // Вертикальная линия
+            ctx.beginPath()
+            ctx.moveTo(internal.mouseLocalX, 0)
+            ctx.lineTo(internal.mouseLocalX, height)
+            ctx.stroke()
 
-            Row {
-                id: infoLayout
-                anchors.centerIn: parent
-                spacing: 10
-                padding: 2
-
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "O: —";
-                        return "O: " + candle.open.toFixed(2);
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "H: —";
-                        return "H: " + candle.high.toFixed(2);
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "L: —";
-                        return "L: " + candle.low.toFixed(2);
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "C: —";
-                        return "C: " + candle.close.toFixed(2);
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "Δ: —";
-                        var dif = candle.close - candle.open;
-                        var percent = (dif / candle.open) * 100;
-                        return "Δ: " + dif.toFixed(2) + " (" + percent.toFixed(2) + "%)";
-                    }
-                    color: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "#8a8a8a";
-                        return (candle.close > candle.open) ? "#66BB6A" : "#EF5350";
-                    }
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "V: —";
-                        return "V: " + (candle.volume >= 1000 ? (candle.volume/1000).toFixed(2) + "K" : candle.volume.toFixed(2));
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-                Text {
-                    text: {
-                        var candle = root.candleSeries ? root.candleSeries[internal.hoveredCandleIndex] : null;
-                        if (!candle)
-                            return "T: —";
-                        return "T: " + (candle.turnover ? candle.turnover.toFixed(0) : "—");
-                    }
-                    color: "#8a8a8a"
-                    font.pixelSize: 11
-                    font.family: "monospace"
-                }
-            }
+            // Горизонтальная линия
+            ctx.beginPath()
+            ctx.moveTo(0, internal.mouseLocalY)
+            ctx.lineTo(width, internal.mouseLocalY)
+            ctx.stroke()
         }
 
-        // Правая ось цен
-        Canvas {
-            id: priceCanvas
-            width: internal.priceAxisWidth
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            z: 2
+        function drawCursorIndicator(ctx) {
+            ctx.beginPath();
+            ctx.arc(internal.mouseLocalX, internal.mouseLocalY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.fill();
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
 
-            function drawPriceAxis(ctx) {
-                ctx.fillStyle = "#8a8a8a";
-                ctx.font = "10px sans-serif";
+        function drawCursorPrice(ctx) {
+            if (internal.mouseInsidePriceChart) {
+                var cursorY = internal.mouseLocalY
+
+                var priceText = internal.priceAtCursor.toFixed(2);
+                ctx.font = "bold 10px sans-serif";
+                var textWidth = ctx.measureText(priceText).width + 10;
+                var textHeight = 16;
+
+                var textX = width - textWidth - 2;
+                var textY = cursorY - textHeight / 2;
+
+                if (textY < 0)
+                    textY = 0;
+                if (textY + textHeight > height)
+                    textY = height - textHeight;
+
+                ctx.fillStyle = "rgba(30, 30, 30, 0.85)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.lineWidth = 1;
+
+                var radius = 3;
+                ctx.beginPath();
+                ctx.moveTo(textX + radius, textY);
+                ctx.lineTo(textX + textWidth - radius, textY);
+                ctx.quadraticCurveTo(textX + textWidth, textY, textX + textWidth, textY + radius);
+                ctx.lineTo(textX + textWidth, textY + textHeight - radius);
+                ctx.quadraticCurveTo(textX + textWidth, textY + textHeight, textX + textWidth - radius, textY + textHeight);
+                ctx.lineTo(textX + radius, textY + textHeight);
+                ctx.quadraticCurveTo(textX, textY + textHeight, textX, textY + textHeight - radius);
+                ctx.lineTo(textX, textY + radius);
+                ctx.quadraticCurveTo(textX, textY, textX + radius, textY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 10px sans-serif";
                 ctx.textBaseline = "middle";
+                ctx.fillText(priceText, textX + 5, textY + textHeight / 2);
             }
+        }
 
-            function drawDivisionsPriceAxis(ctx) {
-                var priceRange = root.maxPrice - root.minPrice;
-                var step = internal.calculateGridStep(priceRange, 5);
-                var firstPrice = Math.ceil(root.minPrice / step) * step;
-                for (var price = firstPrice; price <= root.maxPrice; price += step) {
-                    var yPos = Math.round(internal.convertPriceToY(price, height));
-                    var decimalPlaces = step < 1 ? 2 : (step % 1 === 0 ? 0 : 1);
-                    ctx.fillText(price.toFixed(decimalPlaces), 8, yPos);
-                }
+        function drawCursorVolume(ctx) {
+            if (internal.mouseInsideVolumeChart) {
+                var cursorY = internal.mouseLocalY
+
+                var volumeText = internal.volumeAtCursor.toFixed(2);
+                ctx.font = "bold 10px sans-serif";
+                var textWidth = ctx.measureText(volumeText).width + 10;
+                var textHeight = 16;
+
+                var textX = width - textWidth - 2;
+                var textY = cursorY - textHeight / 2;
+
+                if (textY < 0)
+                    textY = 0;
+                if (textY + textHeight > height)
+                    textY = height - textHeight;
+
+                ctx.fillStyle = "rgba(30, 30, 30, 0.85)";
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+                ctx.lineWidth = 1;
+
+                var radius = 3;
+                ctx.beginPath();
+                ctx.moveTo(textX + radius, textY);
+                ctx.lineTo(textX + textWidth - radius, textY);
+                ctx.quadraticCurveTo(textX + textWidth, textY, textX + textWidth, textY + radius);
+                ctx.lineTo(textX + textWidth, textY + textHeight - radius);
+                ctx.quadraticCurveTo(textX + textWidth, textY + textHeight, textX + textWidth - radius, textY + textHeight);
+                ctx.lineTo(textX + radius, textY + textHeight);
+                ctx.quadraticCurveTo(textX, textY + textHeight, textX, textY + textHeight - radius);
+                ctx.lineTo(textX, textY + radius);
+                ctx.quadraticCurveTo(textX, textY, textX + radius, textY);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 10px sans-serif";
+                ctx.textBaseline = "middle";
+                ctx.fillText(volumeText, textX + 5, textY + textHeight / 2);
             }
+        }
 
-            function drawCursorPrice(ctx) {
-                if (internal.mouseInside && internal.mouseGlobalX >= 0 && internal.mouseGlobalY <= height) {
-                    var cursorY = internal.mouseGlobalY;
+        function drawCursorTime(ctx) {
+            var containerWidth = width;
+            var step = internal.candleWidth + internal.candleSpacing;
+            if (internal.mouseInside && internal.mouseLocalX >= 0 && internal.mouseLocalX <= containerWidth && internal.timeAtCursor !== "") {
+                var result = internal.getCandleAtX(internal.mouseLocalX);
+                if (result && result.index >= 0 && result.index < root.candleSeries.length) {
+                    var candleIndex = result.index;
+                    var candleXPos = candleIndex * step + internal.candleSpacing / 2;
+                    var candleCenterX = candleXPos + internal.candleWidth / 2;
 
-                    var priceText = internal.priceAtCursor.toFixed(2);
+                    var timeText = internal.timeAtCursor;
                     ctx.font = "bold 10px sans-serif";
-                    var textWidth = ctx.measureText(priceText).width + 10;
-                    var textHeight = 16;
+                    var textWidth = ctx.measureText(timeText).width + 12;
+                    var textHeight = 18;
 
-                    var textX = width - textWidth - 2;
-                    var textY = cursorY - textHeight / 2;
+                    var textX = candleCenterX - textWidth / 2;
+                    var textY = height - textHeight - 2;
 
-                    if (textY < 0)
-                        textY = 0;
-                    if (textY + textHeight > height)
-                        textY = height - textHeight;
+                    if (textX < 0)
+                        textX = 0;
+                    if (textX + textWidth > width)
+                        textX = width - textWidth;
 
                     ctx.fillStyle = "rgba(30, 30, 30, 0.85)";
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
@@ -694,17 +706,189 @@ Rectangle {
 
                     ctx.fillStyle = "#ffffff";
                     ctx.font = "bold 10px sans-serif";
+                    ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
-                    ctx.fillText(priceText, textX + 5, textY + textHeight / 2);
+                    ctx.fillText(timeText, textX + textWidth / 2, textY + textHeight / 2);
+                }
+            }
+        }
 
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([2, 2]);
-                    ctx.beginPath();
-                    ctx.moveTo(0, cursorY);
-                    ctx.lineTo(width, cursorY);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+        Connections {
+            target: internal
+            function onMouseGlobalXChanged() {
+                crosshairCanvas.requestPaint();
+            }
+            function onMouseGlobalYChanged() {
+                crosshairCanvas.requestPaint();
+            }
+            function onHoveredCandleIndexChanged() {
+                crosshairCanvas.requestPaint();
+            }
+            function onMouseInsideChanged() {
+                crosshairCanvas.requestPaint();
+            }
+            function onTimeAtCursorChanged() {
+                crosshairCanvas.requestPaint();
+            }
+            function onPriceAtCursorChanged() {
+                crosshairCanvas.requestPaint();
+            }
+        }
+
+        onPaint: {
+            var ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height)
+
+            if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0)
+                return;
+
+            ctx.save()
+            ctx.scale(1,1)
+
+            drawCursorLines(ctx)
+            ctx.setLineDash([]);
+            drawCursorIndicator(ctx)
+
+            if (root.enableCursorPrice)
+                drawCursorPrice(ctx)
+
+            if (root.enableCursorVolume)
+                drawCursorVolume(ctx)
+
+            if (root.enableCursorTime)
+                drawCursorTime(ctx)
+
+
+            ctx.restore();
+        }
+    } // crosshairCanvas
+
+    // Область ценового графика (верхняя часть)
+    Rectangle {
+        id: priceArea
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: root.enableShowVolumes ? (parent.height - internal.timeAxisHeight) * (1 - root.volumeChartHeightRatio)
+                                 : parent.height - internal.timeAxisHeight
+        color: "transparent"
+
+        // Обработчики изменения размеров для принудительной перерисовки
+        onWidthChanged: {
+            priceCanvas.requestPaint();
+            priceChartCanvas.requestPaint();
+        }
+        onHeightChanged: {
+            priceCanvas.requestPaint();
+            priceChartCanvas.requestPaint();
+        }
+
+        // Ценовая информация о свече
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: priceInfoLayout.width + 16
+            height: priceInfoLayout.height + 16
+            color: "transparent"
+            enabled: root.enableCursorInfo
+            z: 20
+
+            Row {
+                id: priceInfoLayout
+                anchors.centerIn: parent
+                spacing: 10
+                padding: 2
+
+                Text {
+                    text: "O:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.openHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+
+                Text {
+                    text: "H:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.highHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+
+                Text {
+                    text: "L:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.lowHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+
+                Text {
+                    text: "C:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.closeHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+
+                Text {
+                    text: "Δ:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.difHoveredCandle + " (" + internal.difPercentHoveredCandle + "%)"
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+            } // priceInfoLayout
+        }
+
+        // Правая ось цен
+        Canvas {
+            id: priceCanvas
+            width: internal.priceAxisWidth
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            z: 2
+
+            function drawPriceAxis(ctx) {
+                ctx.fillStyle = "#8a8a8a";
+                ctx.font = "10px sans-serif";
+                ctx.textBaseline = "middle";
+            }
+
+            function drawDivisionsPriceAxis(ctx) {
+                var priceRange = internal.maxPrice - internal.minPrice;
+                var step = internal.calculateGridStep(priceRange, 5);
+                var firstPrice = Math.ceil(internal.minPrice / step) * step;
+                for (var price = firstPrice; price <= internal.maxPrice; price += step) {
+                    var yPos = Math.round(internal.convertPriceToY(price, height));
+                    var decimalPlaces = step < 1 ? 2 : (step % 1 === 0 ? 0 : 1);
+                    ctx.fillText(price.toFixed(decimalPlaces), 8, yPos);
                 }
             }
 
@@ -785,14 +969,12 @@ Rectangle {
 
                 drawPriceAxis(ctx)
                 drawDivisionsPriceAxis(ctx)
-                if (root.enableCursorPrice)
-                    drawCursorPrice(ctx)
                 if (root.enableDisplayOpenPrice)
                     drawPriceOpenCandle(ctx)
 
                 ctx.restore()
             }
-        }
+        } // priceCanvas
 
         Rectangle {
             width: 1
@@ -819,19 +1001,24 @@ Rectangle {
 
             onContentXChanged: {
                 if (!internal.updatingScroll) {
-                    internal.updatingScroll = true;
-                    var clampedX = Math.max(0, contentX);
+                    internal.updatingScroll = true
+                    var clampedX = Math.max(0, contentX)
                     if (volumeChartScrollView.contentX !== clampedX)
-                        volumeChartScrollView.contentX = clampedX;
-                    internal.updateScrollPosition();
-                    internal.updateVisibleRange();
-                    internal.updatingScroll = false;
+                        volumeChartScrollView.contentX = clampedX
+                    internal.updatingScroll = false
                 }
+
+                internal.updateScrollPosition()
+                internal.updateVisibleRange()
+
                 if (contentX <= 0)
                     root.leftBoundaryReached()
             }
 
             onWidthChanged: {
+                if (internal.updatingScroll)
+                    return
+
                 priceChartScrollView.contentWidth = Math.max(priceChartScrollView.parent.width, internal.totalChartWidth);
 
                 if (internal.autoScrollEnabled && !internal.isUserInteracting) {
@@ -885,14 +1072,14 @@ Rectangle {
                     ctx.save()
                     ctx.resetTransform()
 
-                    var priceRange = root.maxPrice - root.minPrice
+                    var priceRange = internal.maxPrice - internal.minPrice
                     var step = internal.calculateGridStep(priceRange, 5)
-                    var firstPrice = Math.ceil(root.minPrice / step) * step
+                    var firstPrice = Math.ceil(internal.minPrice / step) * step
 
                     ctx.strokeStyle = "#2d2d2d"
                     ctx.lineWidth = 1
 
-                    for (var price = firstPrice; price <= root.maxPrice; price += step) {
+                    for (var price = firstPrice; price <= internal.maxPrice; price += step) {
                         var yGrid = Math.round(internal.convertPriceToY(price, height))
 
                         ctx.beginPath()
@@ -992,94 +1179,21 @@ Rectangle {
 
                     ctx.restore()
                 }
-            }
-
-            // Кросс-курсор для ценового графика
-            Canvas {
-                id: priceCrosshairCanvas
-                anchors.fill: parent
-                z: 10
-
-                function drawCursorLines(ctx) {
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([5, 5]);
-
-                    ctx.beginPath();
-                    ctx.moveTo(internal.mouseGlobalX, 0);
-                    ctx.lineTo(internal.mouseGlobalX, height);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.moveTo(0, internal.mouseGlobalY);
-                    ctx.lineTo(width, internal.mouseGlobalY);
-                    ctx.stroke();
-                }
-
-                function drawCursorIndicator(ctx) {
-                    ctx.beginPath();
-                    ctx.arc(internal.mouseGlobalX, internal.mouseGlobalY, 4, 0, Math.PI * 2);
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-                    ctx.fill();
-                    ctx.strokeStyle = "white";
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
-
-                Connections {
-                    target: internal
-                    function onMouseGlobalXChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                    function onMouseGlobalYChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                    function onHoveredCandleIndexChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                    function onMouseInsideChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                    function onTimeAtCursorChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                    function onPriceAtCursorChanged() {
-                        priceCrosshairCanvas.requestPaint();
-                    }
-                }
-
-                onPaint: {
-                    var ctx = getContext("2d");
-                    ctx.clearRect(0, 0, width, height)
-
-                    if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0)
-                        return;
-
-                    ctx.save()
-                    ctx.scale(1,1)
-
-                    drawCursorLines(ctx)
-                    ctx.setLineDash([]);
-                    drawCursorIndicator(ctx)
-
-                    ctx.restore();
-                }
-            }
-        }
-
-    }
+            } // priceChartCanvas
+        } // priceChartScrollView
+    } // priceArea
 
     // Разделитель между ценовым графиком и объемами
     Rectangle {
         id: priceVolumeSeparator
-        height: root.showVolumes ? 1 : 0
+        height: root.enableShowVolumes ? 2 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: priceArea.bottom
         color: "#3a3a3a"
         z: 5
-        visible: root.showVolumes
-    }
+        visible: root.enableShowVolumes
+    } // priceVolumeSeparator
 
     // Область графика объемов (нижняя часть)
     Rectangle {
@@ -1087,8 +1201,8 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: priceVolumeSeparator.bottom
-        height: root.showVolumes ? (parent.height - internal.timeAxisHeight) * root.volumeChartHeightRatio : 0
-        visible: root.showVolumes
+        height: root.enableShowVolumes ? (parent.height - internal.timeAxisHeight) * root.volumeChartHeightRatio : 0
+        visible: root.enableShowVolumes
         color: "transparent"
 
         // Обработчики изменения размеров для принудительной перерисовки
@@ -1101,6 +1215,50 @@ Rectangle {
             volumeChartCanvas.requestPaint();
         }
 
+        // Ценовая информация о свече
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: volumeInfoLayout.width + 16
+            height: volumeInfoLayout.height + 16
+            color: "transparent"
+            enabled: root.enableCursorInfo
+            z: 20
+
+            Row {
+                id: volumeInfoLayout
+                anchors.centerIn: parent
+                spacing: 10
+                padding: 2
+
+                Text {
+                    text: "V:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.volumeHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+
+                Text {
+                    text: "T:"
+                    color: "#8a8a8a"
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+                Text {
+                    text: internal.turnoverHoveredCandle
+                    color: internal.colorHoveredCandle
+                    font.pixelSize: 11
+                    font.family: "monospace"
+                }
+            } // priceInfoLayout
+        }
+
         // Правая ось для объемов
         Canvas {
             id: volumeCanvas
@@ -1108,14 +1266,13 @@ Rectangle {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            visible: root.showVolumes
+            visible: root.enableShowVolumes
             z: 2
 
             function drawVolumeAxis(ctx) {
                 ctx.fillStyle = "#8a8a8a";
                 ctx.font = "10px sans-serif";
                 ctx.textBaseline = "middle";
-                //ctx.textAlign = "right";
             }
 
             function drawDivisionsVolumeAxis(ctx) {
@@ -1160,7 +1317,7 @@ Rectangle {
 
                 ctx.restore()
             }
-        }
+        } // volumeCanvas
 
         Rectangle {
             width: 1
@@ -1177,7 +1334,7 @@ Rectangle {
             anchors.right: volumeCanvas.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            visible: root.showVolumes
+            visible: root.enableShowVolumes
             clip: true
             interactive: true
             boundsBehavior: Flickable.StopAtBounds
@@ -1187,13 +1344,13 @@ Rectangle {
 
             onContentXChanged: {
                 if (!internal.updatingScroll) {
-                    internal.updatingScroll = true;
-                    var clampedX = Math.max(0, contentX);
+                    internal.updatingScroll = true
+                    var clampedX = Math.max(0, contentX)
                     if (priceChartScrollView.contentX !== clampedX)
-                        priceChartScrollView.contentX = clampedX;
-                    internal.updateScrollPosition();
-                    internal.updatingScroll = false;
+                        priceChartScrollView.contentX = clampedX
+                    internal.updatingScroll = false
                 }
+                internal.updateScrollPosition()
             }
 
             Canvas {
@@ -1281,64 +1438,13 @@ Rectangle {
 
                     ctx.restore();
                 }
-            }
-
-            Canvas {
-                id: volumeCrosshairCanvas
-                anchors.fill: parent
-                z: 10
-
-                function drawVolumeCursor(ctx) {
-                    if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0)
-                        return;
-
-                    // Вертикальная линия
-                    ctx.save();
-                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.moveTo(internal.mouseGlobalX, 0);
-                    ctx.lineTo(internal.mouseGlobalX, height);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // (Опционально) кружок на уровне объёма текущей свечи
-                    var result = internal.getCandleAtX(internal.mouseGlobalX);
-                    if (result && result.index >= 0 && result.index < root.candleSeries.length) {
-                        var candle = root.candleSeries[result.index];
-                        if (candle && candle.volume > 0) {
-                            var volHeight = (candle.volume / internal.maxVolume) * height;
-                            var yPos = height - volHeight;
-                            ctx.beginPath();
-                            ctx.arc(internal.mouseGlobalX, yPos, 4, 0, Math.PI * 2);
-                            ctx.fillStyle = "rgba(255,255,255,0.6)";
-                            ctx.fill();
-                            ctx.strokeStyle = "white";
-                            ctx.lineWidth = 1;
-                            ctx.stroke();
-                        }
-                    }
-                }
-
-                Connections {
-                    target: internal
-                    function onMouseGlobalXChanged() { volumeCrosshairCanvas.requestPaint(); }
-                    function onMouseInsideChanged() { volumeCrosshairCanvas.requestPaint(); }
-                }
-
-                onPaint: {
-                    var ctx = getContext("2d");
-                    ctx.clearRect(0, 0, width, height);
-                    drawVolumeCursor(ctx);
-                }
-            }
-        }
-    }
+            } // volumeChartCanvas
+        } // volumeChartScrollView
+    } // volumeArea
 
     // Ось времени (всегда внизу)
     Rectangle {
-        id: timeAxisContainer
+        id: timeAxisArea
         height: internal.timeAxisHeight
         anchors.left: parent.left
         anchors.right: parent.right
@@ -1398,66 +1504,6 @@ Rectangle {
                 }
             }
 
-            function drawCursorTime(ctx) {
-                var containerWidth = width;
-                var step = internal.candleWidth + internal.candleSpacing;
-                if (internal.mouseInside && internal.mouseGlobalX >= 0 && internal.mouseGlobalX <= containerWidth && internal.timeAtCursor !== "") {
-                    var result = internal.getCandleAtX(internal.mouseGlobalX);
-                    if (result && result.index >= 0 && result.index < root.candleSeries.length) {
-                        var candleIndex = result.index;
-                        var candleXPos = candleIndex * step + internal.candleSpacing / 2;
-                        var candleCenterX = candleXPos + internal.candleWidth / 2;
-
-                        var timeText = internal.timeAtCursor;
-                        ctx.font = "bold 10px sans-serif";
-                        var textWidth = ctx.measureText(timeText).width + 12;
-                        var textHeight = 18;
-
-                        var textX = candleCenterX - textWidth / 2;
-                        var textY = height - textHeight - 2;
-
-                        if (textX < 0)
-                            textX = 0;
-                        if (textX + textWidth > width)
-                            textX = width - textWidth;
-
-                        ctx.fillStyle = "rgba(30, 30, 30, 0.85)";
-                        ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-                        ctx.lineWidth = 1;
-
-                        var radius = 3;
-                        ctx.beginPath();
-                        ctx.moveTo(textX + radius, textY);
-                        ctx.lineTo(textX + textWidth - radius, textY);
-                        ctx.quadraticCurveTo(textX + textWidth, textY, textX + textWidth, textY + radius);
-                        ctx.lineTo(textX + textWidth, textY + textHeight - radius);
-                        ctx.quadraticCurveTo(textX + textWidth, textY + textHeight, textX + textWidth - radius, textY + textHeight);
-                        ctx.lineTo(textX + radius, textY + textHeight);
-                        ctx.quadraticCurveTo(textX, textY + textHeight, textX, textY + textHeight - radius);
-                        ctx.lineTo(textX, textY + radius);
-                        ctx.quadraticCurveTo(textX, textY, textX + radius, textY);
-                        ctx.closePath();
-                        ctx.fill();
-                        ctx.stroke();
-
-                        ctx.fillStyle = "#ffffff";
-                        ctx.font = "bold 10px sans-serif";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillText(timeText, textX + textWidth / 2, textY + textHeight / 2);
-
-                        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([3, 3]);
-                        ctx.beginPath();
-                        ctx.moveTo(candleCenterX, 0);
-                        ctx.lineTo(candleCenterX, height);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                    }
-                }
-            }
-
             Connections {
                 target: priceChartScrollView
                 function onContentXChanged() {
@@ -1490,11 +1536,9 @@ Rectangle {
 
                 drawTimeAxis(ctx)
                 drawDivisionsTimeAxis(ctx)
-                if (root.enableCursorTime)
-                    drawCursorTime(ctx)
 
                 ctx.restore()
             }
-        }
-    }
+        } // timeCanvas
+    } // timeAxisArea
 }
