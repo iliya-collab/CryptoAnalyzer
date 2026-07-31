@@ -1,13 +1,21 @@
 import QtQuick
 import QtQuick.Controls
-
 import Theme 1.0
+
+/*
+    Пункт меню содержит следующие значения:
+        * text - название пункта меню (если название будет '---', то данный пункт будет разделителем)
+        * items - массив вложенных пунктов меню
+        * enabled - определяет активен ли данный пункт
+        * checkable - пункт меню с флажком
+        * checked - начальное состояние пункта меню с флажком
+        * clicked - функция обработчик, которая вызывается при клике на пункт меню
+*/
 
 MenuBar {
     id: root
 
     property var menuModel: []
-    signal itemTriggered(string item, string path, bool checked)
 
     background: Rectangle {
         color: Theme.menuBarColor
@@ -124,7 +132,6 @@ MenuBar {
                 menuTitle: data.text,
                 menuEnabled: data.enabled !== undefined ? data.enabled : true,
                 menuItems: data.items || [],
-                parentPath: ""
             })
             return menu
         } else {
@@ -133,7 +140,7 @@ MenuBar {
                 itemText: data.text,
                 itemEnabled: data.enabled !== undefined ? data.enabled : true,
                 itemShortcut: data.shortcut || "",
-                itemParentPath: ""
+                itemClicked: data.clicked || null
             })
             return item
         }
@@ -154,9 +161,8 @@ MenuBar {
             property alias itemEnabled: menuItem.enabled
             property alias itemCheckable: menuItem.checkable
             property alias itemChecked: menuItem.checked
+            property var itemClicked: null
             property string itemShortcut: ""
-            property string itemParentPath: ""
-            property string itemFullPath: itemParentPath + (itemParentPath ? " > " : "") + itemText
 
             //Component.onCompleted: console.log("Component menuItemComponent created")
 
@@ -204,7 +210,8 @@ MenuBar {
             }
 
             onTriggered: {
-                root.itemTriggered(itemText, itemFullPath, itemChecked)
+                if (itemClicked)
+                    itemClicked()
             }
         }
     } // menuItemComponent
@@ -218,8 +225,6 @@ MenuBar {
             property alias menuTitle: submenu.title
             property alias menuEnabled: submenu.enabled
             property var menuItems: []
-            property string parentPath: ""
-            property string fullPath: parentPath + (parentPath ? " > " : "") + menuTitle
 
             //Component.onCompleted: console.log("Component submenuComponent created")
 
@@ -293,7 +298,6 @@ MenuBar {
                             item.menuTitle = itemData.text
                             item.menuEnabled = itemData.enabled !== undefined ? itemData.enabled : true
                             item.menuItems = itemData.items || []
-                            item.parentPath = submenu.fullPath
                         } else if (itemData.text !== "---") {
                             //console.log("Menu item - " + itemData.text + " loaded")
                             item.itemText = itemData.text
@@ -301,7 +305,7 @@ MenuBar {
                             item.itemCheckable = itemData.checkable !== undefined ? itemData.checkable : false
                             item.itemChecked = itemData.checked !== undefined ? itemData.checked : false
                             item.itemShortcut = itemData.shortcut || ""
-                            item.itemParentPath = submenu.fullPath
+                            item.itemClicked = itemData.clicked || null
                         }
                     }
                 } // itemLoader
@@ -328,7 +332,7 @@ MenuBar {
             property string itemText: ""
             property bool itemEnabled: true
             property string itemShortcut: ""
-            property string itemParentPath: text
+            property var itemClicked: null
 
             //Component.onCompleted: console.log("Component topMenuBarItemComponent created")
 
@@ -350,7 +354,10 @@ MenuBar {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            onTriggered: root.itemTriggered(itemText, itemParentPath, false)
+            onTriggered: {
+                if (itemClicked)
+                    itemClicked()
+            }
         }
     } // menuBarItemComponent
 

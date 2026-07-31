@@ -13,6 +13,7 @@ Item {
     Layout.fillHeight: true
 
     property real rightPanel: 500
+    property alias enableVolumeChart: candleChart.enableVolumeChart
 
     function showRecentTrades() {
         stackWidgets.replace("qrc:/qt/qml/Components/Crypto/TradeWidget.qml")
@@ -73,6 +74,7 @@ Item {
                 Layout.fillHeight: true
 
                 KlineWidget {
+                    id: candleChart
                     Layout.margins: Theme.margins
                     Layout.fillHeight: true
                     Layout.fillWidth: true

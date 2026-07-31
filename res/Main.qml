@@ -51,45 +51,42 @@ ApplicationWindow {
                     {
                         text: "Repository",
                         items: [
-                            { text: "Load spot pairs" },
+                            {
+                                text: "Load spot pairs",
+                                clicked: function() { AppCore.loadTradesFromNetwork() }
+                            },
                             { text: "Load candles" }
                         ]
                     },
                     { text: "---" },
-                    { text: "Spot" }
+                    {
+                        text: "Spot",
+                        clicked: function() { mainStack.showTradePage() }
+                    }
                 ]
             },
             {
                 text: "View",
                 items: [
-                    { text: "Order Book" },
-                    { text: "Recent Trades" }
+                    {
+                        text: "Order book",
+                        clicked: function() { mainStack.currentItem.showOrderbook() }
+                    },
+                    {
+                        text: "Recent trades",
+                        clicked: function() { mainStack.currentItem.showRecentTrades() }
+                    },
+                    {
+                        text: "Volume chart",
+                        clicked: function() { mainStack.currentItem.enableVolumeChart = !mainStack.currentItem.enableVolumeChart }
+                    }
                 ]
             },
-            { text: "Settings" }
+            {
+                text: "Settings",
+                clicked: function() { settingsWindowLoader.active = true }
+            }
         ]
-
-        onItemTriggered: function(itemText, itemPath, checkedState) {
-            //console.log("Item:", itemText, " Full path:", itemPath)
-
-            if (itemText === "Settings") {
-                if (!settingsWindowLoader.active)
-                    settingsWindowLoader.active = true
-            }
-            else if (itemText === "Order Book") {
-                if (mainStack.currentItem && typeof mainStack.currentItem.showOrderbook === "function")
-                    mainStack.currentItem.showOrderbook()
-            }
-            else if (itemText === "Recent Trades") {
-                if (mainStack.currentItem && typeof mainStack.currentItem.showRecentTrades === "function")
-                    mainStack.currentItem.showRecentTrades()
-            }
-            else if (itemText === "Spot")
-                mainStack.showTradePage()
-            else if (itemPath === "Repository > Load spot pairs")
-                AppCore.loadTradesFromNetwork()
-            else if (itemPath === "Repository > Load candles") {}
-        }
     }
 
     // Главное окно
@@ -121,6 +118,8 @@ ApplicationWindow {
 
             initialItem: Item {}
 
+            property bool isTradeScreen: mainStack.currentItem instanceof TradeScreen
+
             // Метод для вызова экрана торговли
             function showTradePage() {
                 mainStack.replace("Views/TradeScreen.qml")
@@ -133,12 +132,22 @@ ApplicationWindow {
 
             RowLayout {
                 anchors.fill: parent
+
                 CustomStatusBar {
                     id: statusWidget
                     Layout.fillHeight: true
                     Layout.fillWidth: true
                     autoHide: false
                     //visibleProgressBar: false
+                }
+
+                Item { Layout.fillWidth: true }
+
+                PingIndicator {
+                    width: 30
+                    height: 30
+                    thickness: 1
+                    pingValue: AppCore.pingMs
                 }
             }
         }
@@ -159,15 +168,4 @@ ApplicationWindow {
         }
     }
 
-    PingIndicator {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: Theme.margins
-
-        width: 30
-        height: 30
-        thickness: 2
-
-        pingValue: AppCore.pingMs
-    }
 }
