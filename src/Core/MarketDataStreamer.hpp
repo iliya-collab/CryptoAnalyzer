@@ -1,7 +1,7 @@
 #pragma once
+#include "Tools/Network/BybitWebSocket.hpp"
 #include <QObject>
 #include <memory>
-#include "Tools/Network/BybitWebSocket.hpp"
  
 namespace Core {
 
@@ -14,8 +14,8 @@ namespace Core {
         bool m_isInterrupt = false;
         QString m_lastPair = "";
 
-        QMap<QString, Tools::Orderbook> m_orderBooks; // Список ордеров
-        QList<Tools::Kline> m_savedCandles;
+        Tools::Orderbook m_orderBook; // стакан заявок
+        QList<Tools::Kline> m_savedCandles; // серия свеч
 
         void updateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook);
         void snapshotOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook);
@@ -42,7 +42,7 @@ namespace Core {
         void tickerUpdated(const Tools::Ticker& newTicker);
         void orderBookUpdated(const Tools::Orderbook& newOrderBook);
         void klineUpdated(const Tools::Kline& newKline);
-        void publicTradeUpdated(const Tools::PublicTrade& newPublicTrade);
+        void publicTradeUpdated(const Tools::PublicTrades& newPublicTrades);
 
     };
 

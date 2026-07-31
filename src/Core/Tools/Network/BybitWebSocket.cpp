@@ -164,6 +164,8 @@ namespace Core::Tools {
         if (m_type == SocketType::Private)
             sendAuthMessage();
 
+        sendPingMessage();
+
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
         connectToStreams();
         emit connected();
@@ -342,7 +344,7 @@ namespace Core::Tools {
             return;
 
         QJsonArray arrData = json["data"].toArray();
-        QString symbol = json["topic"].toString().section('.', -1);;
+        QString symbol = json["topic"].toString().section('.', -1);
 
         Kline kline{};
         kline.m_symbol = symbol;
@@ -365,25 +367,30 @@ namespace Core::Tools {
     }
 
     void BybitWebSocket::updatePublicTrade(const QJsonObject &json) {
+        //qInfo().noquote() << QString::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Indented));
+
         if (!json.contains("data") || !json["data"].isArray())
             return;
 
-        QJsonObject data = json["data"].toObject();
+        QJsonArray arrData = json["data"].toArray();
+        QString symbol = json["topic"].toString().section('.', -1);
 
-        PublicTrade publicTrade{};
+        PublicTrades publicTrades{};
+        publicTrades.m_symbol = symbol;
 
-        for (const auto& val : data) {
-            QJsonObject data = val.toObject();
-            publicTrade.m_symbol = data["s"].toString();
-            publicTrade.m_side = data["S"].toString();
-            publicTrade.m_direction = data["L"].toString();
-            publicTrade.m_price = data["p"].toString().toDouble();
-            publicTrade.m_volume = data["v"].toString().toDouble();
-            publicTrade.m_turnover = publicTrade.m_price * publicTrade.m_volume;
-            publicTrade.m_tradeTime = data["T"].toString().toLongLong();
+        for (const auto& val : arrData) {
+            QJsonObject itemData = val.toObject();
+
+            PublicTradeItem publicTradeItem{};
+            publicTradeItem.m_side = itemData["S"].toString();
+            publicTradeItem.m_price = itemData["p"].toString().toDouble();
+            publicTradeItem.m_volume = itemData["v"].toString().toDouble();
+            publicTradeItem.m_turnover = publicTradeItem.m_price * publicTradeItem.m_volume;
+            publicTradeItem.m_tradeTime = itemData["T"].toVariant().toLongLong();
+            publicTrades.m_items.append(publicTradeItem);
         }
 
-        emit updatedPublicTrade(publicTrade);
+        emit updatedPublicTrade(publicTrades);
     }
 
     void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {

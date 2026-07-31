@@ -1,14 +1,20 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import MainApplication 1.0
+import Application.Core 1.0
 
 Item {
     id: root
 
-    readonly property OrderbookSideModel asks: AppCore.asks
-    readonly property OrderbookSideModel bids: AppCore.bids
-    readonly property real maxVolume: Math.max(asks.maxVolume, bids.maxVolume)
+    readonly property OrderbookSideModel asks: AppCore.asks ? AppCore.asks : null
+    readonly property OrderbookSideModel bids: AppCore.bids ? AppCore.bids : null
+    readonly property real maxVolume: {
+        if (!asks || !bids)
+            return 0
+        return Math.max(asks.maxVolume, bids.maxVolume)
+    }
+
+    visible: asks && bids
 
     Connections {
         target: asks
@@ -75,6 +81,9 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onPositionChanged: function(mouse) {
+                if (!bids || !asks)
+                    return
+
                 orderbookCanvas.mouseX = mouse.x
                 orderbookCanvas.mouseY = mouse.y
 
@@ -145,6 +154,9 @@ Item {
         }
 
         onPaint: {
+            if (!bids || !asks)
+                return
+
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
 
@@ -310,6 +322,9 @@ Item {
         enabled: false
 
         onPaint: {
+            if (!bids || !asks)
+                return
+
             var ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
 

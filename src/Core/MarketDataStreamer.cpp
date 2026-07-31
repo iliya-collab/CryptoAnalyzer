@@ -33,8 +33,8 @@ namespace Core {
 
         connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedOrderbook, this, [this](const Tools::Orderbook& newOrderbook) {
             if (m_lastPair == newOrderbook.m_symbol) {
-                updateOrderbook(m_orderBooks[newOrderbook.m_symbol], newOrderbook);
-                emit orderBookUpdated(m_orderBooks[newOrderbook.m_symbol]);
+                updateOrderbook(m_orderBook, newOrderbook);
+                emit orderBookUpdated(m_orderBook);
             }
         });
 
@@ -47,16 +47,16 @@ namespace Core {
                 m_savedCandles.clear();
         });
 
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedPublicTrade, this, [this](const Tools::PublicTrade& newPublicTrade) {
-            if (m_lastPair == newPublicTrade.m_symbol)
-                emit publicTradeUpdated(newPublicTrade);
+        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedPublicTrade, this, [this](const Tools::PublicTrades& newPublicTrades) {
+            if (!newPublicTrades.m_items.isEmpty() && m_lastPair == newPublicTrades.m_symbol)
+                emit publicTradeUpdated(newPublicTrades);
         });
 
-        qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "created in:" << QThread::currentThread();
     }
 
     MarketDataStreamer::~MarketDataStreamer() {
-        qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "launched from:" << QThread::currentThread();
 
         if (hasRunned())
             m_webSocket->close();
@@ -101,14 +101,14 @@ namespace Core {
     }
 
     void MarketDataStreamer::setAPI(const Tools::API& api) {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!m_webSocket)
             return;
         m_webSocket->initAPI(api);
     }
 
     void MarketDataStreamer::start() {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!hasRunned())
             m_webSocket->open();
         else
@@ -116,7 +116,7 @@ namespace Core {
     }
 
     void MarketDataStreamer::stop(bool interrupt) {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!hasRunned())
             emit errorOccurred("The core failed to run");
         else {
@@ -126,7 +126,7 @@ namespace Core {
     }
 
     void MarketDataStreamer::addTrade(const QString& pair) {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_lastPair = pair;
         if (!hasRunned())
             emit errorOccurred("The core failed to run");

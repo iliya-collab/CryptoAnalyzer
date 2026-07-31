@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import MainApplication 1.0
+import Application.Core 1.0
 import Components.Crypto 1.0
 import Components.Custom 1.0
 import Theme 1.0
@@ -12,14 +12,14 @@ Item {
     Layout.fillWidth: true
     Layout.fillHeight: true
 
-    property real orderbookWidth: 500
+    property real rightPanel: 500
 
-    property bool orderbookVisible: true
+    function showRecentTrades() {
+        stackWidgets.replace("qrc:/qt/qml/Components/Crypto/TradeWidget.qml")
+    }
 
-    //onOrderbookVisibleChanged:
-
-    function setOrderbookVisible(visible) {
-        orderbookPanel.visible = visible
+    function showOrderbook() {
+        stackWidgets.replace("qrc:/qt/qml/Components/Crypto/OrderbookWidget.qml")
     }
 
     Item {
@@ -81,70 +81,24 @@ Item {
                 } // Candle chart
 
                 Rectangle {
-                    id: orderbookPanel
                     color: Theme.windowColor
                     Layout.fillHeight: true
-                    Layout.preferredWidth: root.orderbookVisible ? orderbookWidth : 0
-                    visible: root.orderbookVisible
+                    Layout.preferredWidth: root.rightPanel
                     clip: true
                     border.width: 1
                     border.color: Theme.borderColor
 
-                    onVisibleChanged: {
-                        root.orderbookWidth = visible ? width : 0
-                    }
-
-                    Behavior on Layout.preferredWidth {
-                        NumberAnimation { duration: 200 }
-                    }
-
-                    OrderbookWidget {
-                        id: orderbookWidget
+                    StackView {
+                        id: stackWidgets
                         anchors.fill: parent
                         anchors.margins: Theme.margins
-                    } // orderbookWidget
 
-                    CustomButton {
-                        id: hideButton
-                        text: ">"
+                        initialItem: OrderbookWidget {}
+                    } // stackWidgets
 
-                        implicitWidth: 20
-                        implicitHeight: 20
-
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        anchors.leftMargin: 4
-                        anchors.topMargin: 4
-                        z: 2
-
-                        contentItem: Text {
-                            text: hideButton.text
-                            font.pixelSize: 12
-                            color: Theme.textColor
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-
-                        background: Rectangle {
-                            color: hideButton.hovered ? Theme.borderColor : "transparent"
-                            border.width: 1
-                            border.color: Theme.borderColor
-                            radius: 2
-                        }
-
-                        onClicked: {
-                            root.setOrderbookVisible(false)
-                        }
-                    } // hideButton
-                } // orderbookPanel
+                } // Rectangle
             } // RowLayout
 
         } // mainContent
     } // leftContentContainer
-
-
-    Component.onCompleted: {
-        root.setOrderbookVisible(true)
-    }
-
 } // TradePage

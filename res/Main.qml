@@ -1,7 +1,9 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import MainApplication 1.0
+
+import Application.UI 1.0
+import Application.Core 1.0
 import Theme 1.0
 import Components.Custom 1.0
 import Components.Crypto 1.0
@@ -17,8 +19,6 @@ ApplicationWindow {
     color: Theme.windowColor
 
     visibility: "FullScreen"
-
-    property bool visibleOrderbook: true
 
     Connections {
         target: AppCore
@@ -62,7 +62,8 @@ ApplicationWindow {
             {
                 text: "View",
                 items: [
-                    { text: "Orderbook" }
+                    { text: "Order Book" },
+                    { text: "Recent Trades" }
                 ]
             },
             { text: "Settings" }
@@ -75,10 +76,13 @@ ApplicationWindow {
                 if (!settingsWindowLoader.active)
                     settingsWindowLoader.active = true
             }
-            else if (itemText === "Orderbook") {
-                mainWindow.visibleOrderbook = !mainWindow.visibleOrderbook
-                if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
-                    mainStack.currentItem.setOrderbookVisible(mainWindow.visibleOrderbook)
+            else if (itemText === "Order Book") {
+                if (mainStack.currentItem && typeof mainStack.currentItem.showOrderbook === "function")
+                    mainStack.currentItem.showOrderbook()
+            }
+            else if (itemText === "Recent Trades") {
+                if (mainStack.currentItem && typeof mainStack.currentItem.showRecentTrades === "function")
+                    mainStack.currentItem.showRecentTrades()
             }
             else if (itemText === "Spot")
                 mainStack.showTradePage()
@@ -116,11 +120,6 @@ ApplicationWindow {
             anchors.fill: parent
 
             initialItem: Item {}
-
-            onCurrentItemChanged: {
-                if (mainStack.currentItem && typeof mainStack.currentItem.setOrderbookVisible === "function")
-                    mainStack.currentItem.orderbookVisible = mainWindow.visibleOrderbook
-            }
 
             // Метод для вызова экрана торговли
             function showTradePage() {

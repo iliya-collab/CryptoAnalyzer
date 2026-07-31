@@ -29,6 +29,7 @@ set(QML_IMPORT_PATH "${QML_MODULES}" CACHE STRING "Extra QML Import Paths" FORCE
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
+    Qml
     Network
     Charts
     WebSockets
@@ -38,29 +39,54 @@ find_package(Qt6 REQUIRED COMPONENTS
 
 qt_standard_project_setup()
 
-file(GLOB_RECURSE MY_SOURCES
+file(GLOB_RECURSE MY_SOURCES RELATIVE ${CMAKE_SOURCE_DIR}
     "${SOURCE_DIR}/*.cpp"
     "${SOURCE_DIR}/*.c"
 )
 
-file(GLOB_RECURSE MY_HEADERS
-    "${SOURCE_DIR}/*.h"
+file(GLOB_RECURSE MY_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}
     "${SOURCE_DIR}/*.hpp"
+    "${SOURCE_DIR}/*.h"
 )
 
-add_executable(${PROJECT_NAME}
-    ${RESOURCE_DIR}/res.qrc
-)
+list(REMOVE_ITEM MY_SOURCES "src/main.cpp")
 
-# Главный модуль
-qt_add_qml_module(${PROJECT_NAME}
-    URI MainApplication
+# Регистрирует C++ классы (с QML_ELEMENT / QML_VALUE_TYPE) в системе QML.
+qt_add_qml_module(EasyTradeCore
+    URI Application.Core
     VERSION 1.0
     RESOURCE_PREFIX "/qt/qml"
-    OUTPUT_DIRECTORY "${QML_MODULES}/MainApplication"
+    OUTPUT_DIRECTORY "${QML_MODULES}/Application/Core"
     SOURCES
         ${MY_SOURCES}
         ${MY_HEADERS}
+)
+
+# Линкуем бэкенд ТОЛЬКО с системными модулями и движком Qml.
+target_link_libraries(EasyTradeCore PRIVATE
+    Qt6::Core
+    Qt6::Qml
+    Qt6::Network
+    Qt6::WebSockets
+    Qt6::Sql
+)
+
+target_include_directories(EasyTradeCore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}
+)
+
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    ${RESOURCE_DIR}/res.qrc
+)
+
+# Делаем из исполняемого файла QML-модуль для интерфейса
+qt_add_qml_module(${PROJECT_NAME}
+    URI Application.UI
+    VERSION 1.0
+    RESOURCE_PREFIX "/qt/qml"
+    OUTPUT_DIRECTORY "${QML_MODULES}/Application/UI"
     QML_FILES
         res/Main.qml
         res/Views/APIScreen.qml
@@ -68,17 +94,16 @@ qt_add_qml_module(${PROJECT_NAME}
         res/Views/SettingsWindow.qml
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/src")
-
+# Подключаем внешние UI-поддиректории
 add_subdirectory(res)
 
+# Линкуем фронтенд с графикой и Бэкендом
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core
-    Qt6::Network
-    Qt6::Charts
-    Qt6::WebSockets
-    Qt6::Sql
+    Qt6::Gui
     Qt6::Quick
+    Qt6::Charts
+    EasyTradeCore
     Theme
     CustomComponents
     CryptoComponents

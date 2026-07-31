@@ -1,11 +1,10 @@
-#include <QApplication>
+#include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include "AppCore.hpp"
 
 int main(int argc, char *argv[]) {
     //qputenv("QT_QPA_PLATFORM", "xcb");
 
-    QApplication app(argc, argv);
+    QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine qmlEngine;
 
@@ -16,7 +15,7 @@ int main(int argc, char *argv[]) {
         QCoreApplication::exit(-1);
     }, Qt::QueuedConnection);
 
-    qmlEngine.loadFromModule("MainApplication", "Main");
+    qmlEngine.loadFromModule("Application.UI", "Main");
 
     return app.exec();
 }

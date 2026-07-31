@@ -10,33 +10,11 @@ namespace Core::Tools {
     Q_NAMESPACE
 
     struct Orderbook {
-        Q_GADGET
-        QML_VALUE_TYPE(orderbook)
-
-        Q_PROPERTY(QString symbol MEMBER m_symbol)
-        Q_PROPERTY(QVariantList bids READ getBids)
-        Q_PROPERTY(QVariantList asks READ getAsks)
-
-    public:
 
         QString m_type = "";
         QString m_symbol = ""; // Название пары
-        QMap<double, double> m_bids = {}; // Покупки (цена, объем)
-        QMap<double, double> m_asks = {}; // Продажи (цена, объем)
-
-        QVariantList getBids() const { return mapToVariantList(m_bids); }
-        QVariantList getAsks() const { return mapToVariantList(m_asks); }
-
-    private:
-        static QVariantList mapToVariantList(const QMap<double, double>& map) {
-            QVariantList list;
-            for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
-                QVariantList pair;
-                pair << it.key() << it.value();
-                list.prepend(QVariant(pair));
-            }
-            return list;
-        }
+        QMap<double, double> m_bids{}; // Покупки (цена, объем)
+        QMap<double, double> m_asks{}; // Продажи (цена, объем)
 
     };
 
@@ -44,15 +22,15 @@ namespace Core::Tools {
         Q_GADGET
         QML_VALUE_TYPE(ticker)
 
-        Q_PROPERTY(QString symbol MEMBER m_symbol)
-        Q_PROPERTY(double lastPrice MEMBER m_lastPrice)
-        Q_PROPERTY(double usdIndexPrice MEMBER m_usdIndexPrice)
-        Q_PROPERTY(double high24h MEMBER m_high24h)
-        Q_PROPERTY(double low24h MEMBER m_low24h)
-        Q_PROPERTY(double volCcy24h MEMBER m_volCcy24h)
-        Q_PROPERTY(double vol24h MEMBER m_vol24h)
-        Q_PROPERTY(double prevPrice24h MEMBER m_prevPrice24h)
-        Q_PROPERTY(double price24hPcnt MEMBER m_price24hPcnt)
+        Q_PROPERTY(QString symbol MEMBER m_symbol FINAL)
+        Q_PROPERTY(double lastPrice MEMBER m_lastPrice FINAL)
+        Q_PROPERTY(double usdIndexPrice MEMBER m_usdIndexPrice FINAL)
+        Q_PROPERTY(double high24h MEMBER m_high24h FINAL)
+        Q_PROPERTY(double low24h MEMBER m_low24h FINAL)
+        Q_PROPERTY(double volCcy24h MEMBER m_volCcy24h FINAL)
+        Q_PROPERTY(double vol24h MEMBER m_vol24h FINAL)
+        Q_PROPERTY(double prevPrice24h MEMBER m_prevPrice24h FINAL)
+        Q_PROPERTY(double price24hPcnt MEMBER m_price24hPcnt FINAL)
 
     public:
 
@@ -69,21 +47,6 @@ namespace Core::Tools {
     };
 
     struct Kline {
-        Q_GADGET
-        QML_VALUE_TYPE(kline)
-
-        Q_PROPERTY(QString symbol MEMBER m_symbol)
-        Q_PROPERTY(double open MEMBER m_open)
-        Q_PROPERTY(double close MEMBER m_close)
-        Q_PROPERTY(double high MEMBER m_high)
-        Q_PROPERTY(double low MEMBER m_low)
-        Q_PROPERTY(bool confirm MEMBER m_confirm)
-        Q_PROPERTY(qint64 start MEMBER m_start)
-        Q_PROPERTY(qint64 end MEMBER m_end)
-        Q_PROPERTY(double volume MEMBER m_volume FINAL)
-        Q_PROPERTY(double turnover MEMBER m_turnover FINAL)
-
-    public:
 
         QString m_symbol = "";
         QString m_interval = "";
@@ -99,38 +62,31 @@ namespace Core::Tools {
 
     };
 
-    struct PublicTrade {
-        Q_GADGET
-        QML_VALUE_TYPE(publicTrade)
+    struct PublicTradeItem {
 
-        Q_PROPERTY(QString symbol MEMBER m_symbol)
-        Q_PROPERTY(QString side MEMBER m_side)
-        Q_PROPERTY(QString direction MEMBER m_direction)
-        Q_PROPERTY(double price MEMBER m_price)
-        Q_PROPERTY(double volume MEMBER m_volume)
-        Q_PROPERTY(double turnover MEMBER m_turnover)
-        Q_PROPERTY(qint64 tradeTime MEMBER m_tradeTime)
-
-    public:
-
-        QString m_symbol = "";
         QString m_side = "";
-        QString m_direction = "";
         double m_price = 0;
         double m_volume = 0;
         double m_turnover = 0;
         qint64 m_tradeTime = 0;
 
+
     };
 
-    // Структура для хранения информации об API ключах
+    struct PublicTrades {
+
+        QString m_symbol = "";
+        QList<PublicTradeItem> m_items{};
+
+    };
+
     struct API {
         Q_GADGET
         QML_VALUE_TYPE(api)
 
-        Q_PROPERTY(QString apiKey MEMBER m_apiKey)
-        Q_PROPERTY(QString secretKey MEMBER m_secretKey)
-        Q_PROPERTY(bool isTestnet MEMBER m_isTestnet)
+        Q_PROPERTY(QString apiKey MEMBER m_apiKey FINAL)
+        Q_PROPERTY(QString secretKey MEMBER m_secretKey FINAL)
+        Q_PROPERTY(bool isTestnet MEMBER m_isTestnet FINAL)
 
     public:
 

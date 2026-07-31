@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Layouts 2.15
 import Components.Crypto 1.0
-import MainApplication 1.0
+import Application.Core 1.0
 
 Item {
     id: root

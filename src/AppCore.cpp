@@ -10,10 +10,12 @@ AppCore::AppCore(QObject* parent) : QObject(parent) {
 
     m_manager = std::make_unique<Core::MarketDataManager>();
     m_streamer = std::make_unique<Core::MarketDataStreamer>();
+    m_asks = std::make_unique<Core::Tools::OrderbookSideModel>(Core::Tools::OrderbookSideModel::Side::Ask);
+    m_bids = std::make_unique<Core::Tools::OrderbookSideModel>(Core::Tools::OrderbookSideModel::Side::Bid);
+    m_trades = std::make_unique<Core::Tools::TradeModel>();
 }
 
 AppCore::~AppCore() {
-    // Останавливаем движок перед удалением
     if (m_streamer->hasRunned()) {
         QEventLoop loop;
         connect(m_streamer.get(), &Core::MarketDataStreamer::stopped, &loop, &QEventLoop::quit, Qt::SingleShotConnection);
@@ -94,6 +96,11 @@ void AppCore::setupStreamerConnections() {
         }
     });
 
+    connect(m_streamer.get(), &Core::MarketDataStreamer::publicTradeUpdated, this, [this](const Core::Tools::PublicTrades& newPublicTrades) {
+        m_trades->addTradeBatch(newPublicTrades.m_items);
+        emit tradesChanged();
+    });
+
 }
 
 void AppCore::setupConnections() {
@@ -110,9 +117,6 @@ void AppCore::init() {
     }
 
     wasInit.store(true);
-
-    m_asks = std::make_unique<Core::Tools::OrderbookSideModel>(Core::Tools::OrderbookSideModel::Side::Ask);
-    m_bids = std::make_unique<Core::Tools::OrderbookSideModel>(Core::Tools::OrderbookSideModel::Side::Bid);
 
     auto res = Core::ConfigurationManager::instance().read();
     if (!res.has_value()) {

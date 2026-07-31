@@ -59,7 +59,7 @@ namespace Core::Tools {
         void updatedTicker(const Ticker& newTicker);
         void updatedOrderbook(const Orderbook& newOrderBook);
         void updatedKline(const Kline& newKline);
-        void updatedPublicTrade(const PublicTrade& newPublicTrade);
+        void updatedPublicTrade(const PublicTrades& newPublicTrades);
 
         void pingMeasured(double lastPing);
 
