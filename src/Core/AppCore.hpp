@@ -1,10 +1,10 @@
 #pragma once
-#include "Core/MarketDataManager.hpp"
-#include "Core/MarketDataStreamer.hpp"
-#include "Core/ConfigurationManager.hpp"
-#include "Core/Tools/DataModels/OrderbookSideModel.hpp"
-#include "Core/Tools/DataModels/TradeModel.hpp"
-#include "Core/Tools/DataModels/ReversedProxyModel.hpp"
+#include "MarketDataManager.hpp"
+#include "MarketDataStreamer.hpp"
+#include "ConfigurationManager.hpp"
+#include "Tools/DataModels/OrderbookSideModel.hpp"
+#include "Tools/DataModels/TradeModel.hpp"
+#include "Tools/DataModels/ReversedProxyModel.hpp"
 #include <QQmlContext>
 #include <QObject>
 #include <QtQml>

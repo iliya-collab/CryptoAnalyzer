@@ -72,8 +72,7 @@ target_link_libraries(EasyTradeCore PRIVATE
 )
 
 target_include_directories(EasyTradeCore PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src/Core
 )
 
 add_executable(${PROJECT_NAME}

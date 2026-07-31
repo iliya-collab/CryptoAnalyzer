@@ -1,5 +1,5 @@
 #include "AppCore.hpp"
-#include "Core/Tools/LogManager.hpp"
+#include "Tools/LogManager.hpp"
 #include <QVariant>
 #include <QList>
 #include <QVariantList>
