@@ -1,7 +1,5 @@
 #pragma once
-
-#include "../StdTypes.hpp"
-#include <QObject>
+#include "Tools/Network/BaseRestAPI.hpp"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -10,17 +8,19 @@
 #include <QNetworkAccessManager>
 #include <QUrlQuery>
 
-namespace Core::Tools {
+namespace Core::Tools
+{
 
-    class BybitRestAPI : public QObject {
+    class BybitRestAPI : public BaseRestAPI
+    {
         Q_OBJECT
     private:
 
         QNetworkAccessManager* m_manager;
         QString m_baseEndpoint;
-
         API m_api;
 
+        // Структура API заголовка
         struct APIHeaders {
             QString X_BAPI_API_KEY;
             QString X_BAPI_TIMESTAMP; 
@@ -28,8 +28,6 @@ namespace Core::Tools {
             QString X_BAPI_RECV_WINDOW;
         };
         
-        // Обработка ответа
-        void handleResponse();
         // Генерирует сигнатуру для поля X_BAPI_SIGN
         QString generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString = "");
         // Инициализирует API заголовок учитывая параметры запроса
@@ -37,25 +35,19 @@ namespace Core::Tools {
         // Добавляет API заголовок к запросу
         void addAPIHeaders(const QUrl& url, QNetworkRequest& request);
 
+    private slots:
+
+        void onHandleResponse() override;
+
     public:
 
         BybitRestAPI(QObject* parent = nullptr);
         ~BybitRestAPI() = default;
 
-        void initAPI(const API& api = API());
+        void initAPI(const API& api = API()) override;
 
-        // Формирует запрос
-        // endpoint - отправляемый запрос
-        // params - параметры к запросу
-        // timeout - ограничение по времени на обработку запроса в мс
-        QUrl requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1);
-
-    signals:
-    
-        void dataReceived(const QUrl& url, const QJsonObject& obj);
-        void errorOccurred(const QString &error);
-        void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+        QUrl requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) override;
 
     };
     
-} // namespace Engine
+}

@@ -1,5 +1,5 @@
 #pragma once
-#include "Markets/IMarketApiService.hpp"
+#include "Markets/BaseMarketApiService.hpp"
 #include "Markets/IMarketDataStreamer.hpp"
 #include "Markets/MarketDataRepository.hpp"
 #include <QObject>
@@ -10,13 +10,13 @@ class MarketDataMediator : public QObject {
     Q_OBJECT
 private:
 
-    std::unique_ptr<Markets::IMarketApiService> m_apiService;
+    std::unique_ptr<Markets::BaseMarketApiService> m_apiService;
     std::unique_ptr<Markets::IMarketDataStreamer> m_streamer;
     std::unique_ptr<Markets::MarketDataRepository> m_repository;
 
 public:
 
-    explicit MarketDataMediator(std::unique_ptr<Markets::IMarketApiService> apiService,
+    explicit MarketDataMediator(std::unique_ptr<Markets::BaseMarketApiService> apiService,
                                 std::unique_ptr<Markets::IMarketDataStreamer> streamer,
                                 std::unique_ptr<Markets::MarketDataRepository> repository,
                                 QObject* parent = nullptr);
@@ -55,20 +55,21 @@ signals:
     // Уведомляет о текущем пинге потоковых данных
     void pingMeasured(qint64 pingMs);
     // Уведомляет о получении данных
-    void tradePairsReady(const QList<Tools::TradeInfo>& pairs);
-    void tickerReady(const Tools::Ticker& ticker);
-    void orderBookReady(const Tools::Orderbook& orderbook);
-    void klineUpdated(const Tools::Kline& kline);
-    void historicalKlinesReady(const QList<Tools::Kline>& klines);
-    void tradesReady(const Tools::PublicTrades& trades);
-    void apiReady(const Tools::API& api);
+    void tradePairsReady(const QList<Core::Tools::TradeInfo>& pairs);
+    void tickerReady(const Core::Tools::Ticker& ticker);
+    void orderBookReady(const Core::Tools::Orderbook& orderbook);
+    void klineUpdated(const Core::Tools::Kline& kline);
+    void historicalKlinesReady(const QList<Core::Tools::Kline>& klines);
+    void tradesReady(const Core::Tools::PublicTrades& trades);
+    void apiReady(const Core::Tools::API& api);
 
 private slots:
 
-    void onTradePairsReady(const QList<Tools::TradeInfo>& pairs);
-    void onKlineReceived(const Tools::Kline& kline);
-    void onKlinesReady(const QList<Tools::Kline>& klines);
-    void onTradesReady(const Tools::PublicTrades& trades);
+    void onTradePairsReady(const QList<Core::Tools::TradeInfo>& pairs);
+    void onKlineReceived(const Core::Tools::Kline& kline);
+    void onKlinesReady(const QList<Core::Tools::Kline>& klines);
+    void onTradesReady(const Core::Tools::PublicTrades& trades);
+    void onAccountReady(bool isValid);
 
 };
 

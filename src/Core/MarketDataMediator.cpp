@@ -2,7 +2,7 @@
 
 namespace Core {
 
-    MarketDataMediator::MarketDataMediator(std::unique_ptr<Markets::IMarketApiService> apiService,
+    MarketDataMediator::MarketDataMediator(std::unique_ptr<Markets::BaseMarketApiService> apiService,
                                         std::unique_ptr<Markets::IMarketDataStreamer> streamer,
                                         std::unique_ptr<Markets::MarketDataRepository> repository,
                                         QObject* parent) :
@@ -12,19 +12,19 @@ namespace Core {
         QObject(parent)
     {
         // Связываем Сеть (REST)
-        connect(m_apiService.get(), &Markets::IMarketApiService::errorOccurred,
+        connect(m_apiService.get(), &Markets::BaseMarketApiService::errorOccurred,
                 this, &MarketDataMediator::errorOccurred, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::IMarketApiService::downloadProgress,
+        connect(m_apiService.get(), &Markets::BaseMarketApiService::downloadProgress,
                 this, &MarketDataMediator::downloadProgress, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::IMarketApiService::infoAboutAccountReceived,
-                this, &MarketDataMediator::accountVerificationReady, Qt::UniqueConnection);
+        connect(m_apiService.get(), &Markets::BaseMarketApiService::infoAboutAccountReceived,
+                this, &MarketDataMediator::onAccountReady, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::IMarketApiService::tradePairsReceived,
+        connect(m_apiService.get(), &Markets::BaseMarketApiService::tradePairsReceived,
                 this, &MarketDataMediator::onTradePairsReady, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::IMarketApiService::klinesReceived,
+        connect(m_apiService.get(), &Markets::BaseMarketApiService::klinesReceived,
                 this, &MarketDataMediator::onKlinesReady, Qt::UniqueConnection);
 
         // Связываем Стрим (WebSocket)
@@ -87,6 +87,7 @@ namespace Core {
 
         if (!pairs.isEmpty())
         {
+            emit messageSent("Trade pairs ready");
             emit tradePairsReady(pairs);
             return true;
         }
@@ -117,6 +118,7 @@ namespace Core {
 
     void MarketDataMediator::loadInfoAboutAccount()
     {
+        emit messageSent("Loading account");
         m_apiService->requestInfoAboutAccount();
     }
 
@@ -154,6 +156,12 @@ namespace Core {
     void MarketDataMediator::onTradesReady(const Tools::PublicTrades& trades)
     {
         emit tradesReady(trades);
+    }
+
+    void MarketDataMediator::onAccountReady(bool isValid)
+    {
+        emit messageSent("Account ready");
+        emit accountVerificationReady(isValid);
     }
 
 }

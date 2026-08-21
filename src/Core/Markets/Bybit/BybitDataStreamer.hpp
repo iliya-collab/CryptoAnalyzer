@@ -1,6 +1,6 @@
 #pragma once
 #include "Markets/IMarketDataStreamer.hpp"
-#include "Tools/Network/BybitWebSocket.hpp"
+#include "Tools/Network/Bybit/BybitWebSocket.hpp"
  
 namespace Core::Markets {
 

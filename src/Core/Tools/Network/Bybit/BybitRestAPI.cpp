@@ -7,7 +7,7 @@
 
 namespace Core::Tools {
 
-    BybitRestAPI::BybitRestAPI(QObject* parent) : QObject(parent) {
+    BybitRestAPI::BybitRestAPI(QObject* parent) : BaseRestAPI(parent) {
         m_manager = new QNetworkAccessManager(parent);
     }
 
@@ -16,7 +16,7 @@ namespace Core::Tools {
         m_baseEndpoint = m_api.m_isTestnet ? "https://api-testnet.bybit.com" : "https://api.bybit.com";
     }
 
-    void BybitRestAPI::handleResponse() {
+    void BybitRestAPI::onHandleResponse() {
         QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
 
         if (!reply)
@@ -31,9 +31,8 @@ namespace Core::Tools {
 
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray response = reply->readAll();
-            QJsonDocument doc = QJsonDocument::fromJson(response);
-            if (!doc.isNull())
-                emit dataReceived(reply->url(), doc.object());
+            if (!response.isNull())
+                emit dataReceived(reply->url(), response);
             else
                 emit errorOccurred("Failed to parse JSON response");
         }
@@ -87,7 +86,7 @@ namespace Core::Tools {
 
         QNetworkReply* reply = m_manager->get(request);
 
-        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::handleResponse, Qt::UniqueConnection);
+        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::onHandleResponse, Qt::UniqueConnection);
         connect(reply, &QNetworkReply::downloadProgress, this, &BybitRestAPI::downloadProgress, Qt::UniqueConnection);
 
         return request.url();

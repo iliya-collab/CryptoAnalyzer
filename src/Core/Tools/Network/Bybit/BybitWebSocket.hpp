@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Tools/StdTypes.hpp"
 #include <QObject>
 #include <QWebSocket>
 #include <QTimer>
@@ -9,8 +9,6 @@
 #include <QReadWriteLock>
 #include <QThread>
 #include <expected>
-
-#include "../StdTypes.hpp"
 
 namespace Core::Tools {
 
@@ -58,10 +56,10 @@ namespace Core::Tools {
     signals:
 
         // Сигналы для обновления публичных каналов
-        void updatedTicker(const Ticker& newTicker);
-        void updatedOrderbook(const Orderbook& newOrderBook);
-        void updatedKline(const Kline& newKline);
-        void updatedPublicTrade(const PublicTrades& newPublicTrades);
+        void updatedTicker(const Core::Tools::Ticker& newTicker);
+        void updatedOrderbook(const Core::Tools::Orderbook& newOrderBook);
+        void updatedKline(const Core::Tools::Kline& newKline);
+        void updatedPublicTrade(const Core::Tools::PublicTrades& newPublicTrades);
 
         void pingMeasured(double lastPing);
 
