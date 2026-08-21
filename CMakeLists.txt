@@ -51,6 +51,11 @@ file(GLOB_RECURSE MY_HEADERS RELATIVE ${CMAKE_SOURCE_DIR}
 
 list(REMOVE_ITEM MY_SOURCES "src/main.cpp")
 
+add_executable(${PROJECT_NAME}
+    src/main.cpp
+    ${RESOURCE_DIR}/res.qrc
+)
+
 # Регистрирует C++ классы (с QML_ELEMENT / QML_VALUE_TYPE) в системе QML.
 qt_add_qml_module(EasyTradeCore
     URI Application.Core
@@ -72,12 +77,8 @@ target_link_libraries(EasyTradeCore PRIVATE
 )
 
 target_include_directories(EasyTradeCore PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/Core
-)
-
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-    ${RESOURCE_DIR}/res.qrc
 )
 
 # Делаем из исполняемого файла QML-модуль для интерфейса

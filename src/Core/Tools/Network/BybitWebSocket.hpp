@@ -13,10 +13,12 @@
 #include "../StdTypes.hpp"
 
 namespace Core::Tools {
+
     class BybitWebSocket : public QObject {
         Q_OBJECT
 
     public:
+
         // Тип сокета: публичный (рыночные данные) или приватный (данные аккаунта)
         enum class SocketType {
             Public,

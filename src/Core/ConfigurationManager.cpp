@@ -21,15 +21,18 @@ namespace Core {
         QJsonObject root;
 
         // Конфигурация API
-        QJsonObject apiObj;
-        apiObj["Key"] = "";
-        apiObj["SecretKey"] = "";
-        apiObj["isTestnet"] = false;
-        root["API"] = apiObj;
+        QJsonObject apisObj;
+        QJsonObject defaultApi;
+        defaultApi["Key"] = "";
+        defaultApi["SecretKey"] = "";
+        defaultApi["isTestnet"] = false;
+        apisObj["default"] = defaultApi;
+        root["APIs"] = apisObj;
 
         // Конфигурация General
         QJsonObject generalObj;
         generalObj["AutoConnection"] = true;
+        generalObj["ActiveAPI"] = "default";
         root["General"] = generalObj;
 
         QJsonDocument doc(root);
@@ -50,13 +53,20 @@ namespace Core {
         QJsonDocument doc = QJsonDocument::fromJson(fileData);
         QJsonObject root = doc.object();
 
-        QJsonObject apiObj = root["API"].toObject();
-        m_paramsConfig.m_apiKey = apiObj["Key"].toString();
-        m_paramsConfig.m_secretKey = apiObj["SecretKey"].toString();
-        m_paramsConfig.m_isTestnet = apiObj["isTestnet"].toBool();
+        QJsonObject apisObj = root["APIs"].toObject();
+        for (auto it = apisObj.begin(); it != apisObj.end(); ++it) {
+            QString name = it.key();
+            QJsonObject apiObj = it.value().toObject();
+            Tools::API api;
+            api.m_apiKey = apiObj["Key"].toString();
+            api.m_secretKey = apiObj["SecretKey"].toString();
+            api.m_isTestnet = apiObj["isTestnet"].toBool();
+            m_paramsConfig.m_ApiSet[name] = api;
+        }
 
         QJsonObject generalObj = root["General"].toObject();
         m_paramsConfig.m_autoConnection = generalObj["AutoConnection"].toBool();
+        m_paramsConfig.m_activeAPI = generalObj["ActiveAPI"].toString();
 
         return m_paramsConfig;
     }
@@ -71,27 +81,38 @@ namespace Core {
         QJsonObject root;
 
         // Конфигурация API
-        QJsonObject apiObj;
-        apiObj["Key"] = m_paramsConfig.m_apiKey;
-        apiObj["SecretKey"] = m_paramsConfig.m_secretKey;
-        apiObj["isTestnet"] = m_paramsConfig.m_isTestnet;
-        root["API"] = apiObj;
+        QJsonObject apisObj;
+        for (auto it = m_paramsConfig.m_ApiSet.begin(); it != m_paramsConfig.m_ApiSet.end(); ++it) {
+            QJsonObject apiObj;
+            Tools::API api = it.value();
+            apiObj["Key"] = api.m_apiKey;
+            apiObj["SecretKey"] = api.m_secretKey;
+            apiObj["isTestnet"] = api.m_isTestnet;
+            apisObj[it.key()] = apiObj;
+        }
+        root["APIs"] = apisObj;
 
         // Конфигурация General
         QJsonObject generalObj;
         generalObj["AutoConnection"] = m_paramsConfig.m_autoConnection;
+        generalObj["ActiveAPI"] = m_paramsConfig.m_activeAPI;
         root["General"] = generalObj;
-
 
         QJsonDocument doc(root);
         file.write(doc.toJson(QJsonDocument::Indented));
         file.close();
     }
 
-    void ConfigurationManager::setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet) {
-        m_paramsConfig.m_apiKey = apiKey;
-        m_paramsConfig.m_secretKey = secretKey;
-        m_paramsConfig.m_isTestnet = isTestnet;
+    void ConfigurationManager::addAPI(const QString& name, const Tools::API& api)
+    {
+        if (!m_paramsConfig.m_ApiSet.contains(name))
+            m_paramsConfig.m_ApiSet[name] = api;
+    }
+
+    void ConfigurationManager::removeAPI(const QString &name)
+    {
+        if (name != m_paramsConfig.m_activeAPI)
+            m_paramsConfig.m_ApiSet.remove(name);
     }
 
 }

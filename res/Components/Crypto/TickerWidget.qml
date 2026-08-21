@@ -14,7 +14,7 @@ Rectangle {
     implicitHeight: contentLayout.implicitHeight + (contentLayout.anchors.margins * 2)
     implicitWidth: contentLayout.implicitWidth + (contentLayout.anchors.margins * 2)
 
-    readonly property ticker pTicker: AppCore.ticker
+    readonly property ticker pTicker: AppCore.marketState.ticker
 
     // Свойства для каждого значения
     QtObject {

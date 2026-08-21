@@ -63,10 +63,8 @@ namespace Core::Tools {
         QMutableMapIterator<QString, qint64> it(m_pingTimestamps);
         while (it.hasNext()) {
             it.next();
-            if (now - it.value() > 10000) {
-                qWarning() << "Ping timeout for req_id:" << it.key();
+            if (now - it.value() > 10000)
                 it.remove();
-            }
         }
     }
 

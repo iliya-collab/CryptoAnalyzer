@@ -1,23 +1,13 @@
 #pragma once
-
+#include "BaseRepository.hpp"
 #include "../StdTypes.hpp"
 #include "../Database/IDatabaseManager.hpp"
 
 namespace Core::Tools {
 
-    class CryptoRepository {
-    public:
-
-        struct TradeInfo {
-            QString symbol;
-            QString base_coin;
-            QString quote_coin;
-        };
-
+    class CryptoRepository : public BaseRepository {
     private:
 
-        QString m_dbPath;
-        IDatabaseManager& m_dbManager;
         QList<TradeInfo> m_selectedData;
 
         void handleSelectedTrades(QSqlQuery& query);
@@ -27,11 +17,11 @@ namespace Core::Tools {
         CryptoRepository(const QString& dbPath, IDatabaseManager& manager);
         ~CryptoRepository() = default;
 
-        bool init();
-        bool open();
-        void close();
-        QString error();
-        bool clear();
+        bool init() override;
+        bool open() override;
+        void close() override;
+        QString error() override;
+        bool clear() override;
 
         bool insertTrades(const QList<TradeInfo>& newTrades);
         bool selectTrades();

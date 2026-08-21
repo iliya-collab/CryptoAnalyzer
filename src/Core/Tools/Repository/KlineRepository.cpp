@@ -1,16 +1,16 @@
-#include "CandleRepository.hpp"
+#include "KlineRepository.hpp"
 
 namespace Core::Tools {
 
-    CandleRepository::CandleRepository(const QString& dbPath, IDatabaseManager& manager) :
-        m_dbPath(dbPath), m_dbManager(manager) {}
+    KlineRepository::KlineRepository(const QString& dbPath, IDatabaseManager& manager) :
+        BaseRepository(dbPath, manager) {}
 
-    bool CandleRepository::init() {
+    bool KlineRepository::init() {
         QStringList queries;
 
         queries << R"(
             CREATE TABLE IF NOT EXISTS candles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 symbol TEXT NOT NULL,
                 interval TEXT NOT NULL,
                 start INTEGER NOT NULL,
@@ -33,19 +33,19 @@ namespace Core::Tools {
         return m_dbManager.executeTransaction(m_dbPath, queries);
     }
 
-    bool CandleRepository::open() {
+    bool KlineRepository::open() {
         return m_dbManager.open(m_dbPath);
     }
 
-    void CandleRepository::close() {
+    void KlineRepository::close() {
         m_dbManager.close(m_dbPath);
     }
 
-    QString CandleRepository::error() {
+    QString KlineRepository::error() {
         return m_dbManager.error();
     }
 
-    bool CandleRepository::clear() {
+    bool KlineRepository::clear() {
         if (!m_dbManager.beginTransaction(m_dbPath))
             return false;
 
@@ -54,22 +54,22 @@ namespace Core::Tools {
             return false;
         }
 
-        if (!m_dbManager.executePrepared(m_dbPath, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?", {"candles"})) {
-            m_dbManager.rollbackTransaction(m_dbPath);
-            return false;
-        }
+        // if (!m_dbManager.executePrepared(m_dbPath, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?", {"candles"})) {
+        //     m_dbManager.rollbackTransaction(m_dbPath);
+        //     return false;
+        // }
 
         return m_dbManager.commitTransaction(m_dbPath);
     }
 
-    bool CandleRepository::insertCandles(const QList<Kline>& newCandles) {
-        if (newCandles.isEmpty())
+    bool KlineRepository::insertKlines(const QList<Kline>& newKlines) {
+        if (newKlines.isEmpty())
             return true;
 
         if (!m_dbManager.beginTransaction(m_dbPath))
             return false;
 
-        for (const auto& item : newCandles)
+        for (const auto& item : newKlines)
             if (!m_dbManager.executePrepared(m_dbPath,
                 R"(
                     INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
@@ -83,7 +83,9 @@ namespace Core::Tools {
                         volume = EXCLUDED.volume,
                         turnover = EXCLUDED.turnover;
                 )",
-                { item.m_symbol, item.m_interval, item.m_start, item.m_end, item.m_open, item.m_close, item.m_high, item.m_low, item.m_volume, item.m_turnover }))
+                { item.m_symbol, item.m_interval, item.m_start,
+                    item.m_end, item.m_open, item.m_close,
+                    item.m_high, item.m_low, item.m_volume, item.m_turnover }))
             {
                 m_dbManager.rollbackTransaction(m_dbPath);
                 return false;
@@ -92,7 +94,7 @@ namespace Core::Tools {
         return m_dbManager.commitTransaction(m_dbPath);
     }
 
-    bool CandleRepository::insertCandle(const Kline& newCandle) {
+    bool KlineRepository::insertKline(const Kline& newKline) {
         return m_dbManager.executePrepared(m_dbPath,
             R"(
                 INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
@@ -106,6 +108,8 @@ namespace Core::Tools {
                         volume = EXCLUDED.volume,
                         turnover = EXCLUDED.turnover;
             )",
-            { newCandle.m_symbol, newCandle.m_interval, newCandle.m_start, newCandle.m_end, newCandle.m_open, newCandle.m_close, newCandle.m_high, newCandle.m_low, newCandle.m_volume, newCandle.m_turnover });
+            { newKline.m_symbol, newKline.m_interval, newKline.m_start,
+                newKline.m_end, newKline.m_open, newKline.m_close,
+                newKline.m_high, newKline.m_low, newKline.m_volume, newKline.m_turnover });
     }
 }

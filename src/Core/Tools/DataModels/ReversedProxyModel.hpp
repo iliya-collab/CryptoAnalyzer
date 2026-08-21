@@ -9,9 +9,10 @@ namespace Core::Tools {
         QML_ELEMENT
 
     public:
+
         using QAbstractProxyModel::QAbstractProxyModel;
 
-        ReversedProxyModel(QObject* parent = nullptr);
+        explicit ReversedProxyModel(QObject* parent = nullptr);
 
         QModelIndex mapFromSource(const QModelIndex &sourceIndex) const override;
         QModelIndex mapToSource(const QModelIndex &proxyIndex) const override;

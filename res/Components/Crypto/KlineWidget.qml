@@ -52,24 +52,20 @@ Item {
             }
         }
 
-        CandleChart {
+        KlineChart {
             id: chart
             Layout.fillHeight: true
             Layout.fillWidth: true
 
-            candleSeries: AppCore.candleSeries
-
             onLeftBoundaryReached: {
-                //console.info("The chart reached left boundary")
-                var firstCandle = candleSeries[0]
-                if (firstCandle && firstCandle.start) {
-                    var endTime = firstCandle.start
-                    var startTime = endTime - root.numberHistoricalCandles * 60000
-                    //console.info(firstCandle.start, startTime, endTime)
-                    AppCore.loadCandlesFromNetwork(currentTrade, "1", startTime, endTime)
+                var firstCandle = AppCore.marketState.klineSeries.first()
+                if (firstCandle && firstCandle.time)
+                {
+                    var endTime = firstCandle.time - 60000
+                    var startTime = endTime - (root.numberHistoricalCandles - 1) * 60000
+                    AppCore.marketService.loadKlines(currentTrade, "1", startTime, endTime)
                 }
             }
-
         }
     }
 

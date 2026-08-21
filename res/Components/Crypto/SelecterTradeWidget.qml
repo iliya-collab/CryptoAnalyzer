@@ -8,7 +8,11 @@ import Components.Custom 1.0
 Item {
     id: root
 
-    property alias popupList: lstTrades.model
+    readonly property var tradePairList: TradePairsFilterProxyModel {
+        sourceModel: AppCore.marketState.tradePairs
+        quoteCoinFilter: ""
+    }
+
     property alias popupWidth: mainPopup.width
     property alias popupHeight: mainPopup.height
     readonly property alias currentTrade: lblTitle.text
@@ -18,7 +22,6 @@ Item {
     opacity: hoverHandler.hovered ? 0.8 : 1.0
 
     signal itemSelected(string item)
-    signal filterSelected(string filter)
 
     property bool isComponentReady: false
 
@@ -92,8 +95,11 @@ Item {
                     {text: "USDE"}
                 ]
                 onCurrentIndexChanged: {
+                    var curText = modelTabs[currentIndex].text
                     if (root.isComponentReady)
-                        root.filterSelected(modelTabs[currentIndex].text)
+                    {
+                        tradePairList.quoteCoinFilter = curText === "ALL" ? "" : curText
+                    }
                 }
             }
 
@@ -108,12 +114,12 @@ Item {
                 radius: Theme.radius
                 ListView {
                     id: lstTrades
-                    model: popupList
+                    model: tradePairList
                     anchors.fill: parent
                     clip: true
                     delegate: ItemDelegate {
                         id: lstItem
-                        text: modelData
+                        text: symbol
                         background: Rectangle { color: lstItem.pressed ? Theme.pressColor : (lstItem.hovered ? Theme.hoverColor : "transparent") }
                         contentItem: Text {
                             text: parent.text
@@ -123,8 +129,8 @@ Item {
                             color: Theme.textColor
                         }
                         onClicked: {
-                            lblTitle.text = modelData
-                            root.itemSelected(modelData)
+                            lblTitle.text = symbol
+                            root.itemSelected(symbol)
                             mainPopup.close()
                         }
                     }

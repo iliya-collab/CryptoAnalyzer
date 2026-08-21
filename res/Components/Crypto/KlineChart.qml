@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import Application.Core 1.0
 
 Rectangle {
     id: root
@@ -8,7 +9,7 @@ Rectangle {
     border.color: "#3a3a3a"
 
     // Свойства
-    property var candleSeries: null
+    readonly property var klineSeries: AppCore.marketState.klineSeries
 
     property bool enableAutoScroll: true
     property bool enableCursorTime: true
@@ -22,347 +23,6 @@ Rectangle {
     property real volumeChartHeightRatio: 0.25
 
     signal leftBoundaryReached()
-
-    QtObject {
-        id: internal
-
-        property int candleWidth: 20 // Ширина свечи
-        property int candleSpacing: 6 // Оступы между свечой
-        property int priceAxisWidth: 60 // Ширина оси цен
-        property int timeAxisHeight: 40 // Высота оси времени
-        property int totalChartWidth: candleSeries ? candleSeries.length * (candleWidth + candleSpacing) : 0 // Общая ширина графика
-        property bool autoScrollEnabled: true // Флаг автоматической прокрутки к последней свече
-        property bool isUserInteracting: false // Флаг, показывающий, что идет ручная прокрутка
-        property bool isScrolling: false // Флаг скроллинга
-
-        // Настройки зума
-        property int minCandleWidth: 2
-        property int maxCandleWidth: 80
-        property int zoomStep: 2
-
-        // Сохраняем позицию
-        property real scrollPosition: 0.0
-        property bool updatingScroll: false
-        property int firstVisibleIdx: 0
-        property int lastVisibleIdx: -1
-
-        // Свойства для кросс-курсора
-        property real mouseGlobalX: -1
-        property real mouseGlobalY: -1
-        property real mouseLocalX: -1
-        property real mouseLocalY: -1
-        property bool mouseInsidePriceChart: false
-        property bool mouseInsideVolumeChart: false
-        property bool mouseInsideTimeAxis: false
-        property bool mouseInside: mouseInsidePriceChart || mouseInsideVolumeChart || mouseInsideTimeAxis
-        property int hoveredCandleIndex: -1
-
-        // Параметры новеденной свечи
-        property var hoveredCandle: candleSeries ? candleSeries[hoveredCandleIndex] : null
-        property color colorHoveredCandle: hoveredCandle ?
-            ((hoveredCandle.close > hoveredCandle.open) ? "#66BB6A" : "#EF5350") :
-            "#8a8a8a"
-        property var openHoveredCandle: hoveredCandle ? hoveredCandle.open.toFixed(2) : "-"
-        property var closeHoveredCandle: hoveredCandle ? hoveredCandle.close.toFixed(2) : "-"
-        property var highHoveredCandle: hoveredCandle ? hoveredCandle.high.toFixed(2) : "-"
-        property var lowHoveredCandle: hoveredCandle ? hoveredCandle.low.toFixed(2) : "-"
-        property var difHoveredCandle: hoveredCandle ? (hoveredCandle.close - hoveredCandle.open).toFixed(2) : "-"
-        property var difPercentHoveredCandle: hoveredCandle ? ((difHoveredCandle / hoveredCandle.open) * 100).toFixed(2) : "-"
-        property var volumeHoveredCandle: hoveredCandle ?
-            hoveredCandle.volume >= 1000000 ? (hoveredCandle.volume / 1000000).toFixed(2) + "M" :
-            hoveredCandle.volume >= 1000 ? (hoveredCandle.volume / 1000).toFixed(2) + "K" :
-            hoveredCandle.volume.toFixed(2) : "-"
-        property var turnoverHoveredCandle: hoveredCandle ?
-            hoveredCandle.turnover >= 1000000 ? (hoveredCandle.turnover / 1000000).toFixed(2) + "M" :
-            hoveredCandle.turnover >= 1000 ? (hoveredCandle.turnover / 1000).toFixed(2) + "K" :
-            hoveredCandle.turnover.toFixed(2) : "-"
-
-        // Данные на осях
-        property real priceAtCursor: 0
-        property real volumeAtCursor: 0
-        property string timeAtCursor: ""
-
-        // Предельные значения
-        property real maxPrice: 100
-        property real minPrice: 0
-        property real maxVolume: 1
-
-        // Функция для рассчета шага сетки
-        function calculateGridStep(range, targetLines) {
-            if (range <= 0)
-                return 1.0;
-
-            var rawStep = range / targetLines;
-            var log10 = Math.log(rawStep) / Math.LN10;
-            var orderOfMagnitude = Math.pow(10, Math.floor(log10));
-            var normalizedStep = rawStep / orderOfMagnitude;
-
-            var cleanStep;
-            if (normalizedStep < 1.5)
-                cleanStep = 1.0;
-            else if (normalizedStep < 3.0)
-                cleanStep = 2.0;
-            else if (normalizedStep < 7.0)
-                cleanStep = 5.0;
-            else
-                cleanStep = 10.0;
-
-            return cleanStep * orderOfMagnitude;
-        }
-
-        // Функция для получения видимых индексов на графике
-        function getVisibleCandleIndices() {
-            if (!root.candleSeries || root.candleSeries.length === 0)
-                return { start: 0, end: -1 }
-
-            var step = internal.candleWidth + internal.candleSpacing
-            var effectiveX = Math.max(0, priceChartScrollView.contentX)
-            var buffer = 2
-            var firstIdx = Math.max(0, Math.floor(effectiveX / step) - buffer)
-            var lastIdx = Math.min(root.candleSeries.length - 1,
-                                   Math.ceil((effectiveX + priceChartScrollView.width) / step) + buffer)
-            return { start: firstIdx, end: lastIdx }
-        }
-
-        // Обновляет макс и мин значения в облости видимых индексов и вызывает перерисовку всех компонентов
-        function updateVisibleRange() {
-            if (scrollAnimation.running)
-                return;
-
-            if (!root.candleSeries || root.candleSeries.length === 0)
-                return;
-
-
-            var visibleIdx = getVisibleCandleIndices();
-            internal.firstVisibleIdx = visibleIdx.start;
-            internal.lastVisibleIdx = visibleIdx.end;
-
-            var currentMax = -Infinity;
-            var currentMin = Infinity;
-            var currentMaxVolume = 0;
-
-            for (var i = internal.firstVisibleIdx; i <= internal.lastVisibleIdx; i++) {
-                var candle = root.candleSeries[i];
-                if (candle) {
-                    if (candle.high > currentMax)
-                        currentMax = candle.high;
-                    if (candle.low < currentMin)
-                        currentMin = candle.low;
-                    if (candle.volume > currentMaxVolume)
-                        currentMaxVolume = candle.volume;
-                }
-            }
-
-            if (currentMax !== -Infinity && currentMin !== Infinity && currentMax >= currentMin) {
-                var priceRange = currentMax - currentMin;
-                var padding = priceRange * 0.15;
-                if (padding === 0)
-                    padding = 1.0;
-                internal.maxPrice = currentMax + padding;
-                internal.minPrice = currentMin - padding;
-            }
-
-            if (currentMaxVolume > internal.maxVolume)
-                internal.maxVolume = currentMaxVolume * 1.5;
-
-            requestPaintAll();
-        }
-
-        // Перематывает к последней свече с обновлением видимого диапозона
-        function scrollToLastCandle(animated) {
-            if (!root.candleSeries || root.candleSeries.length === 0)
-                return;
-
-            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width);
-
-            if (animated) {
-                internal.updatingScroll = true;
-                scrollAnimation.to = maxScrollX;
-                scrollAnimation.start();
-            } else {
-                internal.updatingScroll = true;
-                priceChartScrollView.contentX = maxScrollX;
-                Qt.callLater(function() {
-                    internal.syncScrollViews()
-                    internal.updateVisibleRange()
-                    internal.updatingScroll = false
-                });
-            }
-        }
-
-        // Получает индекс свечи по координате x
-        function getCandleAtX(x) {
-            if (!root.candleSeries || root.candleSeries.length === 0)
-                return null;
-
-            var step = internal.candleWidth + internal.candleSpacing
-            var index = Math.floor((x - internal.candleSpacing / 2) / step)
-
-            if (index < 0 || index >= root.candleSeries.length)
-                return null;
-
-            var candleStartX = index * step + internal.candleSpacing / 2
-            var candleEndX = candleStartX + internal.candleWidth
-
-            if (x < candleStartX || x > candleEndX)
-                return null;
-
-            return { index: index };
-        }
-
-        function convertPriceToY(price, availableHeight) {
-            var range = internal.maxPrice - internal.minPrice
-            if (range === 0)
-                return availableHeight / 2;
-            return availableHeight - ((price - internal.minPrice) / range) * availableHeight;
-        }
-
-        function convertYToPrice(y, availableHeight) {
-            var range = internal.maxPrice - internal.minPrice;
-            if (range === 0)
-                return internal.maxPrice;
-            return internal.maxPrice - (y / availableHeight) * range;
-        }
-
-        function convertXToTime(x) {
-            if (!root.candleSeries || root.candleSeries.length === 0)
-                return -1
-            var result = getCandleAtX(x)
-            if (result && result.index >= 0 && result.index < root.candleSeries.length) {
-                var candle = root.candleSeries[result.index];
-                if (!candle)
-                    return -1
-                return (candle.end !== undefined) ? candle.end : -1
-            }
-            return -1
-        }
-
-        function updateAxes() {
-            priceCanvas.requestPaint();
-            volumeCanvas.requestPaint();
-            timeCanvas.requestPaint();
-        }
-
-        function updateCharts() {
-            priceChartCanvas.requestPaint();
-            volumeChartCanvas.requestPaint();
-        }
-
-        function updateCrosshair() {
-            if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0) {
-                crosshairCanvas.requestPaint()
-                return
-            }
-
-            var result = internal.getCandleAtX(internal.mouseGlobalX);
-            if (result && result.index >= 0 && result.index < root.candleSeries.length) {
-                internal.hoveredCandleIndex = result.index;
-                var candle = root.candleSeries[result.index];
-            } else
-                internal.hoveredCandleIndex = -1;
-
-            var timestamp = internal.convertXToTime(internal.mouseGlobalX)
-            internal.timeAtCursor = (timestamp > 0) ? Qt.formatDateTime(new Date(timestamp), "dd.MM.yyyy HH:mm") : ""
-            internal.priceAtCursor = internal.convertYToPrice(internal.mouseGlobalY, priceChartScrollView.height)
-
-            crosshairCanvas.requestPaint()
-        }
-
-        function saveScrollPosition() {
-            var maxScrollX = Math.max(1, priceChartScrollView.contentWidth - priceChartScrollView.width);
-            if (maxScrollX > 0) {
-                internal.scrollPosition = priceChartScrollView.contentX / maxScrollX;
-                internal.scrollPosition = Math.max(0, Math.min(1, internal.scrollPosition));
-            } else {
-                internal.scrollPosition = 0;
-            }
-        }
-
-        function restoreScrollPosition(animated) {
-            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width)
-            var targetX = internal.scrollPosition * maxScrollX
-            targetX = Math.max(0, Math.min(targetX, maxScrollX))
-
-            if (animated) {
-                internal.updatingScroll = true
-                scrollAnimation.to = targetX
-                scrollAnimation.start()
-            } else {
-                internal.updatingScroll = true
-                priceChartScrollView.contentX = targetX
-                internal.updatingScroll = false
-            }
-        }
-
-        function updateScrollPosition() {
-            var maxScrollX = Math.max(1, priceChartScrollView.contentWidth - priceChartScrollView.width);
-            if (!internal.updatingScroll && maxScrollX > 0) {
-                internal.scrollPosition = priceChartScrollView.contentX / maxScrollX;
-                internal.scrollPosition = Math.max(0, Math.min(1, internal.scrollPosition));
-            }
-        }
-
-        function requestPaintAll() {
-            internal.updateCharts()
-            internal.updateCrosshair()
-            internal.updateAxes()
-        }
-
-        function update() {
-            if (!root.candleSeries || root.candleSeries.length === 0) {
-                requestPaintAll();
-                return;
-            }
-
-            // Устанавливаем ширину контента
-            priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth);
-            // Синхронизируем ширину для графика объемов
-            syncScrollViews()
-
-            // Если включена автопрокрутка и контент шире видимой области – скроллим к последней свече
-            if (internal.autoScrollEnabled && internal.totalChartWidth > priceChartScrollView.width) {
-                internal.scrollToLastCandle(false)
-                return
-            }
-
-            // Отложенная перерисовка для гарантии
-            Qt.callLater(function() {
-                // Принудительно обновляем видимый диапазон
-                internal.updateVisibleRange()
-            });
-        }
-
-        function getLastCandle() {
-            var lastIdx = root.candleSeries.length - 1
-            if (lastIdx < 0)
-                return null;
-            return root.candleSeries[lastIdx]
-        }
-
-        // Синхронизация скролла между графиками
-        function syncScrollViews() {
-            var safeX = Math.max(0, priceChartScrollView.contentX);
-            if (volumeChartScrollView.contentX !== safeX)
-                volumeChartScrollView.contentX = safeX;
-            volumeChartScrollView.contentWidth = priceChartScrollView.contentWidth;
-        }
-    }
-
-    onCandleSeriesChanged: {
-        internal.scrollPosition = 0;
-        Qt.callLater(function() {
-            internal.update();
-        });
-    }
-
-    Component.onCompleted: {
-        if (root.candleSeries && root.candleSeries.length > 0) {
-            Qt.callLater(function() {
-                internal.update();
-                root.update();
-            });
-        }
-    }
 
     function zoomIn() {
         var newWidth = Math.min(internal.candleWidth + internal.zoomStep, internal.maxCandleWidth);
@@ -436,6 +96,419 @@ Rectangle {
 
     }
 
+    QtObject {
+        id: internal
+
+        property int candleWidth: 20 // Ширина свечи
+        property int candleSpacing: 6 // Оступы между свечой
+        property int priceAxisWidth: 60 // Ширина оси цен
+        property int timeAxisHeight: 40 // Высота оси времени
+        property int totalChartWidth: klineSeries ? klineSeries.length * (candleWidth + candleSpacing) : 0 // Общая ширина графика
+        property bool autoScrollEnabled: true // Флаг автоматической прокрутки к последней свече
+        property bool isUserInteracting: false // Флаг, показывающий, что идет ручная прокрутка
+        property bool isScrolling: false // Флаг скроллинга
+
+        // Настройки зума
+        property int minCandleWidth: 2
+        property int maxCandleWidth: 80
+        property int zoomStep: 2
+
+        // Сохраняем позицию
+        property real scrollPosition: 0.0
+        property bool updatingScroll: false
+        property int firstVisibleIdx: 0
+        property int lastVisibleIdx: -1
+
+        // Свойства для кросс-курсора
+        property real mouseGlobalX: -1
+        property real mouseGlobalY: -1
+        property real mouseLocalX: -1
+        property real mouseLocalY: -1
+        property bool mouseInsidePriceChart: false
+        property bool mouseInsideVolumeChart: false
+        property bool mouseInsideTimeAxis: false
+        property bool mouseInside: mouseInsidePriceChart || mouseInsideVolumeChart || mouseInsideTimeAxis
+        property int hoveredCandleIndex: -1
+
+        // Параметры новеденной свечи
+        property var hoveredCandle: {
+            if (hoveredCandleIndex < 0 || !klineSeries)
+                return null
+
+            var obj = klineSeries.get(hoveredCandleIndex)
+
+            if (isValid(obj))
+                return obj
+
+
+            return null
+        } //klineSeries ? klineSeries.get(hoveredCandleIndex) : null
+        property color colorHoveredCandle: hoveredCandle ?
+            ((hoveredCandle.close > hoveredCandle.open) ? "#66BB6A" : "#EF5350") :
+            "#8a8a8a"
+        property var openHoveredCandle: hoveredCandle ? hoveredCandle.open.toFixed(2) : "-"
+        property var closeHoveredCandle: hoveredCandle ? hoveredCandle.close.toFixed(2) : "-"
+        property var highHoveredCandle: hoveredCandle ? hoveredCandle.high.toFixed(2) : "-"
+        property var lowHoveredCandle: hoveredCandle ? hoveredCandle.low.toFixed(2) : "-"
+        property var difHoveredCandle: hoveredCandle ? (hoveredCandle.close - hoveredCandle.open).toFixed(2) : "-"
+        property var difPercentHoveredCandle: hoveredCandle ? ((difHoveredCandle / hoveredCandle.open) * 100).toFixed(2) : "-"
+        property var volumeHoveredCandle: hoveredCandle ?
+            hoveredCandle.volume >= 1000000 ? (hoveredCandle.volume / 1000000).toFixed(2) + "M" :
+            hoveredCandle.volume >= 1000 ? (hoveredCandle.volume / 1000).toFixed(2) + "K" :
+            hoveredCandle.volume.toFixed(2) : "-"
+        property var turnoverHoveredCandle: hoveredCandle ?
+            hoveredCandle.turnover >= 1000000 ? (hoveredCandle.turnover / 1000000).toFixed(2) + "M" :
+            hoveredCandle.turnover >= 1000 ? (hoveredCandle.turnover / 1000).toFixed(2) + "K" :
+            hoveredCandle.turnover.toFixed(2) : "-"
+
+        // Данные на осях
+        property real priceAtCursor: 0
+        property real volumeAtCursor: 0
+        property string timeAtCursor: ""
+
+        // Предельные значения
+        property real maxPrice: 100
+        property real minPrice: 0
+        property real maxVolume: 1
+
+        function isValid(candle)
+        {
+            //console.log(JSON.stringify(candle))
+            return candle &&
+                    typeof candle.open === 'number' &&
+                    typeof candle.close === 'number' &&
+                    typeof candle.high === 'number' &&
+                    typeof candle.low === 'number' &&
+                    typeof candle.volume === 'number' &&
+                    typeof candle.turnover === 'number' &&
+                    typeof candle.time === 'number' &&
+                    typeof candle.isConfirm === 'boolean'
+        }
+
+        function isCanvasReady(canvas)
+        {
+            return canvas &&
+                    canvas.status === Canvas.Ready &&
+                    canvas.width > 0 &&
+                    canvas.height > 0 &&
+                    canvas.visible
+        }
+
+        function safeRequestPaint(canvas)
+        {
+            // if (!canvas)
+            // {
+            //     Qt.callLater(safeRequestPaint, canvas)
+            //     return
+            // }
+
+            // if (isCanvasReady(canvas))
+            // {
+            //     canvas.requestPaint()
+            // }
+            // else
+            // {
+            //     var onStatusChanged = function() {
+            //         if (isCanvasReady(canvas))
+            //         {
+            //             canvas.requestPaint()
+            //             canvas.statusChanged.disconnect(onStatusChanged)
+            //         }
+            //     }
+            //     canvas.statusChanged.connect(onStatusChanged)
+            // }
+
+            var canvasName = canvas.objectName || "Unnamed Canvas"
+            var funcName = arguments.callee.name
+
+            if (isCanvasReady(canvas))
+            {
+                //console.log("[" + funcName + "] Successful rendering: " + canvasName)
+                canvas.requestPaint()
+            }
+            else
+            {
+                //console.log("[" + funcName + "] Deferred rendering: " + canvasName)
+                Qt.callLater(safeRequestPaint, canvas)
+            }
+        }
+
+        // Функция для рассчета шага сетки
+        function calculateGridStep(range, targetLines) {
+            if (range <= 0)
+                return 1.0;
+
+            var rawStep = range / targetLines;
+            var log10 = Math.log(rawStep) / Math.LN10;
+            var orderOfMagnitude = Math.pow(10, Math.floor(log10));
+            var normalizedStep = rawStep / orderOfMagnitude;
+
+            var cleanStep;
+            if (normalizedStep < 1.5)
+                cleanStep = 1.0;
+            else if (normalizedStep < 3.0)
+                cleanStep = 2.0;
+            else if (normalizedStep < 7.0)
+                cleanStep = 5.0;
+            else
+                cleanStep = 10.0;
+
+            return cleanStep * orderOfMagnitude;
+        }
+
+        // Функция для получения видимых индексов на графике
+        function getVisibleCandleIndices() {
+            if (!root.klineSeries || root.klineSeries.length === 0)
+                return { start: 0, end: -1 }
+
+            var step = internal.candleWidth + internal.candleSpacing
+            var effectiveX = Math.max(0, priceChartScrollView.contentX)
+            var buffer = 2
+            var firstIdx = Math.max(0, Math.floor(effectiveX / step) - buffer)
+            var lastIdx = Math.min(root.klineSeries.length - 1,
+                                   Math.ceil((effectiveX + priceChartScrollView.width) / step) + buffer)
+            return { start: firstIdx, end: lastIdx }
+        }
+
+        // Обновляет макс и мин значения в облости видимых индексов и вызывает перерисовку всех компонентов
+        function updateVisibleRange() {
+            if (scrollAnimation.running)
+                return;
+
+            if (!root.klineSeries || root.klineSeries.length === 0)
+                return;
+
+
+            var visibleIdx = getVisibleCandleIndices();
+            internal.firstVisibleIdx = visibleIdx.start;
+            internal.lastVisibleIdx = visibleIdx.end;
+
+            var currentMax = -Infinity;
+            var currentMin = Infinity;
+            var currentMaxVolume = 0;
+
+            for (var i = internal.firstVisibleIdx; i <= internal.lastVisibleIdx; i++) {
+                var candle = root.klineSeries.get(i);
+                if (candle) {
+                    if (candle.high > currentMax)
+                        currentMax = candle.high;
+                    if (candle.low < currentMin)
+                        currentMin = candle.low;
+                    if (candle.volume > currentMaxVolume)
+                        currentMaxVolume = candle.volume;
+                }
+            }
+
+            if (currentMax !== -Infinity && currentMin !== Infinity && currentMax >= currentMin) {
+                var priceRange = currentMax - currentMin;
+                var padding = priceRange * 0.15;
+                if (padding === 0)
+                    padding = 1.0;
+                internal.maxPrice = currentMax + padding;
+                internal.minPrice = currentMin - padding;
+            }
+
+            if (currentMaxVolume > internal.maxVolume)
+                internal.maxVolume = currentMaxVolume * 1.5;
+
+            requestPaintAll();
+        }
+
+        // Перематывает к последней свече с обновлением видимого диапозона
+        function scrollToLastCandle(animated) {
+            if (!root.klineSeries || root.klineSeries.length === 0)
+                return;
+
+            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width);
+
+            if (animated) {
+                internal.updatingScroll = true;
+                scrollAnimation.to = maxScrollX;
+                scrollAnimation.start();
+            } else {
+                internal.updatingScroll = true;
+                priceChartScrollView.contentX = maxScrollX;
+                Qt.callLater(function() {
+                    internal.syncScrollViews()
+                    internal.updateVisibleRange()
+                    internal.updatingScroll = false
+                });
+            }
+        }
+
+        // Получает индекс свечи по координате x
+        function getCandleAtX(x) {
+            if (!root.klineSeries || root.klineSeries.length === 0)
+                return null;
+
+            var step = internal.candleWidth + internal.candleSpacing
+            var index = Math.floor((x - internal.candleSpacing / 2) / step)
+
+            if (index < 0 || index >= root.klineSeries.length)
+                return null;
+
+            var candleStartX = index * step + internal.candleSpacing / 2
+            var candleEndX = candleStartX + internal.candleWidth
+
+            if (x < candleStartX || x > candleEndX)
+                return null;
+
+            return { index: index };
+        }
+
+        function convertPriceToY(price, availableHeight) {
+            var range = internal.maxPrice - internal.minPrice
+            if (range === 0)
+                return availableHeight / 2;
+            return availableHeight - ((price - internal.minPrice) / range) * availableHeight;
+        }
+
+        function convertYToPrice(y, availableHeight) {
+            var range = internal.maxPrice - internal.minPrice;
+            if (range === 0)
+                return internal.maxPrice;
+            return internal.maxPrice - (y / availableHeight) * range;
+        }
+
+        function convertYToVolume(y, availableHeight) {
+            if (internal.maxVolume === 0)
+                return internal.maxVolume;
+            return internal.maxVolume - (y / availableHeight) * internal.maxVolume;
+        }
+
+        function convertXToTime(x) {
+            if (!root.klineSeries || root.klineSeries.length === 0)
+                return -1
+            var result = getCandleAtX(x)
+            if (result && result.index >= 0 && result.index < root.klineSeries.length) {
+                var candle = root.klineSeries.get(result.index);
+                if (!candle)
+                    return -1
+                return (candle.time !== undefined) ? candle.time : -1
+            }
+            return -1
+        }
+
+        function updateAxes() {
+            safeRequestPaint(priceCanvas)
+            safeRequestPaint(volumeCanvas)
+            safeRequestPaint(timeCanvas)
+        }
+
+        function updateCharts() {
+            safeRequestPaint(priceChartCanvas)
+            safeRequestPaint(volumeChartCanvas)
+        }
+
+        function updateCrosshair() {
+            if (!internal.mouseInside || internal.mouseGlobalX < 0 || internal.mouseGlobalY < 0) {
+                safeRequestPaint(crosshairCanvas)
+                return
+            }
+
+            var result = internal.getCandleAtX(internal.mouseGlobalX);
+            if (result && result.index >= 0 && result.index < root.klineSeries.length) {
+                internal.hoveredCandleIndex = result.index;
+                var candle = root.klineSeries.get(result.index);
+            } else
+                internal.hoveredCandleIndex = -1;
+
+            var timestamp = internal.convertXToTime(internal.mouseGlobalX)
+            internal.timeAtCursor = (timestamp > 0) ? Qt.formatDateTime(new Date(timestamp), "dd.MM.yyyy HH:mm") : ""
+            internal.priceAtCursor = internal.mouseInsidePriceChart ? internal.convertYToPrice(internal.mouseGlobalY, priceChartScrollView.height) : 0
+            internal.volumeAtCursor = internal.mouseInsideVolumeChart ? internal.convertYToVolume(internal.mouseGlobalY - priceChartScrollView.height, volumeChartScrollView.height) : 0
+
+            safeRequestPaint(crosshairCanvas)
+        }
+
+        function saveScrollPosition() {
+            var maxScrollX = Math.max(1, priceChartScrollView.contentWidth - priceChartScrollView.width);
+            if (maxScrollX > 0) {
+                internal.scrollPosition = priceChartScrollView.contentX / maxScrollX;
+                internal.scrollPosition = Math.max(0, Math.min(1, internal.scrollPosition));
+            } else {
+                internal.scrollPosition = 0;
+            }
+        }
+
+        function restoreScrollPosition(animated) {
+            var maxScrollX = Math.max(0, priceChartScrollView.contentWidth - priceChartScrollView.width)
+            var targetX = internal.scrollPosition * maxScrollX
+            targetX = Math.max(0, Math.min(targetX, maxScrollX))
+
+            if (animated) {
+                internal.updatingScroll = true
+                scrollAnimation.to = targetX
+                scrollAnimation.start()
+            } else {
+                internal.updatingScroll = true
+                priceChartScrollView.contentX = targetX
+                internal.updatingScroll = false
+            }
+        }
+
+        function updateScrollPosition() {
+            var maxScrollX = Math.max(1, priceChartScrollView.contentWidth - priceChartScrollView.width);
+            if (!internal.updatingScroll && maxScrollX > 0) {
+                internal.scrollPosition = priceChartScrollView.contentX / maxScrollX;
+                internal.scrollPosition = Math.max(0, Math.min(1, internal.scrollPosition));
+            }
+        }
+
+        function requestPaintAll() {
+            console.log("[" + arguments.callee.name + "]")
+
+            if (root.width === 0 || root.height === 0)
+                return
+
+            var canvases = [
+                priceChartCanvas,
+                volumeChartCanvas,
+                priceCanvas,
+                volumeCanvas,
+                timeCanvas,
+                crosshairCanvas
+            ]
+
+            canvases.forEach(function(canvas) { safeRequestPaint(canvas) })
+        }
+
+        function update() {
+            if (root.width === 0 || root.height === 0)
+                return;
+
+            if (!root.klineSeries || root.klineSeries.length === 0) {
+                requestPaintAll();
+                return;
+            }
+
+            // Устанавливаем ширину контента
+            priceChartScrollView.contentWidth = Math.max(root.width, internal.totalChartWidth);
+            // Синхронизируем ширину для графика объемов
+            syncScrollViews()
+
+            // Если включена автопрокрутка и контент шире видимой области – скроллим к последней свече
+            if (internal.autoScrollEnabled && internal.totalChartWidth > priceChartScrollView.width) {
+                internal.scrollToLastCandle(false)
+                return
+            }
+
+            // Отложенная перерисовка для гарантии
+            Qt.callLater(function() {
+                // Принудительно обновляем видимый диапазон
+                internal.updateVisibleRange()
+            });
+        }
+
+        // Синхронизация скролла между графиками
+        function syncScrollViews() {
+            var safeX = Math.max(0, priceChartScrollView.contentX);
+            if (volumeChartScrollView.contentX !== safeX)
+                volumeChartScrollView.contentX = safeX;
+            volumeChartScrollView.contentWidth = priceChartScrollView.contentWidth;
+        }
+    }
+
     NumberAnimation {
         id: scrollAnimation
         target: priceChartScrollView
@@ -443,8 +516,8 @@ Rectangle {
         duration: 200
         easing.type: Easing.OutCubic
         onStopped: {
-            internal.syncScrollViews();
-            internal.updateVisibleRange();
+            internal.syncScrollViews()
+            internal.updateVisibleRange()
             internal.updatingScroll = false
         }
     } // scrollAnimation
@@ -457,7 +530,10 @@ Rectangle {
             if (root.enableAutoScroll) {
                 internal.autoScrollEnabled = true;
                 if (internal.totalChartWidth > priceChartScrollView.width)
-                    internal.scrollToLastCandle(true);
+                {
+                    console.log("Timer trigged")
+                    internal.scrollToLastCandle(true)
+                }
             }
         }
     } // autoScrollRestartTimer
@@ -470,7 +546,7 @@ Rectangle {
         preventStealing: true
 
         onWheel: function(wheel) {
-            var hasData = root.candleSeries && root.candleSeries.length > 0;
+            var hasData = root.klineSeries && root.klineSeries.length > 0;
             if (!hasData) {
                 wheel.accepted = false;
                 return;
@@ -511,11 +587,11 @@ Rectangle {
             internal.mouseLocalX = mouse.x
             internal.mouseLocalY = mouse.y
 
-            /*console.info(" - Local:", internal.mouseLocalX, internal.mouseLocalY,
+            /*console.log(" - Local:", internal.mouseLocalX, internal.mouseLocalY,
                         "Global:", internal.mouseGlobalX, internal.mouseGlobalY)
-            console.info("Price chart:", priceArea.x, priceArea.y, priceArea.width, priceArea.height)
-            console.info("Volume chart:", volumeArea.x, volumeArea.y, volumeArea.width, volumeArea.height)
-            console.info("Inside price chart:", internal.mouseInsidePriceChart,
+            console.log("Price chart:", priceArea.x, priceArea.y, priceArea.width, priceArea.height)
+            console.log("Volume chart:", volumeArea.x, volumeArea.y, volumeArea.width, volumeArea.height)
+            console.log("Inside price chart:", internal.mouseInsidePriceChart,
                         "Inside volume chart:", internal.mouseInsideVolumeChart,
                         "Inside:", internal.mouseInside)*/
 
@@ -545,8 +621,11 @@ Rectangle {
 
     Canvas {
         id: crosshairCanvas
+        objectName: "crosshairCanvas"
         anchors.fill: parent
         z: 10
+
+        Component.onCompleted: console.log("crosshairCanvas component ready:", width, height)
 
         function drawCursorLines(ctx) {
             ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
@@ -667,7 +746,7 @@ Rectangle {
             var step = internal.candleWidth + internal.candleSpacing;
             if (internal.mouseInside && internal.mouseLocalX >= 0 && internal.mouseLocalX <= containerWidth && internal.timeAtCursor !== "") {
                 var result = internal.getCandleAtX(internal.mouseLocalX);
-                if (result && result.index >= 0 && result.index < root.candleSeries.length) {
+                if (result && result.index >= 0 && result.index < root.klineSeries.length) {
                     var candleIndex = result.index;
                     var candleXPos = candleIndex * step + internal.candleSpacing / 2;
                     var candleCenterX = candleXPos + internal.candleWidth / 2;
@@ -716,26 +795,29 @@ Rectangle {
         Connections {
             target: internal
             function onMouseGlobalXChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
             function onMouseGlobalYChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
             function onHoveredCandleIndexChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
             function onMouseInsideChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
             function onTimeAtCursorChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
             function onPriceAtCursorChanged() {
-                crosshairCanvas.requestPaint();
+                internal.safeRequestPaint(crosshairCanvas)
             }
         }
 
         onPaint: {
+            if (width === 0 || height === 0)
+                return;
+
             var ctx = getContext("2d");
             ctx.clearRect(0, 0, width, height)
 
@@ -775,12 +857,16 @@ Rectangle {
 
         // Обработчики изменения размеров для принудительной перерисовки
         onWidthChanged: {
-            priceCanvas.requestPaint();
-            priceChartCanvas.requestPaint();
+            if (width === 0 || height === 0)
+                return;
+            internal.safeRequestPaint(priceCanvas)
+            internal.safeRequestPaint(priceChartCanvas)
         }
         onHeightChanged: {
-            priceCanvas.requestPaint();
-            priceChartCanvas.requestPaint();
+            if (width === 0 || height === 0)
+                return;
+            internal.safeRequestPaint(priceCanvas)
+            internal.safeRequestPaint(priceChartCanvas)
         }
 
         // Ценовая информация о свече
@@ -869,11 +955,14 @@ Rectangle {
         // Правая ось цен
         Canvas {
             id: priceCanvas
+            objectName: "priceCanvas"
             width: internal.priceAxisWidth
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             z: 2
+
+            Component.onCompleted: console.log("priceCanvas ready", width, height)
 
             function drawPriceAxis(ctx) {
                 ctx.fillStyle = "#8a8a8a";
@@ -893,7 +982,11 @@ Rectangle {
             }
 
             function drawPriceOpenCandle(ctx) {
-                var lastCandle = internal.getLastCandle()
+                var lastCandle = klineSeries.last()
+
+                if (!internal.isValid(lastCandle))
+                    return
+
                 if (lastCandle && !lastCandle.isConfirm) {
                     var curPriceY = internal.convertPriceToY(lastCandle.close, height);
                     var isUp = lastCandle.close > lastCandle.open;
@@ -949,19 +1042,22 @@ Rectangle {
             Connections {
                 target: internal
                 function onMouseGlobalYChanged() {
-                   priceCanvas.requestPaint();
+                    internal.safeRequestPaint(priceCanvas)
                 }
                 function onMouseInsideChanged() {
-                   priceCanvas.requestPaint();
+                   internal.safeRequestPaint(priceCanvas)
                 }
                 function onPriceAtCursorChanged() {
-                   priceCanvas.requestPaint();
+                   internal.safeRequestPaint(priceCanvas)
                 }
             }
 
             onPaint: {
+                //console.log("onPaint priceCanvas:", width, height)
+
                 if (width === 0 || height === 0)
                     return;
+
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height);
                 ctx.save()
@@ -1062,11 +1158,14 @@ Rectangle {
 
             Canvas {
                 id: priceChartCanvas
+                objectName: "priceChartCanvas"
                 width: priceChartScrollView.contentWidth
                 height: priceChartScrollView.contentHeight
 
+                Component.onCompleted: console.log("priceChartCanvas ready", width, height)
+
                 function drawGridChart(ctx) {
-                    if (!root.candleSeries)
+                    if (!root.klineSeries)
                         return
 
                     ctx.save()
@@ -1116,24 +1215,31 @@ Rectangle {
                     ctx.fillRect(xPos, bodyY, internal.candleWidth, bodyHeight);
                 }
 
-                function drawCandles(ctx) {
-                    if (!root.candleSeries || root.candleSeries.length === 0)
+                function drawCandles(ctx)
+                {
+                    if (!root.klineSeries || root.klineSeries.length === 0)
                         return
 
                     var startIdx = internal.firstVisibleIdx;
                     var endIdx = internal.lastVisibleIdx;
-                    if (startIdx < 0 || endIdx < 0) {
+                    if (startIdx < 0 || endIdx < 0)
+                    {
                         startIdx = 0;
-                        endIdx = root.candleSeries.length - 1;
+                        endIdx = root.klineSeries.length - 1;
                     }
 
                     var step = internal.candleWidth + internal.candleSpacing
-                    for (var i = startIdx; i <= endIdx; i++) {
-                        var candle = root.candleSeries[i]
-                        if (!candle) continue
+                    for (var i = startIdx; i <= endIdx; i++)
+                    {
+                        var candle = root.klineSeries.get(i)
+
+                        if (!internal.isValid(candle))
+                            continue
+
                         var xPos = i * step + internal.candleSpacing / 2
 
-                        if (i % 5 === 0) {
+                        if (i % 5 === 0)
+                        {
                             ctx.strokeStyle = "#252525"
                             ctx.beginPath()
                             ctx.moveTo(xPos + internal.candleWidth / 2, 0)
@@ -1145,9 +1251,15 @@ Rectangle {
                     }
                 }
 
-                function drawLineCurrentPrice(ctx) {
-                    var lastCandle = internal.getLastCandle()
-                    if (lastCandle && !lastCandle.isConfirm) {
+                function drawLineCurrentPrice(ctx)
+                {
+                    var lastCandle = klineSeries.last()
+
+                    if (!internal.isValid(lastCandle))
+                        return
+
+                    if (lastCandle && !lastCandle.isConfirm)
+                    {
                         var curPriceY = internal.convertPriceToY(lastCandle.close, height)
                         var isUp = lastCandle.close > lastCandle.open
 
@@ -1168,6 +1280,11 @@ Rectangle {
                 }
 
                 onPaint: {
+                    //console.log("onPaint priceChartCanvas:", width, height)
+
+                    if (width === 0 || height === 0)
+                        return
+
                     var ctx = getContext("2d")
                     ctx.clearRect(0, 0, width, height);
                     ctx.save();
@@ -1207,12 +1324,16 @@ Rectangle {
 
         // Обработчики изменения размеров для принудительной перерисовки
         onWidthChanged: {
-            volumeCanvas.requestPaint();
-            volumeChartCanvas.requestPaint();
+            if (width === 0 || height === 0)
+                return;
+            internal.safeRequestPaint(volumeCanvas)
+            internal.safeRequestPaint(volumeChartCanvas)
         }
         onHeightChanged: {
-            volumeCanvas.requestPaint();
-            volumeChartCanvas.requestPaint();
+            if (width === 0 || height === 0)
+                return;
+            internal.safeRequestPaint(volumeCanvas)
+            internal.safeRequestPaint(volumeChartCanvas)
         }
 
         // Ценовая информация о свече
@@ -1262,12 +1383,15 @@ Rectangle {
         // Правая ось для объемов
         Canvas {
             id: volumeCanvas
+            objectName: "volumeCanvas"
             width: internal.priceAxisWidth
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             visible: root.enableShowVolumes
             z: 2
+
+            Component.onCompleted: console.log("volumeCanvas ready", width, height)
 
             function drawVolumeAxis(ctx) {
                 ctx.fillStyle = "#8a8a8a";
@@ -1298,16 +1422,19 @@ Rectangle {
             Connections {
                 target: internal
                 function onMouseGlobalXChanged() {
-                    volumeCanvas.requestPaint();
+                    internal.safeRequestPaint(volumeCanvas)
                 }
                 function onMouseInsideChanged() {
-                    volumeCanvas.requestPaint();
+                    internal.safeRequestPaint(volumeCanvas)
                 }
             }
 
             onPaint: {
+                //console.log("onPaint volumeCanvas:", width, height)
+
                 if (width === 0 || height === 0)
-                    return;
+                    return
+
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height);
                 ctx.save()
@@ -1355,27 +1482,33 @@ Rectangle {
 
             Canvas {
                 id: volumeChartCanvas
+                objectName: "volumeChartCanvas"
                 width: volumeChartScrollView.contentWidth
                 height: volumeChartScrollView.contentHeight
 
-                function drawVolumes(ctx) {
-                    if (!root.candleSeries || root.candleSeries.length === 0 || internal.maxVolume === 0)
+                Component.onCompleted: console.log("volumeChartCanvas ready", width, height)
+
+                function drawVolumes(ctx)
+                {
+                    if (!root.klineSeries || root.klineSeries.length === 0 || internal.maxVolume === 0)
                         return;
 
                     var startIdx = internal.firstVisibleIdx;
                     var endIdx = internal.lastVisibleIdx;
-                    if (startIdx < 0 || endIdx < 0) {
+                    if (startIdx < 0 || endIdx < 0)
+                    {
                         startIdx = 0;
-                        endIdx = root.candleSeries.length - 1;
+                        endIdx = root.klineSeries.length - 1;
                     }
 
                     var step = internal.candleWidth + internal.candleSpacing;
                     var totalHeight = height;
 
-                    for (var i = startIdx; i <= endIdx; i++) {
-                        var candle = root.candleSeries[i];
+                    for (var i = startIdx; i <= endIdx; i++)
+                    {
+                        var candle = root.klineSeries.get(i);
 
-                        if (!candle || candle.volume === undefined || candle.volume === 0)
+                        if (!internal.isValid(candle))
                             continue;
 
                         var normalizedVolume = candle.volume / internal.maxVolume;
@@ -1391,7 +1524,8 @@ Rectangle {
                         ctx.fillStyle = color;
                         ctx.fillRect(xPos, totalHeight - barHeight, internal.candleWidth, barHeight);
 
-                        if (i % 5 === 0) {
+                        if (i % 5 === 0)
+                        {
                             ctx.strokeStyle = "#252525"
                             ctx.beginPath()
                             ctx.moveTo(xPos + internal.candleWidth / 2, 0)
@@ -1401,7 +1535,8 @@ Rectangle {
                     }
                 }
 
-                function drawVolumeHorizontalLines(ctx) {
+                function drawVolumeHorizontalLines(ctx)
+                {
                     if (internal.maxVolume === 0)
                         return;
 
@@ -1415,7 +1550,8 @@ Rectangle {
                     ctx.strokeStyle = "#2d2d2d";
                     ctx.lineWidth = 1;
 
-                    for (var vol = firstValue; vol <= internal.maxVolume; vol += step) {
+                    for (var vol = firstValue; vol <= internal.maxVolume; vol += step)
+                    {
                         if (vol === 0)
                             continue;
                         var yPos = height - (vol / internal.maxVolume) * height;
@@ -1429,6 +1565,11 @@ Rectangle {
                 }
 
                 onPaint: {
+                    //console.log("onPaint volumeChartCanvas:", width, height)
+
+                    if (width === 0 || height === 0)
+                        return
+
                     var ctx = getContext("2d");
                     ctx.clearRect(0, 0, width, height);
                     ctx.save();
@@ -1457,12 +1598,16 @@ Rectangle {
 
         Canvas {
             id: timeCanvas
+            objectName: "timeCanvas"
             width: priceChartScrollView.contentWidth
             height: parent.height
             x: -priceChartScrollView.contentX
 
-            function drawTimeAxis(ctx) {
-                if (!root.candleSeries)
+            Component.onCompleted: console.log("timeCanvas ready", width, height)
+
+            function drawTimeAxis(ctx)
+            {
+                if (!root.klineSeries)
                     return;
 
                 ctx.fillStyle = "#8a8a8a";
@@ -1470,16 +1615,17 @@ Rectangle {
                 ctx.textAlign = "center";
             }
 
-            function drawDivisionsTimeAxis(ctx) {
+            function drawDivisionsTimeAxis(ctx)
+            {
                 var step = internal.candleWidth + internal.candleSpacing;
                 var offsetX = -x;
                 var containerWidth = width;
 
                 var visibleStart = Math.max(0, Math.floor(offsetX / step));
-                var visibleEnd = Math.min(root.candleSeries.length - 1, Math.ceil((offsetX + containerWidth) / step));
+                var visibleEnd = Math.min(root.klineSeries.length - 1, Math.ceil((offsetX + containerWidth) / step));
 
                 visibleStart = Math.max(0, visibleStart - 1);
-                visibleEnd = Math.min(root.candleSeries.length - 1, visibleEnd + 1);
+                visibleEnd = Math.min(root.klineSeries.length - 1, visibleEnd + 1);
 
                 var labelStep = 5
                 if (internal.candleWidth < 8)
@@ -1491,14 +1637,16 @@ Rectangle {
                 else if (internal.candleWidth > 60)
                     labelStep = 1
 
-                for (var i = visibleStart; i <= visibleEnd; i++) {
-                    if (i % labelStep === 0) {
-                        var candle = root.candleSeries[i]
-                        if (!candle)
+                for (var i = visibleStart; i <= visibleEnd; i++)
+                {
+                    if (i % labelStep === 0)
+                    {
+                        var candle = root.klineSeries.get(i)
+                        if (!internal.isValid(candle))
                             continue
 
                         var xPos = i * step + internal.candleSpacing / 2
-                        var timeStr = Qt.formatDateTime(new Date(candle.end), "HH:mm")
+                        var timeStr = Qt.formatDateTime(new Date(candle.time), "HH:mm")
                         ctx.fillText(timeStr, xPos + internal.candleWidth / 2, height / 2 + 3)
                     }
                 }
@@ -1507,27 +1655,30 @@ Rectangle {
             Connections {
                 target: priceChartScrollView
                 function onContentXChanged() {
-                    timeCanvas.requestPaint();
+                    internal.safeRequestPaint(timeCanvas)
                 }
                 function onWidthChanged() {
-                    timeCanvas.requestPaint();
+                    internal.safeRequestPaint(timeCanvas)
                 }
             }
 
             Connections {
                 target: internal
                 function onMouseGlobalXChanged() {
-                    timeCanvas.requestPaint();
+                    internal.safeRequestPaint(timeCanvas)
                 }
                 function onMouseInsideChanged() {
-                    timeCanvas.requestPaint();
+                    internal.safeRequestPaint(timeCanvas)
                 }
                 function onTimeAtCursorChanged() {
-                    timeCanvas.requestPaint();
+                    internal.safeRequestPaint(timeCanvas)
                 }
             }
 
             onPaint: {
+                if (width === 0 || height === 0)
+                    return
+
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height)
 
@@ -1541,4 +1692,34 @@ Rectangle {
             }
         } // timeCanvas
     } // timeAxisArea
+
+    Connections {
+        target: klineSeries
+
+        function onModelUpdated()
+        {
+            console.log("onModelUpdated")
+            internal.scrollPosition = 0;
+            Qt.callLater(function() {
+
+                if (internal.hoveredCandleIndex >= 0) {
+                    var idx = internal.hoveredCandleIndex
+                    internal.hoveredCandleIndex = -1
+                    internal.hoveredCandleIndex = idx
+                }
+
+                internal.update()
+            });
+        }
+    }
+
+    Component.onCompleted: {
+        if (root.klineSeries && root.klineSeries.length > 0) {
+            Qt.callLater(function() {
+                console.log("Root component ready:", width, height)
+                internal.update()
+            });
+        }
+    }
+
 }

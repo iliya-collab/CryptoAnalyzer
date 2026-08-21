@@ -82,13 +82,6 @@ namespace Core::Tools {
 
     void ReversedProxyModel::onRowsInserted(const QModelIndex &parent, int first, int last)
     {
-        // В прокси порядок строк обратный, поэтому новые строки в источнике
-        // вставляются в начале (first=0) и соответствуют добавлению в конце прокси.
-        // Но проще эмитировать modelReset, если структура меняется часто.
-        // Для простоты можно использовать beginResetModel/endResetModel,
-        // либо вычислять правильные позиции.
-        // Здесь для корректной работы с динамическими добавлениями реализуем пересчёт.
-        // Упрощённый вариант: сброс модели.
         beginResetModel();
         endResetModel();
     }
@@ -101,7 +94,6 @@ namespace Core::Tools {
 
     void ReversedProxyModel::onDataChanged(const QModelIndex &topLeft, const QModelIndex &bottomRight, const QVector<int> &roles)
     {
-        // Преобразуем диапазон исходных индексов в диапазон прокси-индексов
         QModelIndex proxyTopLeft = mapFromSource(topLeft);
         QModelIndex proxyBottomRight = mapFromSource(bottomRight);
         emit dataChanged(proxyTopLeft, proxyBottomRight, roles);

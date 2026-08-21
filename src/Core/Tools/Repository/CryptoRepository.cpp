@@ -5,7 +5,7 @@
 namespace Core::Tools {
 
     CryptoRepository::CryptoRepository(const QString& dbPath, IDatabaseManager& manager) :
-        m_dbPath(dbPath), m_dbManager(manager) {};
+        BaseRepository(dbPath, manager) {};
 
     QString CryptoRepository::error() {
         return m_dbManager.error();
@@ -20,10 +20,10 @@ namespace Core::Tools {
             return false;
         }
 
-        if (!m_dbManager.executePrepared(m_dbPath, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?", {"crypto"})) {
-            m_dbManager.rollbackTransaction(m_dbPath);
-            return false;
-        }
+        // if (!m_dbManager.executePrepared(m_dbPath, "UPDATE sqlite_sequence SET seq = 0 WHERE name = ?", {"crypto"})) {
+        //     m_dbManager.rollbackTransaction(m_dbPath);
+        //     return false;
+        // }
 
         return m_dbManager.commitTransaction(m_dbPath);
     }
@@ -33,7 +33,7 @@ namespace Core::Tools {
 
         queries << R"(
             CREATE TABLE IF NOT EXISTS crypto (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 symbol TEXT UNIQUE NOT NULL,
                 base_coin TEXT,
                 quote_coin TEXT
@@ -53,7 +53,7 @@ namespace Core::Tools {
         m_dbManager.close(m_dbPath);
     }
 
-    QList<CryptoRepository::TradeInfo> CryptoRepository::getSelectedData() {
+    QList<TradeInfo> CryptoRepository::getSelectedData() {
         return m_selectedData;
     }
 

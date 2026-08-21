@@ -22,11 +22,18 @@ namespace Core::Tools {
         if (!reply)
             return;
 
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode != 200) {
+            emit errorOccurred(QString("HTTP error %1").arg(statusCode));
+            reply->deleteLater();
+            return;
+        }
+
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray response = reply->readAll();
             QJsonDocument doc = QJsonDocument::fromJson(response);
             if (!doc.isNull())
-                emit dataReceived(doc.object());
+                emit dataReceived(reply->url(), doc.object());
             else
                 emit errorOccurred("Failed to parse JSON response");
         }
@@ -46,7 +53,10 @@ namespace Core::Tools {
     }
 
     void BybitRestAPI::addAPIHeaders(const QUrl& url,QNetworkRequest& request) {
-        QString queryString = url.query(QUrl::FullyEncoded);
+        QUrlQuery sortedQuery(url);
+        sortedQuery.setQueryItems(sortedQuery.queryItems());
+        QString queryString = sortedQuery.toString(QUrl::FullyEncoded);
+
         APIHeaders headers = initAPIHeaders(queryString);
         request.setRawHeader("X-BAPI-SIGN", headers.X_BAPI_SIGN.toUtf8());
         request.setRawHeader("X-BAPI-API-KEY", headers.X_BAPI_API_KEY.toUtf8());
@@ -54,7 +64,7 @@ namespace Core::Tools {
         request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
     }
 
-    void BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout) {
+    QUrl BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout) {
         QString urlString = m_baseEndpoint + endpoint;
         QUrl url(urlString);
 
@@ -77,8 +87,10 @@ namespace Core::Tools {
 
         QNetworkReply* reply = m_manager->get(request);
 
-        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::handleResponse, Qt::SingleShotConnection);
+        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::handleResponse, Qt::UniqueConnection);
         connect(reply, &QNetworkReply::downloadProgress, this, &BybitRestAPI::downloadProgress, Qt::UniqueConnection);
+
+        return request.url();
     }
 
     QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString) {

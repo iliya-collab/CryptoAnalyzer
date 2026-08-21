@@ -1,7 +1,7 @@
 #pragma once
 
-#include "CryptoRepository.hpp"
-#include "CandleRepository.hpp"
+#include "BaseRepository.hpp"
+#include <type_traits>
 #include <memory>
 
 namespace Core::Tools {
@@ -11,8 +11,17 @@ namespace Core::Tools {
 
         static RepositoryCreater& instance();
 
-        std::unique_ptr<CryptoRepository> createCryptoRepository(const QString& dbPath, IDatabaseManager& dbManager) const;
-        std::unique_ptr<CandleRepository> createCandleRepository(const QString& dbPath, IDatabaseManager& dbManager) const;
+        template <class TRep>
+        std::unique_ptr<TRep> createRepository(const QString& dbPath, IDatabaseManager& dbManager) const {
+            static_assert(std::is_base_of<BaseRepository, TRep>::value, "TRep must inherit from BaseRepository!");
+
+            auto rep = std::make_unique<TRep>(dbPath, dbManager);
+
+            if (!rep->init())
+                throw std::invalid_argument("Failed to initialize the repository");
+
+            return rep;
+        }
 
     private:
 

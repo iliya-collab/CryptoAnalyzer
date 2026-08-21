@@ -8,7 +8,7 @@ Rectangle {
     id: root
     color: Theme.windowColor
 
-    property api apiData: AppCore.api
+    property api apiData: AppCore.marketState.api
 
     ColumnLayout {
         anchors.fill: parent
@@ -76,8 +76,8 @@ Rectangle {
                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
                 enabled: txtfAPIKey.acceptableInput && txtfSecretAPI.acceptableInput
                 onClicked: {
-                    AppCore.setAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
-                    AppCore.checkAPI()
+                    //AppCore.setAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
+                    //AppCore.checkAPI()
                 }
             }
             CustomButton {
@@ -86,7 +86,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
                 enabled: txtfAPIKey.acceptableInput && txtfSecretAPI.acceptableInput
                 onClicked: {
-                    AppCore.saveAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
+                    //AppCore.saveAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
                 }
             }
         } // Row

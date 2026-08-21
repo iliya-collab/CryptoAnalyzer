@@ -21,9 +21,9 @@ ApplicationWindow {
     visibility: "FullScreen"
 
     Connections {
-        target: AppCore
+        target: AppCore.marketService
 
-        function onErrorOccurred(error) { statusWidget.text = error }
+        //function onErrorOccurred(error) { statusWidget.text = error }
 
         function onMessageReceived(msg) { statusWidget.text = msg }
 
@@ -37,9 +37,7 @@ ApplicationWindow {
         // Инициализируем ядро приложения
         AppCore.init()
         // Загружаем пары для трейдинга
-        AppCore.loadTradesFromRepository()
-        // Проверям валидность API, запрашивая информацию об аккаунте
-        AppCore.requestAccount()
+        AppCore.marketService.loadTradePairs()
     }
 
     // Меню
@@ -53,7 +51,7 @@ ApplicationWindow {
                         items: [
                             {
                                 text: "Load spot pairs",
-                                clicked: function() { AppCore.loadTradesFromNetwork() }
+                                clicked: function() { AppCore.marketService.loadTradePairs() }
                             },
                             { text: "Load candles" }
                         ]
@@ -104,11 +102,11 @@ ApplicationWindow {
             ]
             onToolButtonClicked: function(id, name) {
                 if (id === "btn_run")
-                    AppCore.run()
+                    AppCore.marketService.run()
                 else if (id === "btn_restart")
-                    AppCore.restart()
+                    AppCore.marketService.restart()
                 else if (id === "btn_stop")
-                    AppCore.interrupt()
+                    AppCore.marketService.shutdown()
             }
         }
 
@@ -147,7 +145,7 @@ ApplicationWindow {
                     width: 30
                     height: 30
                     thickness: 1
-                    pingValue: AppCore.pingMs
+                    pingValue: AppCore.marketState.pingMs
                 }
             }
         }

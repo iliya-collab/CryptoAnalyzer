@@ -9,6 +9,7 @@
 namespace Core::Tools {
     Q_NAMESPACE
 
+    // Разделить на OrderbookSide и обьединить через Orderbook
     struct Orderbook {
 
         QString m_type = "";
@@ -70,7 +71,6 @@ namespace Core::Tools {
         double m_turnover = 0;
         qint64 m_tradeTime = 0;
 
-
     };
 
     struct PublicTrades {
@@ -93,6 +93,12 @@ namespace Core::Tools {
         QString m_apiKey = ""; // API ключ
         QString m_secretKey = ""; // Секретный API ключ
         bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
+    };
+
+    struct TradeInfo {
+        QString symbol;
+        QString base_coin;
+        QString quote_coin;
     };
 
 }

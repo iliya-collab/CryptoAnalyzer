@@ -1,4 +1,5 @@
 #pragma once
+#include "Tools/StdTypes.hpp"
 #include <QString>
 #include <expected>
 
@@ -11,10 +12,9 @@ namespace Core {
         struct ConfigurationParams {
             // Общее
             bool m_autoConnection = true; // Автоматическое подключение приложения к бирже
-            // Настройка API
-            QString m_apiKey = ""; // API ключ
-            QString m_secretKey = ""; // Секретный API ключ
-            bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
+            QString m_activeAPI = "";
+            // Набор ключей
+            QMap<QString, Tools::API> m_ApiSet{};
         };
 
     public:
@@ -32,7 +32,8 @@ namespace Core {
         void write();
 
 // ==================================   Методы для задания параметров конфигурации  ==================================
-        void setAPI(const QString& apiKey, const QString& secretKey, bool isTestnet);
+        void addAPI(const QString& name, const Tools::API& api);
+        void removeAPI(const QString& name);
 
     private:
 

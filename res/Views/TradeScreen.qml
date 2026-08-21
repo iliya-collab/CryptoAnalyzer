@@ -23,6 +23,8 @@ Item {
         stackWidgets.replace("qrc:/qt/qml/Components/Crypto/OrderbookWidget.qml")
     }
 
+    Component.onCompleted: console.log("TradeScreen ready")
+
     Item {
         id: leftContentContainer
         anchors.fill: parent
@@ -52,13 +54,9 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 100
 
-                        popupList: AppCore.tradeList
 
                         onItemSelected: function(item) {
-                            AppCore.addTrade(item)
-                        }
-                        onFilterSelected: function(filter) {
-                            AppCore.loadTradesFromRepository(filter)
+                            AppCore.marketService.subscribeSymbol(item)
                         }
                     }
 
@@ -80,7 +78,9 @@ Item {
                     Layout.fillWidth: true
 
                     currentTrade: selecterTrade.currentTrade
-                } // Candle chart
+
+                    Component.onCompleted: console.log("KlineWidget ready")
+                }
 
                 Rectangle {
                     color: Theme.windowColor

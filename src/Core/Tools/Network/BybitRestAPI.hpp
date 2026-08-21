@@ -11,6 +11,7 @@
 #include <QUrlQuery>
 
 namespace Core::Tools {
+
     class BybitRestAPI : public QObject {
         Q_OBJECT
     private:
@@ -47,11 +48,11 @@ namespace Core::Tools {
         // endpoint - отправляемый запрос
         // params - параметры к запросу
         // timeout - ограничение по времени на обработку запроса в мс
-        void requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1);
+        QUrl requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1);
 
     signals:
     
-        void dataReceived(const QJsonObject& obj);
+        void dataReceived(const QUrl& url, const QJsonObject& obj);
         void errorOccurred(const QString &error);
         void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
