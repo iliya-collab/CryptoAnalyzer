@@ -1,9 +1,9 @@
-#include "BybitTradePairsStrategy.hpp"
+#include "BybitTradePairsHandler.hpp"
 
 namespace Core::Markets
 {
 
-    void BybitTradePairsStrategy::processRequestTradePairs(QList<Tools::TradeInfo> &pairs, const QJsonObject &data)
+    void BybitTradePairsHandler::processRequestTradePairs(QList<Tools::TradeInfo> &pairs, const QJsonObject &data)
     {
         QJsonObject result = data["result"].toObject();
         QString category = result["category"].toString();
@@ -20,13 +20,11 @@ namespace Core::Markets
         }
     }
 
-    QString BybitTradePairsStrategy::targetEndpoint() const { return "/v5/market/instruments-info"; }
-
-    void BybitTradePairsStrategy::handle(const QJsonObject &data, IContext *context)
+    void BybitTradePairsHandler::handle(const QJsonObject &data, IMarketService *service)
     {
         QList<Tools::TradeInfo> pairs;
         processRequestTradePairs(pairs, data);
-        emit context->tradePairsReceived(pairs);
+        emit service->tradePairsReceived(pairs);
     }
 
 }

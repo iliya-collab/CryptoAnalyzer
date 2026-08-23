@@ -1,5 +1,5 @@
 #pragma once
-#include "Markets/BaseMarketApiService.hpp"
+#include "Markets/IMarketService.hpp"
 #include "Markets/IMarketDataStreamer.hpp"
 #include "Markets/MarketDataRepository.hpp"
 #include <QObject>
@@ -10,13 +10,13 @@ class MarketDataMediator : public QObject {
     Q_OBJECT
 private:
 
-    std::unique_ptr<Markets::BaseMarketApiService> m_apiService;
+    std::unique_ptr<Markets::IMarketService> m_apiService;
     std::unique_ptr<Markets::IMarketDataStreamer> m_streamer;
     std::unique_ptr<Markets::MarketDataRepository> m_repository;
 
 public:
 
-    explicit MarketDataMediator(std::unique_ptr<Markets::BaseMarketApiService> apiService,
+    explicit MarketDataMediator(std::unique_ptr<Markets::IMarketService> apiService,
                                 std::unique_ptr<Markets::IMarketDataStreamer> streamer,
                                 std::unique_ptr<Markets::MarketDataRepository> repository,
                                 QObject* parent = nullptr);

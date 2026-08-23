@@ -1,17 +1,15 @@
-#include "BybitKlineStrategy.hpp"
+#include "BybitKlineHandler.hpp"
 
 namespace Core::Markets
 {
-    QString BybitKlineStrategy::targetEndpoint() const { return "/v5/market/kline"; }
-
-    void BybitKlineStrategy::handle(const QJsonObject &data, IContext *context)
+    void BybitKlineHandler::handle(const QJsonObject &data, IMarketService *service)
     {
         QList<Tools::Kline> klines;
         processRequestKlines(klines, "1", data);
-        emit context->klinesReceived(klines);
+        emit service->klinesReceived(klines);
     }
 
-    void BybitKlineStrategy::processRequestKlines(QList<Tools::Kline>& klines, const QString& interval, const QJsonObject& data)
+    void BybitKlineHandler::processRequestKlines(QList<Tools::Kline>& klines, const QString& interval, const QJsonObject& data)
     {
         QJsonObject result = data["result"].toObject();
         QString symbol = result["symbol"].toString();

@@ -2,7 +2,7 @@
 
 namespace Core {
 
-    MarketDataMediator::MarketDataMediator(std::unique_ptr<Markets::BaseMarketApiService> apiService,
+    MarketDataMediator::MarketDataMediator(std::unique_ptr<Markets::IMarketService> apiService,
                                         std::unique_ptr<Markets::IMarketDataStreamer> streamer,
                                         std::unique_ptr<Markets::MarketDataRepository> repository,
                                         QObject* parent) :
@@ -12,19 +12,19 @@ namespace Core {
         QObject(parent)
     {
         // Связываем Сеть (REST)
-        connect(m_apiService.get(), &Markets::BaseMarketApiService::errorOccurred,
+        connect(m_apiService.get(), &Markets::IMarketService::errorOccurred,
                 this, &MarketDataMediator::errorOccurred, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::BaseMarketApiService::downloadProgress,
+        connect(m_apiService.get(), &Markets::IMarketService::downloadProgress,
                 this, &MarketDataMediator::downloadProgress, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::BaseMarketApiService::infoAboutAccountReceived,
+        connect(m_apiService.get(), &Markets::IMarketService::accountBalanceReceived,
                 this, &MarketDataMediator::onAccountReady, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::BaseMarketApiService::tradePairsReceived,
+        connect(m_apiService.get(), &Markets::IMarketService::tradePairsReceived,
                 this, &MarketDataMediator::onTradePairsReady, Qt::UniqueConnection);
 
-        connect(m_apiService.get(), &Markets::BaseMarketApiService::klinesReceived,
+        connect(m_apiService.get(), &Markets::IMarketService::klinesReceived,
                 this, &MarketDataMediator::onKlinesReady, Qt::UniqueConnection);
 
         // Связываем Стрим (WebSocket)
@@ -119,7 +119,7 @@ namespace Core {
     void MarketDataMediator::loadInfoAboutAccount()
     {
         emit messageSent("Loading account");
-        m_apiService->requestInfoAboutAccount();
+        m_apiService->requestAccountBalance();
     }
 
     void MarketDataMediator::setAPI(const Tools::API &api)

@@ -8,11 +8,6 @@ namespace Core::Markets {
 */
     class BybitApiService : public BaseMarketApiService {
         Q_OBJECT
-    private:
-
-        mutable QMutex m_mutex;
-        int LOADING_TIMEOUT = 30000;
-
     public:
 
         explicit BybitApiService(QObject* parent = nullptr);
@@ -20,7 +15,7 @@ namespace Core::Markets {
         void setAPI(const Tools::API& api) override;
 
         // Методы IContext
-        void requestInfoAboutAccount() override;
+        void requestAccountBalance() override;
         void requestTradePairs() override;
         void requestKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end) override;
 
