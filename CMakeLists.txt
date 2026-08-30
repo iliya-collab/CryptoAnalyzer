@@ -89,9 +89,10 @@ qt_add_qml_module(${PROJECT_NAME}
     OUTPUT_DIRECTORY "${QML_MODULES}/Application/UI"
     QML_FILES
         res/Main.qml
-        res/Views/APIScreen.qml
+        res/Views/UserScreen.qml
         res/Views/TradeScreen.qml
         res/Views/SettingsWindow.qml
+        res/Views/APICreationWindow.qml
 )
 
 # Подключаем внешние UI-поддиректории

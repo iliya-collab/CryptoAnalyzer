@@ -8,7 +8,7 @@ namespace Core {
         connect(mediator.get(), &MarketDataMediator::tickerReady,
                 state.get(), &MarketDataState::updateTicker, Qt::UniqueConnection);
 
-        connect(mediator.get(), &MarketDataMediator::orderBookReady,
+        connect(mediator.get(), &MarketDataMediator::orderbookReady,
                 state.get(), &MarketDataState::updateOrderbook, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::klineUpdated,
@@ -24,13 +24,19 @@ namespace Core {
                 state.get(), &MarketDataState::updateTrades, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::apiReady,
-                state.get(), &MarketDataState::updateAPI, Qt::UniqueConnection);
+                state.get(), &MarketDataState::updateApi, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::pingMeasured,
                 state.get(), &MarketDataState::updatePingMs, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::accountVerificationReady,
                 state.get(), &MarketDataState::validAccountChanged, Qt::UniqueConnection);
+
+        connect(mediator.get(), &MarketDataMediator::accountBalanceReady,
+                state.get(), &MarketDataState::updateBalance, Qt::UniqueConnection);
+
+        connect(mediator.get(), &MarketDataMediator::apiInfoReady,
+                state.get(), &MarketDataState::updateApiInfo, Qt::UniqueConnection);
 
         // --------------------------------------------------------------------------------------
 
@@ -51,14 +57,17 @@ namespace Core {
     }
 
     void MarketDataService::run() {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_mediator->runStreamer();
     }
 
     void MarketDataService::restart() {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_mediator->restartStreamer();
     }
 
     void MarketDataService::shutdown() {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (m_mediator->isStreamerRunning())
         {
             m_mediator->stopStreamer();
@@ -74,6 +83,7 @@ namespace Core {
 
     void MarketDataService::subscribeSymbol(const QString &symbol)
     {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_mediator->subscribeSymbol(symbol);
     }
 
@@ -89,10 +99,20 @@ namespace Core {
             m_mediator->loadKlinesFromNetwork(symbol, interval, start, end);
     }
 
-    void MarketDataService::setAPI(const Tools::API &api)
+    void MarketDataService::loadAccountBalance()
     {
-        m_mediator->setAPI(api);
-        m_mediator->loadInfoAboutAccount();
+        m_mediator->loadAccountBalance();
+    }
+
+    void MarketDataService::loadInfoAboutApi()
+    {
+        m_mediator->loadInfoAboutApi();
+    }
+
+    void MarketDataService::setApi(const Tools::Api &api)
+    {
+        m_mediator->setApi(api);
+        m_mediator->loadAccountBalance();
     }
 
     void MarketDataService::onErrorOccurred(const QString &error)

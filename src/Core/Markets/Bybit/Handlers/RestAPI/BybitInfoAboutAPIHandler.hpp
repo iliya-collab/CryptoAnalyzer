@@ -4,11 +4,15 @@
 namespace Core::Markets
 {
 
-    class BybitAccountBalanceHandler : public IResponseHandler
+    class BybitInfoAboutAPIHandler : public IResponseHandler
     {
+    private:
+
+        QString parseISOFormat(const QString& time);
+
     public:
 
-        static QString endpoint() { return "/v5/account/wallet-balance"; }
+        static QString endpoint() { return "/v5/user/query-api"; }
 
         static QUrlQuery buildRequest() { return QUrlQuery(); }
 
@@ -16,4 +20,5 @@ namespace Core::Markets
     };
 
 }
+
 

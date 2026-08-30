@@ -19,8 +19,9 @@ namespace Core::Markets
         const int LOADING_TIMEOUT = 30000;
         std::unique_ptr<Tools::BaseRestAPI> m_currentApi;
 
+        // Метод для регистрации обработчика endpoint
         template<typename IHandler>
-        requires HasEndpoint<IHandler>
+            requires HasEndpoint<IHandler>
         void registerHandler()
         {
             static_assert(std::is_base_of<IResponseHandler, IHandler>::value, "IHandler must inherit from IResponseHandler!");
@@ -34,36 +35,14 @@ namespace Core::Markets
             m_handlers[endpoint] = std::move(response);
         }
 
-        // Шаблонный метод для запроса торговых пар
-        template<typename IHandler>
-        requires HasTradePairsRequest<IHandler> && HasEndpoint<IHandler>
-        void requestTradePairsImpl(const QString& category)
+        // Метод для запроса
+        template<typename IHandler, typename... Args>
+            requires HasEndpoint<IHandler> && HasBuildRequest<IHandler, Args...>
+        void requestImpl(Args&&... args)
         {
             if (!m_currentApi)
                 return;
-            auto params = IHandler::buildRequest(category);
-            m_currentApi->requestEndpoint(IHandler::endpoint(), params, LOADING_TIMEOUT);
-        }
-
-        // Шаблонный метод для запроса свечей
-        template<typename IHandler>
-        requires HasKlinesRequest<IHandler> && HasEndpoint<IHandler>
-        void requestKlinesImpl(const QString& category, const QString& symbol, const QString& interval, qint64 start, qint64 end)
-        {
-            if (!m_currentApi)
-                return;
-            auto params = IHandler::buildRequest(category, symbol, interval, start, end);
-            m_currentApi->requestEndpoint(IHandler::endpoint(), params, LOADING_TIMEOUT);
-        }
-
-        // Шаблонный метод для баланса
-        template<typename IHandler>
-        requires HasBalanceRequest<IHandler> && HasEndpoint<IHandler>
-        void requestAccountBalanceImpl()
-        {
-            if (!m_currentApi)
-                return;
-            auto params = IHandler::buildRequest();
+            auto params = IHandler::buildRequest(std::forward<Args>(args)...);
             m_currentApi->requestEndpoint(IHandler::endpoint(), params, LOADING_TIMEOUT);
         }
 
@@ -81,7 +60,7 @@ namespace Core::Markets
 
     protected slots:
 
-        void onDataReceived(const QUrl& reqUrl, const QByteArray& data)
+        virtual void onDataReceived(const QUrl& reqUrl, const QByteArray& data)
         {
             if (m_handlers.empty())
                 return;

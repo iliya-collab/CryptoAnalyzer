@@ -6,22 +6,35 @@
 #include <QVariant>
 #include <QtQml>
 
-namespace Core::Tools {
+namespace Core::Tools
+{
     Q_NAMESPACE
+
+    struct AccountBalance {
+        Q_GADGET
+        QML_VALUE_TYPE(AccountBalance)
+
+    public:
+
+        double m_totalWalletBalance = 0; // Общий баланс кошелька аккаунта в USD
+        std::vector<std::tuple<QString, double, double>> m_assets{}; // активы (монета, кол-во, стоимость)
+
+    };
+
+    using OrderbookSide = QMap<double, double>; // уровни (цена, объем)
 
     // Разделить на OrderbookSide и обьединить через Orderbook
     struct Orderbook {
 
-        QString m_type = "";
         QString m_symbol = ""; // Название пары
-        QMap<double, double> m_bids{}; // Покупки (цена, объем)
-        QMap<double, double> m_asks{}; // Продажи (цена, объем)
+        OrderbookSide m_bids{}; // Покупки
+        OrderbookSide m_asks{}; // Продажи
 
     };
 
     struct Ticker {
         Q_GADGET
-        QML_VALUE_TYPE(ticker)
+        QML_VALUE_TYPE(Ticker)
 
         Q_PROPERTY(QString symbol MEMBER m_symbol FINAL)
         Q_PROPERTY(double lastPrice MEMBER m_lastPrice FINAL)
@@ -80,9 +93,33 @@ namespace Core::Tools {
 
     };
 
-    struct API {
+    struct ApiInfo {
         Q_GADGET
-        QML_VALUE_TYPE(api)
+        QML_VALUE_TYPE(ApiInfo)
+
+        Q_PROPERTY(bool readOnly MEMBER m_readOnly FINAL)
+        Q_PROPERTY(bool permissionSpotTrade MEMBER m_permissionSpotTrade FINAL)
+        Q_PROPERTY(bool permissionWithdraw MEMBER m_permissionWithdraw FINAL)
+        Q_PROPERTY(bool permissionContractTrade MEMBER m_permissionContractTrade FINAL)
+        Q_PROPERTY(bool permissionAccountTransfer MEMBER m_permissionAccountTransfer FINAL)
+        Q_PROPERTY(QString expiredAt MEMBER m_expiredAt FINAL)
+        Q_PROPERTY(QStringList ips MEMBER m_ips FINAL)
+
+    public:
+
+        QList<QString> m_ips{};                     // IP адреса, которые могут исп этот ключ
+        QString m_expiredAt = "";                   // Срок истечения
+        bool m_readOnly = true;                     // Только для чтения
+        bool m_permissionSpotTrade = false;         // Разрешение к спотовой торговли
+        bool m_permissionContractTrade = false;     // Разрешение к фьючерсаной торговли
+        bool m_permissionWithdraw = false;          // Разрешение к выводу активов с биржи
+        bool m_permissionAccountTransfer = false;   // Разрешение к переводу между внутренними кошельками
+
+    };
+
+    struct Api {
+        Q_GADGET
+        QML_VALUE_TYPE(Api)
 
         Q_PROPERTY(QString apiKey MEMBER m_apiKey FINAL)
         Q_PROPERTY(QString secretKey MEMBER m_secretKey FINAL)
@@ -90,15 +127,29 @@ namespace Core::Tools {
 
     public:
 
-        QString m_apiKey = ""; // API ключ
-        QString m_secretKey = ""; // Секретный API ключ
-        bool m_isTestnet = false; // Тип сети (true - testnet, false - mainnet)
+        QString m_apiKey = "";              // Api ключ
+        QString m_secretKey = "";           // Секретный Api ключ
+        bool m_isTestnet = false;           // Тип сети
+
     };
 
     struct TradeInfo {
+
         QString symbol;
         QString base_coin;
         QString quote_coin;
+
     };
 
 }
+
+// РЕГИСТРАЦИЯ В МЕТАСИСТЕМЕ QT
+Q_DECLARE_METATYPE(Core::Tools::AccountBalance)
+Q_DECLARE_METATYPE(Core::Tools::Orderbook)
+Q_DECLARE_METATYPE(Core::Tools::Ticker)
+Q_DECLARE_METATYPE(Core::Tools::Kline)
+Q_DECLARE_METATYPE(Core::Tools::PublicTradeItem)
+Q_DECLARE_METATYPE(Core::Tools::PublicTrades)
+Q_DECLARE_METATYPE(Core::Tools::Api)
+Q_DECLARE_METATYPE(Core::Tools::ApiInfo)
+Q_DECLARE_METATYPE(Core::Tools::TradeInfo)

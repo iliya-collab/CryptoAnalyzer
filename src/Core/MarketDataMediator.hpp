@@ -1,7 +1,7 @@
 #pragma once
 #include "Markets/IMarketService.hpp"
 #include "Markets/IMarketDataStreamer.hpp"
-#include "Markets/MarketDataRepository.hpp"
+#include "Markets/Repository/MarketDataRepository.hpp"
 #include <QObject>
 
 namespace Core {
@@ -33,9 +33,10 @@ public:
 
     void loadTradePairsFromNetwork();
     void loadKlinesFromNetwork(const QString& symbol, const QString& interval, qint64 start, qint64 end);
-    void loadInfoAboutAccount();
+    void loadAccountBalance();
+    void loadInfoAboutApi();
 
-    void setAPI(const Tools::API& api);
+    void setApi(const Tools::Api& api);
 
 signals:
 
@@ -50,18 +51,18 @@ signals:
 
     void messageSent(const QString& msg);
 
-    // Уведомляет о валидности ауккаунта
-    void accountVerificationReady(bool isValid);
-    // Уведомляет о текущем пинге потоковых данных
-    void pingMeasured(qint64 pingMs);
     // Уведомляет о получении данных
+    void accountVerificationReady();
+    void accountBalanceReady(const Core::Tools::AccountBalance& balance);
+    void pingMeasured(qint64 pingMs);
     void tradePairsReady(const QList<Core::Tools::TradeInfo>& pairs);
     void tickerReady(const Core::Tools::Ticker& ticker);
-    void orderBookReady(const Core::Tools::Orderbook& orderbook);
+    void orderbookReady(const Core::Tools::Orderbook& orderbook);
     void klineUpdated(const Core::Tools::Kline& kline);
     void historicalKlinesReady(const QList<Core::Tools::Kline>& klines);
     void tradesReady(const Core::Tools::PublicTrades& trades);
-    void apiReady(const Core::Tools::API& api);
+    void apiReady(const Core::Tools::Api& api);
+    void apiInfoReady(const Core::Tools::ApiInfo& apiInfo);
 
 private slots:
 
@@ -69,7 +70,9 @@ private slots:
     void onKlineReceived(const Core::Tools::Kline& kline);
     void onKlinesReady(const QList<Core::Tools::Kline>& klines);
     void onTradesReady(const Core::Tools::PublicTrades& trades);
-    void onAccountReady(bool isValid);
+    void onAccountVerificationReady();
+    void onAccountBalanceReady(const Core::Tools::AccountBalance& balance);
+    void onInfoAboutApiReady(const Core::Tools::ApiInfo& apiInfo);
 
 };
 

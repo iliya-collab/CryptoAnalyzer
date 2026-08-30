@@ -18,14 +18,20 @@ namespace Core {
         connect(m_apiService.get(), &Markets::IMarketService::downloadProgress,
                 this, &MarketDataMediator::downloadProgress, Qt::UniqueConnection);
 
+        connect(m_apiService.get(), &Markets::IMarketService::accountVerified,
+                this, &MarketDataMediator::onAccountVerificationReady, Qt::UniqueConnection);
+
         connect(m_apiService.get(), &Markets::IMarketService::accountBalanceReceived,
-                this, &MarketDataMediator::onAccountReady, Qt::UniqueConnection);
+                this, &MarketDataMediator::onAccountBalanceReady, Qt::UniqueConnection);
 
         connect(m_apiService.get(), &Markets::IMarketService::tradePairsReceived,
                 this, &MarketDataMediator::onTradePairsReady, Qt::UniqueConnection);
 
         connect(m_apiService.get(), &Markets::IMarketService::klinesReceived,
                 this, &MarketDataMediator::onKlinesReady, Qt::UniqueConnection);
+
+        connect(m_apiService.get(), &Markets::IMarketService::infoAboutApiReceived,
+                this, &MarketDataMediator::onInfoAboutApiReady, Qt::UniqueConnection);
 
         // Связываем Стрим (WebSocket)
         connect(m_streamer.get(), &Markets::IMarketDataStreamer::errorOccurred,
@@ -46,8 +52,8 @@ namespace Core {
         connect(m_streamer.get(), &Markets::IMarketDataStreamer::tickerUpdated,
                 this, &MarketDataMediator::tickerReady, Qt::UniqueConnection);
 
-        connect(m_streamer.get(), &Markets::IMarketDataStreamer::orderBookUpdated,
-                this, &MarketDataMediator::orderBookReady, Qt::UniqueConnection);
+        connect(m_streamer.get(), &Markets::IMarketDataStreamer::orderbookUpdated,
+                this, &MarketDataMediator::orderbookReady, Qt::UniqueConnection);
 
         connect(m_streamer.get(), &Markets::IMarketDataStreamer::publicTradeUpdated,
                 this, &MarketDataMediator::onTradesReady, Qt::UniqueConnection);
@@ -57,32 +63,42 @@ namespace Core {
 
     void MarketDataMediator::runStreamer()
     {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_streamer->start();
     }
 
     void MarketDataMediator::stopStreamer()
     {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_streamer->stop();
     }
 
     bool MarketDataMediator::isStreamerRunning()
     {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         return m_streamer->hasRunned();
     }
 
     void MarketDataMediator::restartStreamer()
     {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_streamer->restart();
     }
 
     void MarketDataMediator::subscribeSymbol(const QString &symbol)
     {
-        m_streamer->subscribeSymbol(symbol);
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        m_streamer->subscribeSymbol(symbol, {
+                                                Markets::WebSocketStreams::Ticker,
+                                                Markets::WebSocketStreams::Orderbook,
+                                                Markets::WebSocketStreams::Kline,
+                                                Markets::WebSocketStreams::PublicTrade
+                                            });
     }
 
     bool MarketDataMediator::loadAllTradePairFromRepository()
     {
-        emit messageSent("Loading trade pairs from repository");
+        emit messageSent("Loading trade pairs from repository...");
         auto pairs = m_repository->loadAllFromCryptoRepository();
 
         if (!pairs.isEmpty())
@@ -107,7 +123,7 @@ namespace Core {
 
     void MarketDataMediator::loadTradePairsFromNetwork()
     {
-        emit messageSent("Loading trade pairs from network");
+        emit messageSent("Loading trade pairs from network...");
         m_apiService->requestTradePairs();
     }
 
@@ -116,16 +132,22 @@ namespace Core {
         m_apiService->requestKlines(symbol, interval, start, end);
     }
 
-    void MarketDataMediator::loadInfoAboutAccount()
+    void MarketDataMediator::loadAccountBalance()
     {
-        emit messageSent("Loading account");
+        emit messageSent("Loading account balance...");
         m_apiService->requestAccountBalance();
     }
 
-    void MarketDataMediator::setAPI(const Tools::API &api)
+    void MarketDataMediator::loadInfoAboutApi()
     {
-        m_apiService->setAPI(api);
-        m_streamer->setAPI(api);
+        emit messageSent("Loading information about your API...");
+        m_apiService->requestInfoAboutApi();
+    }
+
+    void MarketDataMediator::setApi(const Tools::Api &api)
+    {
+        m_apiService->setApi(api);
+        m_streamer->setApi(api);
         emit apiReady(api);
     }
 
@@ -138,7 +160,6 @@ namespace Core {
 
     void MarketDataMediator::onKlineReceived(const Tools::Kline& kline)
     {
-        qDebug() << "onKlineReceived";
         if (kline.m_confirm)
         {
             m_repository->saveToKlineRepository(kline);
@@ -148,7 +169,7 @@ namespace Core {
 
     void MarketDataMediator::onKlinesReady(const QList<Tools::Kline>& klines)
     {
-        qDebug() << "onHistoricalKlinesReceived:" << klines.size();
+        emit messageSent("Klines ready");
         m_repository->saveToKlinesRepository(klines);
         emit historicalKlinesReady(klines);
     }
@@ -158,10 +179,22 @@ namespace Core {
         emit tradesReady(trades);
     }
 
-    void MarketDataMediator::onAccountReady(bool isValid)
+    void MarketDataMediator::onAccountVerificationReady()
     {
-        emit messageSent("Account ready");
-        emit accountVerificationReady(isValid);
+        emit messageSent("Account verified");
+        emit accountVerificationReady();
+    }
+
+    void MarketDataMediator::onAccountBalanceReady(const Core::Tools::AccountBalance& balance)
+    {
+        emit messageSent("Account balance ready");
+        emit accountBalanceReady(balance);
+    }
+
+    void MarketDataMediator::onInfoAboutApiReady(const Tools::ApiInfo &apiInfo)
+    {
+        emit messageSent("The information about your API ready");
+        emit apiInfoReady(apiInfo);
     }
 
 }

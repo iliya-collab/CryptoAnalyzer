@@ -12,9 +12,9 @@ namespace Core {
         struct ConfigurationParams {
             // Общее
             bool m_autoConnection = true; // Автоматическое подключение приложения к бирже
-            QString m_activeAPI = "";
+            QString m_activeApi = "";
             // Набор ключей
-            QMap<QString, Tools::API> m_ApiSet{};
+            QMap<QString, Tools::Api> m_ApiSet{};
         };
 
     public:
@@ -32,8 +32,8 @@ namespace Core {
         void write();
 
 // ==================================   Методы для задания параметров конфигурации  ==================================
-        void addAPI(const QString& name, const Tools::API& api);
-        void removeAPI(const QString& name);
+        void addApi(const QString& name, const Tools::Api& api);
+        void removeApi(const QString& name);
 
     private:
 

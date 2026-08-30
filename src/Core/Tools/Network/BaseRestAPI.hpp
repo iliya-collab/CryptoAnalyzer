@@ -14,7 +14,7 @@ namespace Core::Tools
         virtual ~BaseRestAPI() = default;
 
         // Инициализация API
-        virtual void initAPI(const API& api = API()) = 0;
+        virtual void initApi(const Api& api = Api()) = 0;
 
         // Формирование запроса
         virtual QUrl requestEndpoint(const QString& endpoint,

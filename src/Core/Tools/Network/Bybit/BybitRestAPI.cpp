@@ -7,16 +7,19 @@
 
 namespace Core::Tools {
 
-    BybitRestAPI::BybitRestAPI(QObject* parent) : BaseRestAPI(parent) {
+    BybitRestAPI::BybitRestAPI(QObject* parent) : BaseRestAPI(parent)
+    {
         m_manager = new QNetworkAccessManager(parent);
     }
 
-    void BybitRestAPI::initAPI(const API& api) {
+    void BybitRestAPI::initApi(const Api& api)
+    {
         m_api = api;
         m_baseEndpoint = m_api.m_isTestnet ? "https://api-testnet.bybit.com" : "https://api.bybit.com";
     }
 
-    void BybitRestAPI::onHandleResponse() {
+    void BybitRestAPI::onHandleResponse()
+    {
         QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
 
         if (!reply)
@@ -42,16 +45,18 @@ namespace Core::Tools {
         reply->deleteLater();
     }
 
-    BybitRestAPI::APIHeaders BybitRestAPI::initAPIHeaders(const QString& queryString) {
+    BybitRestAPI::APIHeaders BybitRestAPI::initAPIHeaders(const QString& queryString)
+    {
         APIHeaders headers;
         headers.X_BAPI_API_KEY = m_api.m_apiKey;
         headers.X_BAPI_TIMESTAMP = QString::number(QDateTime::currentMSecsSinceEpoch());
-        headers.X_BAPI_RECV_WINDOW = "500";
+        headers.X_BAPI_RECV_WINDOW = "5000";
         headers.X_BAPI_SIGN = generateSignature(headers.X_BAPI_TIMESTAMP, headers.X_BAPI_RECV_WINDOW, queryString);
         return headers;
     }
 
-    void BybitRestAPI::addAPIHeaders(const QUrl& url,QNetworkRequest& request) {
+    void BybitRestAPI::addAPIHeaders(const QUrl& url,QNetworkRequest& request)
+    {
         QUrlQuery sortedQuery(url);
         sortedQuery.setQueryItems(sortedQuery.queryItems());
         QString queryString = sortedQuery.toString(QUrl::FullyEncoded);
@@ -63,7 +68,8 @@ namespace Core::Tools {
         request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
     }
 
-    QUrl BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout) {
+    QUrl BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout)
+    {
         QString urlString = m_baseEndpoint + endpoint;
         QUrl url(urlString);
 
@@ -92,7 +98,8 @@ namespace Core::Tools {
         return request.url();
     }
 
-    QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString) {
+    QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString)
+    {
         QString dataForSign = timesTamp + m_api.m_apiKey + recvWindow + queryString;
 
         QMessageAuthenticationCode hmac(QCryptographicHash::Sha256);

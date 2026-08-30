@@ -12,9 +12,10 @@ namespace Core::Markets {
 
         explicit BybitApiService(QObject* parent = nullptr);
 
-        void setAPI(const Tools::API& api) override;
+        void setApi(const Tools::Api& api) override;
 
-        // Методы IContext
+        // Методы IMarketService
+        void requestInfoAboutApi() override;
         void requestAccountBalance() override;
         void requestTradePairs() override;
         void requestKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end) override;

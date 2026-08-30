@@ -4,6 +4,12 @@ namespace Core::Markets
 {
     void BybitKlineHandler::handle(const QJsonObject &data, IMarketService *service)
     {
+        if (!data.contains("retMsg") || data["retMsg"].toString() != "OK")
+        {
+            emit service->errorOccurred(QString("Error processing request [endpoint = %1]: " + data["retMsg"].toString()).arg(endpoint()));
+            return;
+        }
+
         QList<Tools::Kline> klines;
         processRequestKlines(klines, "1", data);
         emit service->klinesReceived(klines);

@@ -54,10 +54,11 @@ namespace Core {
         QJsonObject root = doc.object();
 
         QJsonObject apisObj = root["APIs"].toObject();
-        for (auto it = apisObj.begin(); it != apisObj.end(); ++it) {
+        for (auto it = apisObj.begin(); it != apisObj.end(); ++it)
+        {
             QString name = it.key();
             QJsonObject apiObj = it.value().toObject();
-            Tools::API api;
+            Tools::Api api;
             api.m_apiKey = apiObj["Key"].toString();
             api.m_secretKey = apiObj["SecretKey"].toString();
             api.m_isTestnet = apiObj["isTestnet"].toBool();
@@ -66,7 +67,7 @@ namespace Core {
 
         QJsonObject generalObj = root["General"].toObject();
         m_paramsConfig.m_autoConnection = generalObj["AutoConnection"].toBool();
-        m_paramsConfig.m_activeAPI = generalObj["ActiveAPI"].toString();
+        m_paramsConfig.m_activeApi = generalObj["ActiveAPI"].toString();
 
         return m_paramsConfig;
     }
@@ -82,9 +83,10 @@ namespace Core {
 
         // Конфигурация API
         QJsonObject apisObj;
-        for (auto it = m_paramsConfig.m_ApiSet.begin(); it != m_paramsConfig.m_ApiSet.end(); ++it) {
+        for (auto it = m_paramsConfig.m_ApiSet.begin(); it != m_paramsConfig.m_ApiSet.end(); ++it)
+        {
             QJsonObject apiObj;
-            Tools::API api = it.value();
+            Tools::Api api = it.value();
             apiObj["Key"] = api.m_apiKey;
             apiObj["SecretKey"] = api.m_secretKey;
             apiObj["isTestnet"] = api.m_isTestnet;
@@ -95,7 +97,7 @@ namespace Core {
         // Конфигурация General
         QJsonObject generalObj;
         generalObj["AutoConnection"] = m_paramsConfig.m_autoConnection;
-        generalObj["ActiveAPI"] = m_paramsConfig.m_activeAPI;
+        generalObj["ActiveAPI"] = m_paramsConfig.m_activeApi;
         root["General"] = generalObj;
 
         QJsonDocument doc(root);
@@ -103,15 +105,15 @@ namespace Core {
         file.close();
     }
 
-    void ConfigurationManager::addAPI(const QString& name, const Tools::API& api)
+    void ConfigurationManager::addApi(const QString& name, const Tools::Api& api)
     {
         if (!m_paramsConfig.m_ApiSet.contains(name))
             m_paramsConfig.m_ApiSet[name] = api;
     }
 
-    void ConfigurationManager::removeAPI(const QString &name)
+    void ConfigurationManager::removeApi(const QString &name)
     {
-        if (name != m_paramsConfig.m_activeAPI)
+        if (name != m_paramsConfig.m_activeApi)
             m_paramsConfig.m_ApiSet.remove(name);
     }
 

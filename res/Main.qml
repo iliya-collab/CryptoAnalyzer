@@ -44,23 +44,26 @@ ApplicationWindow {
     menuBar: CustomMenuBar {
         menuModel: [
             {
-                text: "Trade",
+                text: "Services",
                 items: [
                     {
-                        text: "Repository",
-                        items: [
-                            {
-                                text: "Load spot pairs",
-                                clicked: function() { AppCore.marketService.loadTradePairs() }
-                            },
-                            { text: "Load candles" }
-                        ]
+                        text: "User",
+                        clicked: function() { mainStack.showUserScreen()() }
                     },
-                    { text: "---" },
                     {
-                        text: "Spot",
-                        clicked: function() { mainStack.showTradePage() }
+                        text: "Trade",
+                        clicked: function() { mainStack.showTradeScreen()() }
                     }
+                ]
+            },
+            {
+                text: "Repository",
+                items: [
+                    {
+                        text: "Load spot pairs",
+                        clicked: function() { AppCore.marketService.loadTradePairs() }
+                    },
+                    { text: "Load candles" }
                 ]
             },
             {
@@ -114,14 +117,23 @@ ApplicationWindow {
             id: mainStack
             anchors.fill: parent
 
-            initialItem: Item {}
+            initialItem: UserScreen {}
 
-            property bool isTradeScreen: mainStack.currentItem instanceof TradeScreen
+            //property bool isTradeScreen: mainStack.currentItem instanceof TradeScreen
+            //property bool isUserScreen: mainStack.currentItem instanceof UserScreen
 
             // Метод для вызова экрана торговли
-            function showTradePage() {
+            function showTradeScreen()
+            {
                 mainStack.replace("Views/TradeScreen.qml")
             }
+
+            // Метод для вызова экрана пользователя
+            function showUserScreen()
+            {
+                mainStack.replace("Views/UserScreen.qml")
+            }
+
         } // mainStack
 
         footer: Rectangle {

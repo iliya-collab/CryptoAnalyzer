@@ -22,6 +22,12 @@ namespace Core::Markets
 
     void BybitTradePairsHandler::handle(const QJsonObject &data, IMarketService *service)
     {
+        if (!data.contains("retMsg") || data["retMsg"].toString() != "OK")
+        {
+            emit service->errorOccurred(QString("Error processing request [endpoint = %1]: " + data["retMsg"].toString()).arg(endpoint()));
+            return;
+        }
+
         QList<Tools::TradeInfo> pairs;
         processRequestTradePairs(pairs, data);
         emit service->tradePairsReceived(pairs);

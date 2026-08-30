@@ -1,27 +1,25 @@
 #pragma once
 #include <QString>
 #include <QUrlQuery>
+#include <concepts>
 
-template<typename T>
-concept HasEndpoint = requires()
+namespace Core::Markets
 {
-    { T::endpoint() } -> std::convertible_to<QString>;
-};
 
-template<typename T>
-concept HasBalanceRequest = requires()
-{
-    { T::buildRequest() } -> std::convertible_to<QUrlQuery>;
-};
+    // Концепт для проверки endpoint
+    template<typename T>
+    concept HasEndpoint = requires()
+    {
+        { T::endpoint() } -> std::convertible_to<QString>;
+    };
 
-template<typename T>
-concept HasKlinesRequest = requires(const QString& category, const QString& symbol, const QString& interval, qint64 start, qint64 end)
-{
-    { T::buildRequest(category, symbol, interval, start, end) } -> std::convertible_to<QUrlQuery>;
-};
+    // Универсальный концепт для buildRequest с любым числом и типом параметров
+    template<typename T, typename... Args>
+    concept HasBuildRequest = requires(Args&&... args)
+    {
+        { T::buildRequest(std::forward<Args>(args)...) } -> std::convertible_to<QUrlQuery>;
+    };
 
-template<typename T>
-concept HasTradePairsRequest = requires(const QString& category)
-{
-    { T::buildRequest(category) } -> std::convertible_to<QUrlQuery>;
-};
+}
+
+

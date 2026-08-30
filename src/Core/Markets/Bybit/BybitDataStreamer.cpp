@@ -1,154 +1,199 @@
 #include "BybitDataStreamer.hpp"
+#include "Tools/Network/Bybit/BybitWebSocket.hpp"
+#include "Handlers/Websocket/BybitTickerStreamHandler.hpp"
+#include "Handlers/Websocket/BybitOrderbookStreamHandler.hpp"
+#include "Handlers/Websocket/BybitKlineStreamHandler.hpp"
+#include "Handlers/Websocket/BybitPublicTradeStreamHandler.hpp"
 #include <QDateTime>
 
-namespace Core::Markets {
+namespace Core::Markets
+{
 
-    BybitDataStreamer::BybitDataStreamer(QObject* parent) : IMarketDataStreamer(parent)
+    BybitDataStreamer::BybitDataStreamer(QObject* parent)
+        : BaseMarketDataStreamer(std::make_unique<Tools::BybitWebSocket>(Tools::BaseWebSocket::SocketType::Public, parent), parent)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        m_webSocket = std::make_unique<Tools::BybitWebSocket>(Tools::BybitWebSocket::SocketType::Public, this);
-
-        // Обработка основных сигналов
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::connected, this, &BybitDataStreamer::started);
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::disconnected, this, [this]() {
-            if (!m_isInterrupt)
-                start();
-            else {
-                m_lastPair = "";
-                emit stopped();
-            }
-        });
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::errorOccurred, this, &BybitDataStreamer::errorOccurred);
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::pingMeasured, this, &BybitDataStreamer::pingMeasured);
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::authenticationError, this, [](const QString& msgError) {
-            qWarning() << msgError;
-        });
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedTicker, this, [this](const Tools::Ticker& newTicker) {
-            if (m_lastPair == newTicker.m_symbol)
-                emit tickerUpdated(newTicker);
-        });
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedOrderbook, this, [this](const Tools::Orderbook& newOrderbook) {
-            if (m_lastPair == newOrderbook.m_symbol) {
-                updateOrderbook(m_orderBook, newOrderbook);
-                emit orderBookUpdated(m_orderBook);
-            }
-        });
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedKline, this, [this](const Tools::Kline& newKline) {
-            if (m_lastPair == newKline.m_symbol) {
-                m_savedCandles.append(newKline);
-                emit klineUpdated(newKline);
-            }
-            else
-                m_savedCandles.clear();
-        });
-
-        connect(m_webSocket.get(), &Tools::BybitWebSocket::updatedPublicTrade, this, [this](const Tools::PublicTrades& newPublicTrades) {
-            if (!newPublicTrades.m_items.isEmpty() && m_lastPair == newPublicTrades.m_symbol)
-                emit publicTradeUpdated(newPublicTrades);
-        });
-
+        registerHandler<BybitTickerStreamHandler>("tickers.");
+        registerHandler<BybitOrderbookStreamHandler>("orderbook.");
+        registerHandler<BybitKlineStreamHandler>("kline.");
+        registerHandler<BybitPublicTradeStreamHandler>("publicTrade.");
     }
 
-    BybitDataStreamer::~BybitDataStreamer() {
-        if (hasRunned())
-            m_webSocket->close();
+    BybitDataStreamer::~BybitDataStreamer()
+    {
+        if (!m_webSocket)
+            return;
+
+        m_webSocket->close();
     }
 
-    void BybitDataStreamer::updateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
-        if (newOrderbook.m_type == "snapshot")
-            snapshotOrderbook(oldOrderbook, newOrderbook);
-        else
-            deltaUpdateOrderbook(oldOrderbook, newOrderbook);
-    }
+    void BybitDataStreamer::sendSubscriptionMessage(const QStringList &streams)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION)
+        {
+            QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
-    void BybitDataStreamer::snapshotOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
-        oldOrderbook.m_bids = newOrderbook.m_bids;
-        oldOrderbook.m_asks = newOrderbook.m_asks;
-    }
+            QJsonObject subscribeMessage;
+            subscribeMessage["op"] = "subscribe";
+            subscribeMessage["args"] = QJsonArray::fromStringList(chunk);
+            subscribeMessage["req_id"] = QString::number(QDateTime::currentMSecsSinceEpoch());
 
-    void BybitDataStreamer::deltaUpdateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook) {
-        for (const auto& bidVal : newOrderbook.m_bids.asKeyValueRange()) {
-            double price = bidVal.first;
-            double size = bidVal.second;
+            QJsonDocument doc(subscribeMessage);
+            QString message = doc.toJson(QJsonDocument::Compact);
 
-            if (qFuzzyIsNull(size) || size <= 0)
-                oldOrderbook.m_bids.remove(price);
-            else
-                oldOrderbook.m_bids.insert(price, size);
+            qDebug() << message;
+
+            m_webSocket->sendMessage(message);
+
+            if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
+                QThread::msleep(100);
         }
+    }
 
-        for (const auto& askVal : newOrderbook.m_asks.asKeyValueRange()) {
-            double price = askVal.first;
-            double size = askVal.second;
+    void BybitDataStreamer::sendUnsubscriptionMessage(const QStringList &streams)
+    {
+        for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION)
+        {
+            QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
 
-            if (qFuzzyIsNull(size) || size <= 0)
-                oldOrderbook.m_asks.remove(price);
-            else
-                oldOrderbook.m_asks.insert(price, size);
+            QJsonObject unsubscribeMessage;
+            unsubscribeMessage["op"] = "unsubscribe";
+            unsubscribeMessage["args"] = QJsonArray::fromStringList(chunk);
+            unsubscribeMessage["req_id"] = QString::number(QDateTime::currentMSecsSinceEpoch());
+
+            QJsonDocument doc(unsubscribeMessage);
+            QString message = doc.toJson(QJsonDocument::Compact);
+
+            m_webSocket->sendMessage(message);
+
+            if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
+                QThread::msleep(100);
+        }
+    }
+
+    QString BybitDataStreamer::createTickerStream(const QString &symbol) const
+    {
+        return QString("tickers.%1").arg(symbol);
+    }
+
+    QString BybitDataStreamer::createOrderbookStream(const QString &symbol) const
+    {
+        return QString("orderbook.50.%1").arg(symbol);
+    }
+
+    QString BybitDataStreamer::createKlineStream(const QString &symbol) const
+    {
+        return QString("kline.1.%1").arg(symbol);
+    }
+
+    QString BybitDataStreamer::createPublicTradeStream(const QString &symbol) const
+    {
+        return QString("publicTrade.%1").arg(symbol);
+    }
+
+    void BybitDataStreamer::onStarted()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        if (!m_lastPair.isEmpty())
+        {
+            subscribeSymbol(m_lastPair, {
+                                            Markets::WebSocketStreams::Ticker,
+                                            Markets::WebSocketStreams::Orderbook,
+                                            Markets::WebSocketStreams::Kline,
+                                            Markets::WebSocketStreams::PublicTrade
+                                        });
+        }
+        emit started();
+    }
+
+    void BybitDataStreamer::onStopped()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        emit stopped();
+    }
+
+    void BybitDataStreamer::onPingMeasured(qint64 pingMs)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        emit pingMeasured(pingMs);
+    }
+
+    void BybitDataStreamer::onErrorOccurred(const QString &error)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        emit errorOccurred(error);
+    }
+
+    void BybitDataStreamer::onMessageReceived(const QJsonObject &message)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        if (!message.contains("topic"))
+            return;
+
+        QString topic = message["topic"].toString();
+        for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
+        {
+            if (topic.startsWith(it->first))
+            {
+                it->second->handle(message, this);
+                break;
+            }
         }
     }
 
     bool BybitDataStreamer::hasRunned()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         return m_webSocket && m_webSocket->isOpen();
     }
 
-    void BybitDataStreamer::setAPI(const Tools::API& api) {
+    void BybitDataStreamer::setApi(const Tools::Api& api)
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         if (!m_webSocket)
             return;
-        m_webSocket->initAPI(api);
+
+        m_webSocket->initApi(api);
     }
 
-    void BybitDataStreamer::start() {
+    void BybitDataStreamer::start()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (!hasRunned())
-            m_webSocket->open();
-        else
-            emit errorOccurred("The core was started");
+
+        if (!m_webSocket)
+            return;
+
+        m_webSocket->open();
     }
 
-    void BybitDataStreamer::stop() {
+    void BybitDataStreamer::stop()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (!hasRunned())
-            emit errorOccurred("The core failed to run");
-        else {
-            m_isInterrupt = true;
-            m_webSocket->close();
-        }
+
+        if (!m_webSocket)
+            return;
+
+        if (m_webSocket->isOpen())
+            disconnectFromStreams();
+
+        m_webSocket->close();
     }
 
-    void BybitDataStreamer::restart() {
+    void BybitDataStreamer::restart()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (!hasRunned())
-            emit errorOccurred("The core failed to run");
-        else {
-            m_isInterrupt = false;
-            m_webSocket->close();
-        }
-    }
 
-    void BybitDataStreamer::subscribeSymbol(const QString& symbol) {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        m_lastPair = symbol;
-        if (!hasRunned())
-            emit errorOccurred("The core failed to run");
-        else
-            m_webSocket->subscribeToStream(m_lastPair, {
-                Tools::BybitWebSocket::Stream::Ticker,
-                Tools::BybitWebSocket::Stream::Orderbook,
-                Tools::BybitWebSocket::Stream::Kline,
-                Tools::BybitWebSocket::Stream::PublicTrade
-            });
+        if (!m_webSocket)
+            return;
+
+        if (m_webSocket->isOpen())
+            disconnectFromStreams();
+
+        m_webSocket->reconnect();
     }
 
 }

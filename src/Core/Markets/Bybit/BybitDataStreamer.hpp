@@ -1,39 +1,46 @@
 #pragma once
-#include "Markets/IMarketDataStreamer.hpp"
-#include "Tools/Network/Bybit/BybitWebSocket.hpp"
+#include "Markets/BaseMarketDataStreamer.hpp"
  
-namespace Core::Markets {
+namespace Core::Markets
+{
 
 /*
  *  Класс для работы с потоковыми данными (ByBit Websocket API)
 */
-    class BybitDataStreamer : public IMarketDataStreamer {
+    class BybitDataStreamer : public BaseMarketDataStreamer {
         Q_OBJECT
-    private:
 
-        std::unique_ptr<Tools::BybitWebSocket> m_webSocket;
+    private slots:
 
-        bool m_isInterrupt = false;
-        QString m_lastPair = "";
-
-        Tools::Orderbook m_orderBook; // стакан заявок
-        QList<Tools::Kline> m_savedCandles; // серия свеч
-
-        void updateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook);
-        void snapshotOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook);
-        void deltaUpdateOrderbook(Tools::Orderbook& oldOrderbook, const Tools::Orderbook& newOrderbook);
+        void onStarted() override;
+        void onStopped() override;
+        void onPingMeasured(qint64 pingMs) override;
+        void onErrorOccurred(const QString& error) override;
+        void onMessageReceived(const QJsonObject& message) override;
 
     public:
 
-        BybitDataStreamer(QObject* parent = nullptr);
+        explicit BybitDataStreamer(QObject* parent = nullptr);
         ~BybitDataStreamer();
 
-        void setAPI(const Tools::API& api) override;
+        void setApi(const Tools::Api& api) override;
         void start() override;
         void stop() override;
         void restart() override;
-        void subscribeSymbol(const QString& symbol) override;
         bool hasRunned() override;
+
+    private:
+
+        void sendSubscriptionMessage(const QStringList& streams) override;
+        void sendUnsubscriptionMessage(const QStringList& streams) override;
+
+        QString createTickerStream(const QString& symbol) const override;
+        QString createOrderbookStream(const QString& symbol) const override;
+        QString createKlineStream(const QString& symbol) const override;
+        QString createPublicTradeStream(const QString& symbol) const override;
+
+        QString m_lastPair = "";
+        const int MAX_STREAMS_PER_SUBSCRIPTION = 10;
 
     };
 

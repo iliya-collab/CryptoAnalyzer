@@ -18,7 +18,7 @@ namespace Core::Tools
 
         QNetworkAccessManager* m_manager;
         QString m_baseEndpoint;
-        API m_api;
+        Api m_api;
 
         // Структура API заголовка
         struct APIHeaders {
@@ -44,7 +44,7 @@ namespace Core::Tools
         BybitRestAPI(QObject* parent = nullptr);
         ~BybitRestAPI() = default;
 
-        void initAPI(const API& api = API()) override;
+        void initApi(const Api& api = Api()) override;
 
         QUrl requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) override;
 

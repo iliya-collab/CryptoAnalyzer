@@ -1,14 +1,20 @@
 import QtQuick 2.15
+import QtQuick.Window 2.15
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
-import Application.Core 1.0
-import Components.Custom 1.0
 import Theme 1.0
+import Components.Custom 1.0
+import Application.Core 1.0
 
-Rectangle {
+Window {
     id: root
+    width: 600
+    height: 400
+    visible: true
+    title: "Create API"
     color: Theme.windowColor
 
-    property api apiData: AppCore.marketState.api
+    signal newAPICreated(string name, API api)
 
     ColumnLayout {
         anchors.fill: parent
@@ -16,6 +22,16 @@ Rectangle {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            RowLayout {
+                CustomLabel {
+                    id: txtNameAPI
+                    text: "Name:"
+                    Layout.margins: Theme.margins
+                    horizontalAlignment: Text.AlignHCenter
+                    font.pixelSize: Theme.fontSizeSmall
+                }
+            }
 
             RowLayout {
                 CustomLabel {
@@ -27,7 +43,6 @@ Rectangle {
                 CustomTextField {
                     id: txtfAPIKey
                     Layout.margins: Theme.margins
-                    text: apiData.apiKey
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9]{18,20}$/
                     }
@@ -44,7 +59,6 @@ Rectangle {
                 CustomTextField {
                     id: txtfSecretAPI
                     Layout.margins: Theme.margins
-                    text: apiData.secretKey
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9]{32,36}$/
                     }
@@ -62,7 +76,6 @@ Rectangle {
                     id: chbTNetwork
                     Layout.margins: Theme.margins
                     text: "Testnet"
-                    checked: apiData.isTestnet
                 }
             }
         } // Column
@@ -71,24 +84,19 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: parent.height / 6
             CustomButton {
-                text: "Connect"
+                text: "Add"
                 Layout.margins: Theme.margins
                 Layout.alignment: Qt.AlignRight | Qt.AlignBottom
                 enabled: txtfAPIKey.acceptableInput && txtfSecretAPI.acceptableInput
                 onClicked: {
-                    //AppCore.setAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
-                    //AppCore.checkAPI()
-                }
-            }
-            CustomButton {
-                text: "Save"
-                Layout.margins: Theme.margins
-                Layout.alignment: Qt.AlignRight | Qt.AlignBottom
-                enabled: txtfAPIKey.acceptableInput && txtfSecretAPI.acceptableInput
-                onClicked: {
-                    //AppCore.saveAPI(txtfAPIKey.text, txtfSecretAPI.text, chbTNetwork.checked)
+                    newAPICreated(txtNameAPI.text, ({   apiKey: txtfAPIKey.text,
+                                                        secretKey: txtfSecretAPI.text,
+                                                        isTestnet: chbTNetwork.enabled
+                                                    }))
                 }
             }
         } // Row
     } // ColumnLayout
-}
+
+
+} // settingsWindow

@@ -4,7 +4,8 @@
 #include <QObject>
 #include <memory>
 
-class AppCore : public QObject {
+class AppCore : public QObject
+{
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
@@ -29,7 +30,7 @@ public:
 
     Q_INVOKABLE void init();
 
-    Q_INVOKABLE void saveAPI(const QString& name, const Core::Tools::API& api);
+    Q_INVOKABLE void saveApi(const QString& name, const Core::Tools::Api& api);
     Q_INVOKABLE void saveConfig();
 
     Core::MarketDataState* getMarketState() const { return m_marketState.get(); }

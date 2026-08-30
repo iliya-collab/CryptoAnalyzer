@@ -20,11 +20,13 @@ namespace Core {
         Q_INVOKABLE void run();
         Q_INVOKABLE void restart();
         Q_INVOKABLE void shutdown();
+        Q_INVOKABLE void setApi(const Tools::Api& api);
 
         Q_INVOKABLE void subscribeSymbol(const QString& symbol);
         Q_INVOKABLE void loadTradePairs();
         Q_INVOKABLE void loadKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end);
-        Q_INVOKABLE void setAPI(const Tools::API& api);
+        Q_INVOKABLE void loadAccountBalance();
+        Q_INVOKABLE void loadInfoAboutApi();
 
     private slots:
         void onErrorOccurred(const QString& error);

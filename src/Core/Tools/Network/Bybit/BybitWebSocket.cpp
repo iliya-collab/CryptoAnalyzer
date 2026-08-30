@@ -7,198 +7,66 @@
 
 namespace Core::Tools {
 
-    BybitWebSocket::BybitWebSocket(SocketType type, QObject* parent) : QObject(parent), m_webSocket(nullptr), m_pingTimer(nullptr) {
-        m_type = type;
-        setupWebSocket();
-        setupConnections();
-    }
+    BybitWebSocket::BybitWebSocket(SocketType type, QObject* parent) : BaseWebSocket(type, parent) {}
 
-    BybitWebSocket::~BybitWebSocket() {
-        cleanup();
-    }
-
-    void BybitWebSocket::initAPI(const API& api) {
+    void BybitWebSocket::initApi(const Api& api)
+    {
         m_api = api;
-    }
+        switch (m_type)
+        {
+        case SocketType::Public: // Публичное соединение (без аутентификации)
+            m_connectUrl = m_api.m_isTestnet ?
+                      "wss://stream-testnet.bybit.com/v5/public/spot" :
+                      "wss://stream.bybit.com/v5/public/spot";
+            break;
 
-    void BybitWebSocket::setupWebSocket() {
-        QSslConfiguration sslConfig = QSslConfiguration::defaultConfiguration();
-        sslConfig.setPeerVerifyMode(QSslSocket::VerifyPeer);
-        sslConfig.setProtocol(QSsl::TlsV1_2OrLater);
-
-        m_pingTimer = new QTimer(this);
-        m_webSocket = new QWebSocket("", QWebSocketProtocol::VersionLatest, this);
-
-        m_webSocket->setSslConfiguration(sslConfig);
-    }
-
-    void BybitWebSocket::setupConnections() {
-        connect(m_webSocket, &QWebSocket::connected, this, &BybitWebSocket::onConnected);
-        connect(m_webSocket, &QWebSocket::disconnected, this, &BybitWebSocket::onDisconnected);
-        connect(m_webSocket, &QWebSocket::textMessageReceived, this, &BybitWebSocket::onTextMessageReceived);
-        connect(m_webSocket, &QWebSocket::bytesWritten, this, &BybitWebSocket::onBytesWritten);
-        connect(m_webSocket, &QWebSocket::errorOccurred, this, &BybitWebSocket::onError);
-        connect(m_webSocket, &QWebSocket::sslErrors, this, &BybitWebSocket::onSslErrors);
-
-        connect(m_pingTimer, &QTimer::timeout, this, &BybitWebSocket::onPing);
-    }
-
-    void BybitWebSocket::cleanup() {
-        if (m_pingTimer) {
-            m_pingTimer->blockSignals(true);
-            if (m_pingTimer->isActive())
-                m_pingTimer->stop();
-        }
-
-        if (m_webSocket) {
-            if (isOpen()) {
-                disconnectFromStreams();
-                closeAfterFlush();
-            }
+        case SocketType::Private: // Приватное соединение (с аутентификацией)
+            m_connectUrl = m_api.m_isTestnet ?
+                      "wss://stream-testnet.bybit.com/v5/private" :
+                      "wss://stream.bybit.com/v5/private";
+            break;
         }
     }
 
-    void BybitWebSocket::cleanupPingTimestamps() {
-        qint64 now = QDateTime::currentMSecsSinceEpoch();
-        QMutableMapIterator<QString, qint64> it(m_pingTimestamps);
-        while (it.hasNext()) {
-            it.next();
-            if (now - it.value() > 10000)
-                it.remove();
-        }
-    }
+    void BybitWebSocket::onConnected()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    bool BybitWebSocket::isOpen() {
-        return m_webSocket && (m_webSocket->state() == QAbstractSocket::ConnectedState);
-    }
-
-    void BybitWebSocket::open() {
-        QString url;
-        switch (m_type) {
-            case SocketType::Public: // Публичное соединение (без аутентификации)
-                url = m_api.m_isTestnet ?
-                    "wss://stream-testnet.bybit.com/v5/public/spot" :
-                    "wss://stream.bybit.com/v5/public/spot";
-                break;
-
-            case SocketType::Private: // Приватное соединение (с аутентификацией)
-                url = m_api.m_isTestnet ?
-                    "wss://stream-testnet.bybit.com/v5/private" :
-                    "wss://stream.bybit.com/v5/private";
-                break;
-        }
-        m_webSocket->open(url);
-    }
-
-    void BybitWebSocket::close() {
-        cleanup();
-    }
-
-    void BybitWebSocket::connectToStreams() {
-        if (!m_usedStreams.isEmpty())
-            sendSubscriptionMessage(m_usedStreams.values());
-    }
-
-    void BybitWebSocket::disconnectFromStreams() {
-        if (!m_usedStreams.isEmpty()) {
-            sendUnsubscriptionMessage(m_usedStreams.values());
-            m_usedStreams.clear();
-        }
-    }
-
-
-
-    void BybitWebSocket::closeAfterFlush() {
-        m_webSocket->flush();
-        if (m_webSocket->bytesToWrite() == 0)
-            m_webSocket->close();
-        else {
-            m_pendingClose = true;
-            QTimer::singleShot(5000, this, [this]() {
-                if (m_pendingClose) {
-                    m_pendingClose = false;
-                    m_webSocket->close();
-                }
-            });
-        }
-    }
-
-    void BybitWebSocket::subscribeToStream(const QString& coin, QSet<Stream> streams) {
-        QStringList newStreams;
-        QString streamName;
-
-        for (auto stream : streams) {
-            switch (stream) {
-            case Stream::Ticker:
-                streamName = createTickerStream(coin);
-                break;
-            case Stream::Orderbook:
-                streamName = createOrderbookStream(coin);
-                break;
-            case Stream::Kline:
-                streamName = createKlineStream(coin);
-                break;
-            case Stream::PublicTrade:
-                streamName = createPublicTradeStream(coin);
-                break;
-            default:
-                streamName = "";
-            }
-
-            if (!m_usedStreams.contains(streamName)) {
-                m_usedStreams.insert(streamName);
-                newStreams << streamName;
-            }
-        }
-
-        if (isOpen() && !newStreams.isEmpty())
-            sendSubscriptionMessage(newStreams);
-    }
-
-// ==================================   SLOTS   ==================================
-
-    void BybitWebSocket::onConnected() {
-        // Отправляем авторизацию для приватных потоков
         if (m_type == SocketType::Private)
             sendAuthMessage();
 
         sendPingMessage();
 
         m_pingTimer->start(ACTIVE_PING_INTERVAL);
-        connectToStreams();
         emit connected();
     }
 
-    void BybitWebSocket::onDisconnected() {
+    void BybitWebSocket::onDisconnected()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         if (m_pingTimer && m_pingTimer->isActive())
             m_pingTimer->stop();
+
         emit disconnected();
     }
 
-    void BybitWebSocket::onTextMessageReceived(const QString &message) {
-        auto jsonObj = parseTextMessage(message);
-        if (jsonObj.has_value())
-            messageReceived(jsonObj.value());
-        else
-            emit errorOccurred(jsonObj.error());
-    }
+    void BybitWebSocket::onError(QAbstractSocket::SocketError error)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-    void BybitWebSocket::onBytesWritten(qint64 bytes) {
-        if (m_pendingClose && (m_webSocket->bytesToWrite() == 0)) {
-            m_pendingClose = false;
-            m_webSocket->close();
-        }
-    }
-
-    void BybitWebSocket::onError(QAbstractSocket::SocketError error) {
         emit errorOccurred(m_webSocket->errorString());
     }
 
-    void BybitWebSocket::onSslErrors(const QList<QSslError>& errors) {
+    void BybitWebSocket::onSslErrors(const QList<QSslError> &errors)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
         QStringList errorStrings;
         bool fatal = false;
 
-        for (const QSslError& error : errors) {
+        for (const QSslError& error : errors)
+        {
             errorStrings << error.errorString();
             fatal = error.error() == QSslError::CertificateExpired ||
                     error.error() == QSslError::CertificateNotYetValid ||
@@ -212,8 +80,28 @@ namespace Core::Tools {
             m_webSocket->abort();
     }
 
-    void BybitWebSocket::onPing() {
-        if (isOpen()) {
+    void BybitWebSocket::onTextMessageReceived(const QString &message)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        auto jsonObj = parseTextMessage(message);
+        if (jsonObj.has_value())
+            processMessage(jsonObj.value());
+        else
+            emit errorOccurred(jsonObj.error());
+    }
+
+    void BybitWebSocket::onBytesWritten(qint64 bytes)
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+    }
+
+    void BybitWebSocket::onPing()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+
+        if (isOpen())
+        {
             sendPingMessage();
             static int pingCounter = 0;
             if (++pingCounter % 10 == 0)
@@ -221,240 +109,8 @@ namespace Core::Tools {
         }
     }
 
-// ====================================================================
-
-    std::expected<QJsonObject, QString> BybitWebSocket::parseTextMessage(const QString &message) {
-        QJsonParseError parseError;
-        QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseError);
-
-        if (parseError.error != QJsonParseError::NoError)
-            return std::unexpected(parseError.errorString());
-
-        if (!doc.isObject()) 
-            return std::unexpected("Document is not an object");
-
-        return doc.object();
-    }
-
-    void BybitWebSocket::messageReceived(const QJsonObject &obj) {
-        //qInfo() << QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-
-        // Обработа ping
-        if (obj.contains("op") && obj["op"].toString() == "ping") {
-            QString reqId = obj["req_id"].toString();
-            if (m_pingTimestamps.contains(reqId)) {
-                m_lastPingMs = QDateTime::currentMSecsSinceEpoch() - m_pingTimestamps[reqId];
-                emit pingMeasured(m_lastPingMs);
-                m_pingTimestamps.remove(reqId);
-            }
-            return;
-        }
-
-        // Обработка auth
-        if (obj.contains("op") && obj["op"].toString() == "auth") {
-            if (obj["success"].toBool())
-                emit authenticated();
-            else
-                emit authenticationError(obj["ret_msg"].toString());
-            return;
-        }
-
-        // Обработка topic
-        if (obj.contains("success")) {
-            if (!obj["success"].toBool())
-                emit errorOccurred(obj["op"].toString() + "failed: " + obj["ret_msg"].toString());
-        } else if (obj.contains("topic")) {
-            QString topic = obj["topic"].toString();
-
-            if (topic.startsWith("tickers."))
-                updateTicker(obj);
-            else if (topic.startsWith("orderbook."))
-                updateOrderbook(obj);
-            else if (topic.startsWith("kline."))
-                updateKline(obj);
-            else if (topic.startsWith("publicTrade."))
-                updatePublicTrade(obj);
-        }
-    }
-
-    void BybitWebSocket::updateTicker(const QJsonObject &json) {
-        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-
-        if (!json.contains("data") || !json["data"].isObject())
-            return;
-            
-        QJsonObject data = json["data"].toObject();
-        QString symbol = data["symbol"].toString();
-
-        Ticker ticker{};
-
-        ticker.m_symbol = symbol;
-        ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
-        ticker.m_usdIndexPrice = data["usdIndexPrice"].toString().toDouble();
-        ticker.m_high24h = data["highPrice24h"].toString().toDouble();
-        ticker.m_low24h = data["lowPrice24h"].toString().toDouble();
-        ticker.m_volCcy24h = data["turnover24h"].toString().toDouble();
-        ticker.m_vol24h = data["volume24h"].toString().toDouble();
-        ticker.m_prevPrice24h = ticker.m_lastPrice - data["prevPrice24h"].toString().toDouble();
-        ticker.m_price24hPcnt = data["price24hPcnt"].toString().toDouble() * 100;
-
-        emit updatedTicker(ticker);
-    }
-
-    void BybitWebSocket::updateOrderbook(const QJsonObject &json) {
-        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-
-        if (!json.contains("data") || !json["data"].isObject())
-            return;
-            
-        QJsonObject data = json["data"].toObject();
-        QString symbol = data["s"].toString();
-        QString type = json["type"].toString();
-
-        Orderbook orderbook{};
-
-        orderbook.m_type = type;
-        orderbook.m_symbol = symbol;
-
-        QJsonArray bidsArray = data.value("b").toArray();
-        for (const auto& bidVal : bidsArray) {
-            QJsonArray bid = bidVal.toArray();
-            double price = bid[0].toString().toDouble();
-            double size = bid[1].toString().toDouble();
-            orderbook.m_bids.insert(price, size);
-        }
-
-        QJsonArray asksArray = data.value("a").toArray();
-        for (const auto& askVal : asksArray) {
-            QJsonArray ask = askVal.toArray();
-            double price = ask[0].toString().toDouble();
-            double size = ask[1].toString().toDouble();
-            orderbook.m_asks.insert(price, size);
-        }
-
-        emit updatedOrderbook(orderbook);
-    }
-
-    void BybitWebSocket::updateKline(const QJsonObject& json) {
-        //qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-
-        if (!json.contains("data") || !json["data"].isArray())
-            return;
-
-        QJsonArray arrData = json["data"].toArray();
-        QString symbol = json["topic"].toString().section('.', -1);
-
-        Kline kline{};
-        kline.m_symbol = symbol;
-
-        for (const auto& val : arrData) {
-            QJsonObject data = val.toObject();
-            kline.m_open = data["open"].toString().toDouble();
-            kline.m_close = data["close"].toString().toDouble();
-            kline.m_high = data["high"].toString().toDouble();
-            kline.m_low = data["low"].toString().toDouble();
-            kline.m_confirm = data["confirm"].toBool();
-            kline.m_start = data["start"].toVariant().toLongLong();
-            kline.m_end = data["end"].toVariant().toLongLong();
-            kline.m_interval = data["interval"].toString();
-            kline.m_volume = data["volume"].toString().toDouble();
-            kline.m_turnover = data["turnover"].toString().toDouble();
-        }
-
-        emit updatedKline(kline);
-    }
-
-    void BybitWebSocket::updatePublicTrade(const QJsonObject &json) {
-        //qInfo().noquote() << QString::fromUtf8(QJsonDocument(json).toJson(QJsonDocument::Indented));
-
-        if (!json.contains("data") || !json["data"].isArray())
-            return;
-
-        QJsonArray arrData = json["data"].toArray();
-        QString symbol = json["topic"].toString().section('.', -1);
-
-        PublicTrades publicTrades{};
-        publicTrades.m_symbol = symbol;
-
-        for (const auto& val : arrData) {
-            QJsonObject itemData = val.toObject();
-
-            PublicTradeItem publicTradeItem{};
-            publicTradeItem.m_side = itemData["S"].toString();
-            publicTradeItem.m_price = itemData["p"].toString().toDouble();
-            publicTradeItem.m_volume = itemData["v"].toString().toDouble();
-            publicTradeItem.m_turnover = publicTradeItem.m_price * publicTradeItem.m_volume;
-            publicTradeItem.m_tradeTime = itemData["T"].toVariant().toLongLong();
-            publicTrades.m_items.append(publicTradeItem);
-        }
-
-        emit updatedPublicTrade(publicTrades);
-    }
-
-    void BybitWebSocket::sendSubscriptionMessage(const QStringList &streams) {
-        for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
-            QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
-
-            QJsonObject subscribeMessage;
-            subscribeMessage["op"] = "subscribe";
-            subscribeMessage["args"] = QJsonArray::fromStringList(chunk);
-            subscribeMessage["req_id"] = QString::number(m_nextReqId++);
-
-            QJsonDocument doc(subscribeMessage);
-            QString message = doc.toJson(QJsonDocument::Compact);
-
-            m_webSocket->sendTextMessage(message);
-
-            if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
-                QThread::msleep(100);
-        }
-    }
-
-    void BybitWebSocket::sendUnsubscriptionMessage(const QStringList &streams) {
-        for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION) {
-            QStringList chunk = streams.mid(i, MAX_STREAMS_PER_SUBSCRIPTION);
-
-            QJsonObject unsubscribeMessage;
-            unsubscribeMessage["op"] = "unsubscribe";
-            unsubscribeMessage["args"] = QJsonArray::fromStringList(chunk);
-            unsubscribeMessage["req_id"] = QString::number(m_nextReqId++);
-
-            QJsonDocument doc(unsubscribeMessage);
-            QString message = doc.toJson(QJsonDocument::Compact);
-
-            m_webSocket->sendTextMessage(message);
-
-            if (i + MAX_STREAMS_PER_SUBSCRIPTION < streams.size())
-                QThread::msleep(100);
-        }
-
-    }
-
-    void BybitWebSocket::sendPingMessage() {
-        QJsonObject pingMessage;
-        QString reqId = QString::number(m_nextReqId++);
-        pingMessage["op"] = "ping";
-        pingMessage["req_id"] = reqId;
-
-        m_pingTimestamps[reqId] = QDateTime::currentMSecsSinceEpoch();
-
-        m_webSocket->sendTextMessage(QJsonDocument(pingMessage).toJson());
-
-    }
-
-    QString BybitWebSocket::generateSignature(const QString& apiKey, const QString& apiSecret, const QString& expires) {
-        QString signaturePayload = "GET/realtime" + expires;
-
-        QMessageAuthenticationCode code(QCryptographicHash::Sha256);
-        code.setKey(apiSecret.toUtf8());
-        code.addData(signaturePayload.toUtf8());
-
-        QByteArray hmacResult = code.result();
-        return hmacResult.toHex();
-    }
-
-
-    void BybitWebSocket::sendAuthMessage() {
+    void BybitWebSocket::sendAuthMessage()
+    {
         qint64 currentMs = QDateTime::currentMSecsSinceEpoch();
         QString expires = QString::number(currentMs + 10000);
 
@@ -469,26 +125,90 @@ namespace Core::Tools {
         args.append(signature);
 
         authMessage["args"] = args;
-        authMessage["req_id"] = QString::number(m_nextReqId++);
+        authMessage["req_id"] = QString::number(QDateTime::currentMSecsSinceEpoch());
 
-        m_webSocket->sendTextMessage(QJsonDocument(authMessage).toJson(QJsonDocument::Compact));
+        sendMessage(QJsonDocument(authMessage).toJson(QJsonDocument::Compact));
     }
 
+    void BybitWebSocket::sendPingMessage()
+    {
+        QJsonObject pingMessage;
+        pingMessage["op"] = "ping";
+        auto now = QDateTime::currentMSecsSinceEpoch();
+        pingMessage["req_id"] = QString::number(now);
 
-    QString BybitWebSocket::createTickerStream(const QString &coin) {
-        return QString("tickers.%1").arg(coin);
+        m_pingTimestamps[QString::number(now)] = now;
+
+        sendMessage(QJsonDocument(pingMessage).toJson());
     }
 
-    QString BybitWebSocket::createOrderbookStream(const QString &coin) {
-        return QString("orderbook.50.%1").arg(coin);
+    QString BybitWebSocket::generateSignature(const QString &apiKey, const QString &apiSecret, const QString &expires)
+    {
+        QString signaturePayload = "GET/realtime" + expires;
+
+        QMessageAuthenticationCode code(QCryptographicHash::Sha256);
+        code.setKey(apiSecret.toUtf8());
+        code.addData(signaturePayload.toUtf8());
+
+        QByteArray hmacResult = code.result();
+        return hmacResult.toHex();
     }
 
-    QString BybitWebSocket::createKlineStream(const QString& coin) {
-        return QString("kline.1.%1").arg(coin);
+    void BybitWebSocket::cleanupPingTimestamps()
+    {
+        qint64 now = QDateTime::currentMSecsSinceEpoch();
+        QMutableMapIterator<QString, qint64> it(m_pingTimestamps);
+        while (it.hasNext())
+        {
+            it.next();
+            if (now - it.value() > 10000)
+                it.remove();
+        }
     }
 
-    QString BybitWebSocket::createPublicTradeStream(const QString &coin) {
-        return QString("publicTrade.%1").arg(coin);
+    void BybitWebSocket::processMessage(const QJsonObject &obj)
+    {
+        QJsonDocument doc(obj);
+        //qDebug() << doc.toJson(QJsonDocument::Compact);
+
+        // Обработа ping
+        if (obj.contains("op") && obj["op"].toString() == "ping")
+        {
+            QString reqId = obj["req_id"].toString();
+            if (m_pingTimestamps.contains(reqId))
+            {
+                m_pingMs = QDateTime::currentMSecsSinceEpoch() - m_pingTimestamps[reqId];
+                emit pingMeasured(m_pingMs);
+                m_pingTimestamps.remove(reqId);
+            }
+            return;
+        }
+
+        // Обработка auth
+        if (obj.contains("op") && obj["op"].toString() == "auth")
+        {
+            if (obj.contains("success") && obj["success"].toBool())
+                emit authenticated();
+            else
+                emit errorOccurred(obj["ret_msg"].toString());
+            return;
+        }
+
+        emit messageReceived(obj);
+    }
+
+    std::expected<QJsonObject, QString> BybitWebSocket::parseTextMessage(const QString &message)
+    {
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseError);
+
+        if (parseError.error != QJsonParseError::NoError)
+            return std::unexpected(parseError.errorString());
+
+        if (!doc.isObject())
+            return std::unexpected("Document is not an object");
+
+        return doc.object();
     }
 
 }

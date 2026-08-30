@@ -10,13 +10,15 @@ namespace Core::Markets
 
         IMarketService(QObject* parent = nullptr) : QObject(parent) {}
 
-        virtual void setAPI(const Tools::API& api) = 0;
+        virtual void setApi(const Tools::Api& api) = 0;
 
-        // Загрузка информации об аккаунте
+        // Запрос информации об аккаунте
         virtual void requestAccountBalance() = 0;
-        // Загрузка споторых пар
+        // Запрос информации об Api
+        virtual void requestInfoAboutApi() = 0;
+        // Запрос споторых пар
         virtual void requestTradePairs() = 0;
-        // Загрузка свеч
+        // Запрос свеч
         virtual void requestKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end) = 0;
 
     signals:
@@ -24,7 +26,9 @@ namespace Core::Markets
         void errorOccurred(const QString& error);
         void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
-        void accountBalanceReceived(bool isValid);
+        void accountBalanceReceived(const Core::Tools::AccountBalance& balance);
+        void accountVerified();
+        void infoAboutApiReceived(const Core::Tools::ApiInfo& apiInfo);
         void klinesReceived(const QList<Core::Tools::Kline>& klines);
         void tradePairsReceived(const QList<Core::Tools::TradeInfo>& pairs);
     };

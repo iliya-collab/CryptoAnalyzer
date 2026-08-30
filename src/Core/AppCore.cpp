@@ -3,7 +3,7 @@
 #include "ConfigurationManager.hpp"
 #include "Markets/Bybit/BybitApiService.hpp"
 #include "Markets/Bybit/BybitDataStreamer.hpp"
-#include "Markets/MarketDataRepository.hpp"
+#include "Markets/Repository/MarketDataRepository.hpp"
 #include <QVariant>
 #include <QList>
 #include <QVariantList>
@@ -33,18 +33,18 @@ void AppCore::init()
     }
 
     auto config = res.value();
-    auto activeApi = config.m_ApiSet[config.m_activeAPI];
+    auto activeApi = config.m_ApiSet[config.m_activeApi];
 
-    m_marketMediator->setAPI(activeApi);
-    m_marketMediator->loadInfoAboutAccount();
+    m_marketMediator->setApi(activeApi);
+    m_marketMediator->loadAccountBalance();
 
     if (config.m_autoConnection)
         m_marketMediator->runStreamer();
 }
 
-void AppCore::saveAPI(const QString& name, const Core::Tools::API &api)
+void AppCore::saveApi(const QString& name, const Core::Tools::Api &api)
 {
-    Core::ConfigurationManager::instance().addAPI(name, api);
+    Core::ConfigurationManager::instance().addApi(name, api);
 }
 
 void AppCore::saveConfig()
