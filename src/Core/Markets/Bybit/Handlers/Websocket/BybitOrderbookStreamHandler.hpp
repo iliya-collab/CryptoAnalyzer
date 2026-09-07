@@ -1,10 +1,10 @@
 #pragma once
-#include "Markets/IStreamHandler.hpp"
+#include "Markets/Websocket/IStreamHandler.hpp"
 
 namespace Core::Markets
 {
 
-    class BybitOrderbookStreamHandler : public IStreamHandler
+    class BybitOrderbookStreamHandler : public IPublicStreamHandler
     {
     private:
 
@@ -15,7 +15,7 @@ namespace Core::Markets
 
     public:
 
-        void handle(const QJsonObject& obj, IMarketDataStreamer* streamer) override;
+        void handle(const QJsonObject& obj, IPublicMarketDataStreamer* streamer) override;
 
     };
 

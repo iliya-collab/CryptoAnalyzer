@@ -2,7 +2,7 @@
 
 namespace Core::Markets
 {
-    void BybitKlineHandler::handle(const QJsonObject &data, IMarketService *service)
+    void BybitKlineHandler::handle(const QJsonObject &data, IMarketDataService *service)
     {
         if (!data.contains("retMsg") || data["retMsg"].toString() != "OK")
         {
@@ -19,11 +19,14 @@ namespace Core::Markets
     {
         QJsonObject result = data["result"].toObject();
         QString symbol = result["symbol"].toString();
+        QString category = result["category"].toString();
         QJsonArray list = result["list"].toArray();
 
-        for (const auto& obj : list) {
+        for (const auto& obj : std::as_const(list))
+        {
             QJsonArray itemArr = obj.toArray();
             Tools::Kline kline;
+            kline.m_category = Tools::stringToMarketType(category);
             kline.m_symbol = symbol;
             kline.m_start = itemArr[0].toString().toDouble();
             kline.m_end = kline.m_start + 60000;

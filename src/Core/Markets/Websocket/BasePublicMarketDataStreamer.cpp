@@ -1,28 +1,28 @@
-#include "BaseMarketDataStreamer.hpp"
+#include "BasePublicMarketDataStreamer.hpp"
 
 namespace Core::Markets
 {
 
-    BaseMarketDataStreamer::BaseMarketDataStreamer(std::unique_ptr<Tools::BaseWebSocket> websocket, QObject *parent)
-        : m_webSocket(std::move(websocket)), IMarketDataStreamer(parent)
+    BasePublicMarketDataStreamer::BasePublicMarketDataStreamer(std::unique_ptr<Tools::BaseWebSocket> websocket, QObject *parent)
+        : m_webSocket(std::move(websocket)), IPublicMarketDataStreamer(parent)
     {
         connect(m_webSocket.get(), &Tools::BaseWebSocket::connected,
-                this, &BaseMarketDataStreamer::onStarted, Qt::UniqueConnection);
+                this, &BasePublicMarketDataStreamer::onStarted, Qt::UniqueConnection);
 
         connect(m_webSocket.get(), &Tools::BaseWebSocket::disconnected,
-                this, &BaseMarketDataStreamer::onStopped, Qt::UniqueConnection);
+                this, &BasePublicMarketDataStreamer::onStopped, Qt::UniqueConnection);
 
         connect(m_webSocket.get(), &Tools::BaseWebSocket::pingMeasured,
-                this, &BaseMarketDataStreamer::onPingMeasured, Qt::UniqueConnection);
+                this, &BasePublicMarketDataStreamer::onPingMeasured, Qt::UniqueConnection);
 
         connect(m_webSocket.get(), &Tools::BaseWebSocket::errorOccurred,
-                this, &BaseMarketDataStreamer::onErrorOccurred, Qt::UniqueConnection);
+                this, &BasePublicMarketDataStreamer::onErrorOccurred, Qt::UniqueConnection);
 
         connect(m_webSocket.get(), &Tools::BaseWebSocket::messageReceived,
-                this, &BaseMarketDataStreamer::onMessageReceived, Qt::UniqueConnection);
+                this, &BasePublicMarketDataStreamer::onMessageReceived, Qt::UniqueConnection);
     }
 
-    void BaseMarketDataStreamer::subscribeSymbol(const QString &symbol, QSet<WebSocketStreams> streams)
+    void BasePublicMarketDataStreamer::subscribeSymbol(const QString &symbol, QSet<PublicStreams> streams)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QStringList newStreams;
@@ -42,7 +42,7 @@ namespace Core::Markets
             sendSubscriptionMessage(newStreams);
     }
 
-    void BaseMarketDataStreamer::unsubscribeSymbol(const QString &symbol, QSet<WebSocketStreams> streams)
+    void BasePublicMarketDataStreamer::unsubscribeSymbol(const QString &symbol, QSet<PublicStreams> streams)
     {
         QStringList streamsToRemove;
 
@@ -62,35 +62,35 @@ namespace Core::Markets
 
     }
 
-    void BaseMarketDataStreamer::connectToStreams()
+    QString BasePublicMarketDataStreamer::createStream(const QString& symbol, PublicStreams stream)
+    {
+        switch (stream)
+        {
+        case PublicStreams::Ticker:
+            return createTickerStream(symbol);
+        case PublicStreams::Orderbook:
+            return createOrderbookStream(symbol);
+        case PublicStreams::Kline:
+            return createKlineStream(symbol);
+        case PublicStreams::PublicTrade:
+            return createPublicTradeStream(symbol);
+        default:
+            return QString();
+        }
+    }
+
+    void BasePublicMarketDataStreamer::connectToStreams()
     {
         if (!m_usedStreams.isEmpty())
             sendSubscriptionMessage(m_usedStreams.values());
     }
 
-    void BaseMarketDataStreamer::disconnectFromStreams()
+    void BasePublicMarketDataStreamer::disconnectFromStreams()
     {
         if (!m_usedStreams.isEmpty())
         {
             sendUnsubscriptionMessage(m_usedStreams.values());
             m_usedStreams.clear();
-        }
-    }
-
-    QString BaseMarketDataStreamer::createStream(const QString& symbol, WebSocketStreams stream)
-    {
-        switch (stream)
-        {
-        case WebSocketStreams::Ticker:
-            return createTickerStream(symbol);
-        case WebSocketStreams::Orderbook:
-            return createOrderbookStream(symbol);
-        case WebSocketStreams::Kline:
-            return createKlineStream(symbol);
-        case WebSocketStreams::PublicTrade:
-            return createPublicTradeStream(symbol);
-        default:
-            return QString();
         }
     }
 

@@ -24,8 +24,8 @@ namespace Core::Tools {
         bool clear() override;
 
         bool insertTrades(const QList<TradeInfo>& newTrades);
-        bool selectTrades();
-        bool selectTrades(const QString& quoteCoin);
+        bool selectTrades(MarketType type);
+        bool selectTrades(MarketType type, const QString& quoteCoin);
 
         QList<TradeInfo> getSelectedData();
 

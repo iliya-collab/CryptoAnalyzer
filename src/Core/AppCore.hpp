@@ -15,10 +15,6 @@ class AppCore : public QObject
 
 private:
 
-    std::unique_ptr<Core::Markets::IMarketService> m_apiService;
-    std::unique_ptr<Core::Markets::IMarketDataStreamer> m_streamer;
-    std::unique_ptr<Core::Markets::MarketDataRepository> m_repository;
-
     std::shared_ptr<Core::MarketDataMediator> m_marketMediator;
     std::shared_ptr<Core::MarketDataState> m_marketState;
     std::shared_ptr<Core::MarketDataService> m_marketService;

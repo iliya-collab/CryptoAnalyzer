@@ -1,6 +1,6 @@
 #include "BybitTickerStreamHandler.hpp"
 
-void Core::Markets::BybitTickerStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
+void Core::Markets::BybitTickerStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
 {
     if (!obj.contains("data") || !obj["data"].isObject())
         return;
@@ -10,6 +10,7 @@ void Core::Markets::BybitTickerStreamHandler::handle(const QJsonObject &obj, IMa
 
     Tools::Ticker ticker{};
 
+    ticker.m_category = Tools::stringToMarketType(streamer->id());
     ticker.m_symbol = symbol;
     ticker.m_lastPrice = data["lastPrice"].toString().toDouble();
     ticker.m_usdIndexPrice = data["usdIndexPrice"].toString().toDouble();

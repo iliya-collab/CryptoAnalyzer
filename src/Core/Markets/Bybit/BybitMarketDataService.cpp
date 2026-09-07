@@ -1,4 +1,4 @@
-#include "BybitApiService.hpp"
+#include "BybitMarketDataService.hpp"
 #include "Tools/Network/Bybit/BybitRestAPI.hpp"
 #include "Handlers/RestAPI/BybitTradePairsHandler.hpp"
 #include "Handlers/RestAPI/BybitKlineHandler.hpp"
@@ -8,8 +8,8 @@
 namespace Core::Markets
 {
 
-    BybitApiService::BybitApiService(QObject* parent)
-        : BaseMarketApiService(std::make_unique<Tools::BybitRestAPI>(), parent)
+    BybitMarketDataService::BybitMarketDataService(QObject* parent)
+        : BaseMarketDataService(std::make_unique<Tools::BybitRestAPI>(parent), parent)
     {
         registerHandler<BybitTradePairsHandler>();
         registerHandler<BybitKlineHandler>();
@@ -17,38 +17,38 @@ namespace Core::Markets
         registerHandler<BybitInfoAboutAPIHandler>();
     }
 
-    void BybitApiService::setApi(const Tools::Api& api)
+    void BybitMarketDataService::setApi(const Tools::Api& api)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         if (!m_currentApi)
             return;
 
-        m_currentApi->initApi(api);
+        m_currentApi->init(api);
     }
 
-    void BybitApiService::requestInfoAboutApi()
+    void BybitMarketDataService::requestInfoAboutApi()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         requestImpl<BybitInfoAboutAPIHandler>();
     }
 
-    void BybitApiService::requestTradePairs()
+    void BybitMarketDataService::requestTradePairs(Tools::MarketType type)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        requestImpl<BybitTradePairsHandler>("spot");
+        requestImpl<BybitTradePairsHandler>(type);
     }
 
-    void BybitApiService::requestKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end)
+    void BybitMarketDataService::requestKlines(Tools::MarketType type, const QString& symbol, const QString& interval, qint64 start, qint64 end)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        requestImpl<BybitKlineHandler>("spot", symbol, interval, start, end);
+        requestImpl<BybitKlineHandler>(type, symbol, interval, start, end);
     }
 
-    void BybitApiService::requestAccountBalance()
+    void BybitMarketDataService::requestAccountBalance()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 

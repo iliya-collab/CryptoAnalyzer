@@ -34,6 +34,7 @@ namespace Core::Tools {
         queries << R"(
             CREATE TABLE IF NOT EXISTS crypto (
                 id INTEGER PRIMARY KEY,
+                category TEXT UNIQUE NOT NULL,
                 symbol TEXT UNIQUE NOT NULL,
                 base_coin TEXT,
                 quote_coin TEXT
@@ -41,6 +42,7 @@ namespace Core::Tools {
         )";
 
         queries << "CREATE INDEX IF NOT EXISTS idx_crypto_quote_coin ON crypto(quote_coin)";
+        queries << "CREATE INDEX IF NOT EXISTS idx_crypto_category ON crypto(category)";
 
         return m_dbManager.executeTransaction(m_dbPath, queries);
     }
@@ -65,7 +67,12 @@ namespace Core::Tools {
             return false;
 
         for (const auto& item : newTrades)
-            if (!m_dbManager.executePrepared(m_dbPath, "INSERT INTO crypto (symbol, base_coin, quote_coin) VALUES (?, ?, ?)", { item.symbol, item.base_coin, item.quote_coin })) {
+            if (!m_dbManager.executePrepared(m_dbPath,
+                    R"(INSERT INTO crypto
+                        (category, symbol, base_coin, quote_coin)
+                        VALUES (?, ?, ?, ?))",
+                    { Tools::marketTypeToString(item.m_category), item.m_symbol, item.m_baseCoin, item.m_quoteCoin }))
+            {
                 m_dbManager.rollbackTransaction(m_dbPath);
                 return false;
             }
@@ -74,25 +81,37 @@ namespace Core::Tools {
     }
 
     void CryptoRepository::handleSelectedTrades(QSqlQuery& query) {
-        while (query.next()) {
+        while (query.next())
+        {
             TradeInfo item;
-            item.symbol = query.value(0).toString();
-            item.base_coin = query.value(1).toString();
-            item.quote_coin = query.value(2).toString();
+            item.m_category = Tools::stringToMarketType(query.value(0).toString());
+            item.m_symbol = query.value(1).toString();
+            item.m_baseCoin = query.value(2).toString();
+            item.m_quoteCoin = query.value(3).toString();
             m_selectedData.push_back(item);
         }
     }
 
-    bool CryptoRepository::selectTrades() {
+    bool CryptoRepository::selectTrades(MarketType type) {
         m_selectedData.clear();
-        return m_dbManager.executeQuery(m_dbPath, "SELECT symbol, base_coin, quote_coin FROM crypto", [this](QSqlQuery& query) {
+        return m_dbManager.executePrepared(m_dbPath,
+            R"(SELECT category, symbol, base_coin, quote_coin
+                FROM crypto WHERE category = ?)",
+            {Tools::marketTypeToString(type)},
+            [this](QSqlQuery& query)
+        {
             handleSelectedTrades(query);
         });
     }
 
-    bool CryptoRepository::selectTrades(const QString& quoteCoin) {
+    bool CryptoRepository::selectTrades(MarketType type, const QString& quoteCoin) {
         m_selectedData.clear();
-        return m_dbManager.executePrepared(m_dbPath, "SELECT symbol, base_coin, quote_coin FROM crypto WHERE quote_coin = ?", {quoteCoin}, [this](QSqlQuery& query) {
+        return m_dbManager.executePrepared(m_dbPath,
+           R"(SELECT category, symbol, base_coin, quote_coin
+                FROM crypto WHERE category = ? AND quote_coin = ?)",
+            {Tools::marketTypeToString(type), quoteCoin},
+           [this](QSqlQuery& query)
+        {
             handleSelectedTrades(query);
         });
     }

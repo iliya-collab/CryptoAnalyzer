@@ -3,12 +3,12 @@
 
 namespace Core::Markets
 {
-    class IMarketService : public QObject
+    class IMarketDataService : public QObject
     {
         Q_OBJECT
     public:
 
-        IMarketService(QObject* parent = nullptr) : QObject(parent) {}
+        IMarketDataService(QObject* parent = nullptr) : QObject(parent) {}
 
         virtual void setApi(const Tools::Api& api) = 0;
 
@@ -17,9 +17,9 @@ namespace Core::Markets
         // Запрос информации об Api
         virtual void requestInfoAboutApi() = 0;
         // Запрос споторых пар
-        virtual void requestTradePairs() = 0;
+        virtual void requestTradePairs(Tools::MarketType category) = 0;
         // Запрос свеч
-        virtual void requestKlines(const QString& symbol, const QString& interval, qint64 start, qint64 end) = 0;
+        virtual void requestKlines(Tools::MarketType category, const QString& symbol, const QString& interval, qint64 start, qint64 end) = 0;
 
     signals:
 
@@ -31,5 +31,6 @@ namespace Core::Markets
         void infoAboutApiReceived(const Core::Tools::ApiInfo& apiInfo);
         void klinesReceived(const QList<Core::Tools::Kline>& klines);
         void tradePairsReceived(const QList<Core::Tools::TradeInfo>& pairs);
+
     };
 }

@@ -1,10 +1,10 @@
 #pragma once
-#include "Markets/IResponseHandler.hpp"
+#include "Markets/RestAPI/IResponseHandler.hpp"
 
 namespace Core::Markets
 {
 
-    class BybitKlineHandler : public IResponseHandler
+    class BybitKlineHandler : public IMarketDataResponseHandler
     {
     private:
 
@@ -14,10 +14,10 @@ namespace Core::Markets
 
         static QString endpoint() { return "/v5/market/kline"; }
 
-        static QUrlQuery buildRequest(const QString& category, const QString& symbol, const QString& interval, qint64 start, qint64 end, int limit = 1000)
+        static QUrlQuery buildRequest(Tools::MarketType type, const QString& symbol, const QString& interval, qint64 start, qint64 end, int limit = 1000)
         {
             QUrlQuery params;
-            params.addQueryItem("category", category);
+            params.addQueryItem("category", Tools::marketTypeToString(type));
             params.addQueryItem("symbol", symbol);
             params.addQueryItem("interval", interval);
             params.addQueryItem("start", QString::number(start));
@@ -26,7 +26,7 @@ namespace Core::Markets
             return params;
         }
 
-        void handle(const QJsonObject& data, IMarketService* service) override;
+        void handle(const QJsonObject& data, IMarketDataService* service) override;
 
     };
 }

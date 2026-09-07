@@ -1,13 +1,10 @@
 #pragma once
-#include "Markets/BaseMarketDataStreamer.hpp"
+#include "Markets/Websocket/BasePublicMarketDataStreamer.hpp"
  
 namespace Core::Markets
 {
 
-/*
- *  Класс для работы с потоковыми данными (ByBit Websocket API)
-*/
-    class BybitDataStreamer : public BaseMarketDataStreamer {
+    class BybitPublicDataStreamer : public BasePublicMarketDataStreamer {
         Q_OBJECT
 
     private slots:
@@ -20,14 +17,15 @@ namespace Core::Markets
 
     public:
 
-        explicit BybitDataStreamer(QObject* parent = nullptr);
-        ~BybitDataStreamer();
+        explicit BybitPublicDataStreamer(Tools::MarketType type, QObject* parent = nullptr);
+        ~BybitPublicDataStreamer();
 
-        void setApi(const Tools::Api& api) override;
+        QString id() override;
+        void setApi(const Core::Tools::Api& api) override;
         void start() override;
         void stop() override;
         void restart() override;
-        bool hasRunned() override;
+        bool isRunning() override;
 
     private:
 

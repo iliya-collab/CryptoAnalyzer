@@ -1,23 +1,24 @@
 #pragma once
 #include "Tools/Network/BaseWebSocket.hpp"
 #include "IStreamHandler.hpp"
-#include "IMarketDataStreamer.hpp"
+#include "IPrivateMarketDataStreamer.hpp"
 
 namespace Core::Markets
 {
 
-    class BaseMarketDataStreamer : public IMarketDataStreamer
+    class BasePrivateMarketDataStreamer : public IPrivateMarketDataStreamer
     {
         Q_OBJECT
     public:
 
-        explicit BaseMarketDataStreamer(std::unique_ptr<Tools::BaseWebSocket> websocket, QObject* parent = nullptr);
+        explicit BasePrivateMarketDataStreamer(std::unique_ptr<Tools::BaseWebSocket> websocket, QObject* parent = nullptr);
 
-        void subscribeSymbol(const QString& symbol, QSet<WebSocketStreams> streams) override;
-        void unsubscribeSymbol(const QString& symbol, QSet<WebSocketStreams> streams) override;
+        void subscribe(QSet<PrivateStreams> streams) override;
+        void unsubscribe(QSet<PrivateStreams> streams) override;
 
         void connectToStreams() override;
         void disconnectFromStreams() override;
+
 
     protected slots:
 
@@ -32,7 +33,7 @@ namespace Core::Markets
         template<typename IHandler>
         void registerHandler(const QString& topic)
         {
-            static_assert(std::is_base_of<IStreamHandler, IHandler>::value, "IHandler must inherit from IStreamHandler!");
+            static_assert(std::is_base_of<IPrivateStreamHandler, IHandler>::value, "IHandler must inherit from IPrivateStreamHandler!");
 
             auto responseToTopic = std::make_unique<IHandler>();
 
@@ -42,15 +43,11 @@ namespace Core::Markets
             m_handlers[topic] = std::move(responseToTopic);
         }
 
-        QString createStream(const QString& symbol, WebSocketStreams stream);
+        QString createStream(PrivateStreams stream);
 
         std::unique_ptr<Tools::BaseWebSocket> m_webSocket;
-        std::map<QString, std::unique_ptr<IStreamHandler>> m_handlers;  // Зарегистрированные обработчики
-
-
-    private:
-
-        QSet<QString> m_usedStreams;                                // Активные подписки (полные имена топиков)
+        QSet<QString> m_usedStreams;                                                    // Активные подписки (полные имена топиков)
+        std::map<QString, std::unique_ptr<IPrivateStreamHandler>> m_handlers;           // Зарегистрированные обработчики
 
     };
 

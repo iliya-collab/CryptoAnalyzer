@@ -1,5 +1,5 @@
 #include "BybitRestAPI.hpp"
-
+#include "BybitEndpointProvider.hpp"
 #include <QCryptographicHash>
 #include <QMessageAuthenticationCode>
 #include <QDate>
@@ -12,10 +12,10 @@ namespace Core::Tools {
         m_manager = new QNetworkAccessManager(parent);
     }
 
-    void BybitRestAPI::initApi(const Api& api)
+    void BybitRestAPI::init(const Api &api)
     {
-        m_api = api;
-        m_baseEndpoint = m_api.m_isTestnet ? "https://api-testnet.bybit.com" : "https://api.bybit.com";
+        setApi(api);
+        setUrl(BybitEndpointProvider::restBaseUrl(api.m_isTestnet));
     }
 
     void BybitRestAPI::onHandleResponse()
@@ -55,7 +55,7 @@ namespace Core::Tools {
         return headers;
     }
 
-    void BybitRestAPI::addAPIHeaders(const QUrl& url,QNetworkRequest& request)
+    void BybitRestAPI::addAPIHeaders(const QUrl& url, QNetworkRequest& request)
     {
         QUrlQuery sortedQuery(url);
         sortedQuery.setQueryItems(sortedQuery.queryItems());

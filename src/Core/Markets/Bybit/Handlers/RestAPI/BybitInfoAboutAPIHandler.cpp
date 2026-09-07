@@ -24,7 +24,7 @@ namespace Core::Markets
         return localTime.toString("yyyy-MM-dd");
     }
 
-void BybitInfoAboutAPIHandler::handle(const QJsonObject &data, IMarketService *service)
+    void BybitInfoAboutAPIHandler::handle(const QJsonObject &data, IMarketDataService *service)
     {
         if (!data.contains("retMsg") || data["retMsg"].toString() != "OK")
         {

@@ -1,6 +1,6 @@
 #include "BybitKlineStreamHandler.hpp"
 
-void Core::Markets::BybitKlineStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
+void Core::Markets::BybitKlineStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
 {
     if (!obj.contains("data") || !obj["data"].isArray())
         return;
@@ -11,9 +11,10 @@ void Core::Markets::BybitKlineStreamHandler::handle(const QJsonObject &obj, IMar
     Tools::Kline kline{};
     kline.m_symbol = symbol;
 
-    for (const auto& val : arrData)
+    for (const auto& val : std::as_const(arrData))
     {
         QJsonObject data = val.toObject();
+        kline.m_category = Tools::stringToMarketType(streamer->id());
         kline.m_open = data["open"].toString().toDouble();
         kline.m_close = data["close"].toString().toDouble();
         kline.m_high = data["high"].toString().toDouble();

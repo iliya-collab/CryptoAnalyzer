@@ -1,5 +1,5 @@
 #pragma once
-#include "../StdTypes.hpp"
+#include "Tools/StdTypes.hpp"
 #include <QObject>
 
 namespace Core::Tools
@@ -13,13 +13,21 @@ namespace Core::Tools
         explicit BaseRestAPI(QObject *parent = nullptr) : QObject(parent) {}
         virtual ~BaseRestAPI() = default;
 
-        // Инициализация API
-        virtual void initApi(const Api& api = Api()) = 0;
+        void setApi(const Api& api = Api()) { m_api = api; }
+
+        void setUrl(const QString& url) { m_baseEndpoint = url; }
+
+        virtual void init(const Api& api = Api()) = 0;
 
         // Формирование запроса
         virtual QUrl requestEndpoint(const QString& endpoint,
                                      const QUrlQuery& params = QUrlQuery(),
                                      int timeout = -1) = 0;
+
+    protected:
+
+        Api m_api{};
+        QString m_baseEndpoint = "";
 
     protected slots:
 

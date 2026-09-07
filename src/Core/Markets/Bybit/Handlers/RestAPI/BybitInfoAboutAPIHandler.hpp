@@ -1,10 +1,10 @@
 #pragma once
-#include "Markets/IResponseHandler.hpp"
+#include "Markets/RestAPI/IResponseHandler.hpp"
 
 namespace Core::Markets
 {
 
-    class BybitInfoAboutAPIHandler : public IResponseHandler
+    class BybitInfoAboutAPIHandler : public IMarketDataResponseHandler
     {
     private:
 
@@ -16,7 +16,7 @@ namespace Core::Markets
 
         static QUrlQuery buildRequest() { return QUrlQuery(); }
 
-        void handle(const QJsonObject& data, IMarketService* service) override;
+        void handle(const QJsonObject& data, IMarketDataService* service) override;
     };
 
 }

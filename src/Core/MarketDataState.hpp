@@ -6,6 +6,9 @@
 #include "Tools/DataModels/AssetModel.hpp"
 #include "Tools/DataModels/ReversedProxyModel.hpp"
 #include "Tools/DataModels/TradePairsFilterProxyModel.hpp"
+#include "Tools/DataModels/OrderModel.hpp"
+#include "Tools/DataModels/ExecutionModel.hpp"
+#include "Tools/DataModels/PositionModel.hpp"
 #include <QObject>
 
 namespace Core {
@@ -26,21 +29,31 @@ namespace Core {
         Q_PROPERTY(Core::Tools::OrderbookSideModel* asks READ getAsks NOTIFY asksChanged FINAL)
         Q_PROPERTY(Core::Tools::OrderbookSideModel* bids READ getBids NOTIFY bidsChanged FINAL)
         Q_PROPERTY(Core::Tools::TradeModel* trades READ getTrades NOTIFY tradesChanged FINAL)
+        Q_PROPERTY(Core::Tools::OrderModel* orders READ getOrders NOTIFY ordersChanged FINAL)
+        Q_PROPERTY(Core::Tools::ExecutionModel* executions READ getExecutions NOTIFY executionsChanged FINAL)
+        Q_PROPERTY(Core::Tools::PositionModel* positions READ getPositions NOTIFY positionsChanged FINAL)
 
     private:
 
+        // Даннные для аккаунта/пользователя
         bool m_validAccount = false;
         Tools::Api m_api{};
         Tools::ApiInfo m_apiInfo{};
+        std::shared_ptr<Tools::AssetModel> m_assets{};
+        qint64 m_overallAssetsBalance = 0;
+        // Рыночные данные
         Tools::Ticker m_ticker{};
         std::shared_ptr<Tools::KlineModel> m_klineSeries{};
-        std::shared_ptr<Tools::TradePairsModel> m_tradePairs{};
         std::shared_ptr<Tools::OrderbookSideModel> m_asks{};
         std::shared_ptr<Tools::OrderbookSideModel> m_bids{};
         std::shared_ptr<Tools::TradeModel> m_trades{};
-        std::shared_ptr<Tools::AssetModel> m_assets{};
+        // Приватные данные
+        std::shared_ptr<Tools::OrderModel> m_orders{};
+        std::shared_ptr<Tools::ExecutionModel> m_executions{};
+        std::shared_ptr<Tools::PositionModel> m_positions{};
+        // Прочее
+        std::shared_ptr<Tools::TradePairsModel> m_tradePairs{};
         qint64 m_pingMs = 0;
-        qint64 m_overallAssetsBalance = 0;
 
     public:
 
@@ -58,6 +71,9 @@ namespace Core {
         void updatePingMs(qint64 pingMs);
         void updateValidAccount(bool isValid);
         void updateBalance(const Tools::AccountBalance& balance);
+        void updateOrder(const Tools::OrderInfo& order);
+        void updateExecution(const Tools::ExecutionInfo& execution);
+        void updatePosition(const Tools::PositionInfo& position);
 
         // READ-методы
         bool getValidAccount() { return m_validAccount; }
@@ -72,6 +88,9 @@ namespace Core {
         Tools::Api getApi() const { return m_api; }
         Tools::ApiInfo getApiInfo() const { return m_apiInfo; }
         qint64 getOverallAssetsBalance() const { return m_overallAssetsBalance; }
+        Tools::OrderModel* getOrders() const { return m_orders.get(); }
+        Tools::ExecutionModel* getExecutions() const { return m_executions.get(); }
+        Tools::PositionModel* getPositions() const { return m_positions.get(); }
 
     signals:
 
@@ -87,6 +106,9 @@ namespace Core {
         void pingMsChanged();
         void tradesChanged();
         void overallAssetsBalanceChanged();
+        void ordersChanged();
+        void executionsChanged();
+        void positionsChanged();
 
     };
 

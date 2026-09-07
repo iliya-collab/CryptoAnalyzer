@@ -1,10 +1,10 @@
 #pragma once
-#include "Markets/IResponseHandler.hpp"
+#include "Markets/RestAPI/IResponseHandler.hpp"
 
 namespace Core::Markets
 {
 
-    class BybitTradePairsHandler : public IResponseHandler
+    class BybitTradePairsHandler : public IMarketDataResponseHandler
     {
     private:
 
@@ -14,14 +14,14 @@ namespace Core::Markets
 
         static QString endpoint() { return "/v5/market/instruments-info"; }
 
-        static QUrlQuery buildRequest(const QString& category = "spot")
+        static QUrlQuery buildRequest(Tools::MarketType type)
         {
             QUrlQuery params;
-            params.addQueryItem("category", category);
+            params.addQueryItem("category", Tools::marketTypeToString(type));
             return params;
         }
 
-        void handle(const QJsonObject& data, IMarketService* service) override;
+        void handle(const QJsonObject& data, IMarketDataService* service) override;
     };
 
 }

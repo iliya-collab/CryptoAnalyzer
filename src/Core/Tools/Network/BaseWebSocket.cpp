@@ -3,7 +3,8 @@
 namespace Core::Tools
 {
 
-    BaseWebSocket::BaseWebSocket(SocketType type, QObject *parent) : QObject(parent), m_type(type)
+    BaseWebSocket::BaseWebSocket(SocketType socketType, QObject *parent)
+        : QObject(parent), m_socketType(socketType)
     {
         setupWebSocket();
         setupConnections();

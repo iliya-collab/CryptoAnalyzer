@@ -1,8 +1,11 @@
 #include "MarketDataService.hpp"
 
-namespace Core {
+namespace Core
+{
 
-    MarketDataService::MarketDataService(std::shared_ptr<MarketDataState> state, std::shared_ptr<MarketDataMediator> mediator, QObject *parent) :
+    MarketDataService::MarketDataService(std::shared_ptr<MarketDataState> state,
+                                     std::shared_ptr<MarketDataMediator> mediator,
+                                     QObject *parent) :
         m_state(state), m_mediator(mediator), QObject(parent)
     {
         connect(mediator.get(), &MarketDataMediator::tickerReady,
@@ -30,7 +33,7 @@ namespace Core {
                 state.get(), &MarketDataState::updatePingMs, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::accountVerificationReady,
-                state.get(), &MarketDataState::validAccountChanged, Qt::UniqueConnection);
+                state.get(), &MarketDataState::updateValidAccount, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::accountBalanceReady,
                 state.get(), &MarketDataState::updateBalance, Qt::UniqueConnection);
@@ -38,65 +41,83 @@ namespace Core {
         connect(mediator.get(), &MarketDataMediator::apiInfoReady,
                 state.get(), &MarketDataState::updateApiInfo, Qt::UniqueConnection);
 
+        connect(mediator.get(), &MarketDataMediator::walletReady,
+                state.get(), &MarketDataState::updateBalance, Qt::UniqueConnection);
+
+        connect(mediator.get(), &MarketDataMediator::orderReady,
+                state.get(), &MarketDataState::updateOrder, Qt::UniqueConnection);
+
+        connect(mediator.get(), &MarketDataMediator::executionReady,
+                state.get(), &MarketDataState::updateExecution, Qt::UniqueConnection);
+
+        connect(mediator.get(), &MarketDataMediator::positionReady,
+                state.get(), &MarketDataState::updatePosition, Qt::UniqueConnection);
+
         // --------------------------------------------------------------------------------------
 
         connect(mediator.get(), &MarketDataMediator::messageSent,
                 this, &MarketDataService::messageReceived, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::streamerStarted,
-                this, &MarketDataService::started, Qt::UniqueConnection);
+                this, &MarketDataService::onStreamerStarted, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::streamerStopped,
-                this, &MarketDataService::stopped, Qt::UniqueConnection);
+                this, &MarketDataService::onStreamerStopped, Qt::UniqueConnection);
 
         connect(mediator.get(), &MarketDataMediator::downloadProgress,
                 this, &MarketDataService::downloadProgress, Qt::UniqueConnection);
 
+        connect(mediator.get(), &MarketDataMediator::errorOccurredWithId,
+                this, &MarketDataService::onErrorOccurredWithId, Qt::UniqueConnection);
+
         connect(mediator.get(), &MarketDataMediator::errorOccurred,
-                this, &MarketDataService::onErrorOccurred, Qt::UniqueConnection);
+                this, &MarketDataService::errorOccurred, Qt::UniqueConnection);
     }
 
-    void MarketDataService::run() {
+    void MarketDataService::run()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_mediator->runStreamer();
     }
 
-    void MarketDataService::restart() {
+    void MarketDataService::restart()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_mediator->restartStreamer();
     }
 
-    void MarketDataService::shutdown() {
+    void MarketDataService::shutdown()
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (m_mediator->isStreamerRunning())
-        {
-            m_mediator->stopStreamer();
 
-            QEventLoop loop;
-            QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+        m_mediator->stopStreamer();
 
-            connect(m_mediator.get(), &Core::MarketDataMediator::streamerStopped, &loop, &QEventLoop::quit, Qt::SingleShotConnection);
+        QEventLoop loop;
+        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
 
-            loop.exec();
-        }
+        connect(m_mediator.get(), &Core::MarketDataMediator::streamerStopped, &loop, &QEventLoop::quit, Qt::SingleShotConnection);
+
+        loop.exec();
+
     }
 
     void MarketDataService::subscribeSymbol(const QString &symbol)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        m_mediator->subscribeSymbol(symbol);
+        m_mediator->subscribePublicChannel(symbol);
+        m_mediator->subscribePrivateChannel();
     }
 
-    void MarketDataService::loadTradePairs()
+    void MarketDataService::loadTradePairs(Core::Tools::MarketType type)
     {
-        if (!m_mediator->loadAllTradePairFromRepository())
-            m_mediator->loadTradePairsFromNetwork();
+        if (!m_mediator->loadAllTradePairFromRepository(type))
+            m_mediator->loadTradePairsFromNetwork(type);
     }
 
-    void MarketDataService::loadKlines(const QString &symbol, const QString &interval, qint64 start, qint64 end)
+    void MarketDataService::loadKlines(Core::Tools::MarketType type, const QString &symbol, const QString &interval, qint64 start, qint64 end)
     {
-        if (!m_mediator->loadKlinesFromRepository(symbol, interval, start, end))
-            m_mediator->loadKlinesFromNetwork(symbol, interval, start, end);
+        if (!m_mediator->loadKlinesFromRepository(type, symbol, interval, start, end))
+            m_mediator->loadKlinesFromNetwork(type, symbol, interval, start, end);
     }
 
     void MarketDataService::loadAccountBalance()
@@ -115,10 +136,23 @@ namespace Core {
         m_mediator->loadAccountBalance();
     }
 
-    void MarketDataService::onErrorOccurred(const QString &error)
+    void MarketDataService::onErrorOccurredWithId(const QString& id, const QString &error)
     {
-        qCritical() << error;
-        emit errorOccurred(error);
+        QString errMsg = id + " : " + error;
+        qCritical().noquote() << errMsg;
+        emit errorOccurred(errMsg);
+    }
+
+    void MarketDataService::onStreamerStarted(const QString& id)
+    {
+        qDebug().noquote() << QString("%1 : started").arg(id);
+        emit streamerStarted(id);
+    }
+
+    void MarketDataService::onStreamerStopped(const QString& id)
+    {
+        qDebug().noquote() << QString("%1 : stopped").arg(id);
+        emit streamerStopped(id);
     }
 
 }

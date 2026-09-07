@@ -1,26 +1,27 @@
-#include "BybitDataStreamer.hpp"
+#include "BybitPrivateDataStreamer.hpp"
 #include "Tools/Network/Bybit/BybitWebSocket.hpp"
-#include "Handlers/Websocket/BybitTickerStreamHandler.hpp"
-#include "Handlers/Websocket/BybitOrderbookStreamHandler.hpp"
-#include "Handlers/Websocket/BybitKlineStreamHandler.hpp"
-#include "Handlers/Websocket/BybitPublicTradeStreamHandler.hpp"
+#include "Handlers/Websocket/BybitWalletStreamHandler.hpp"
+#include "Handlers/Websocket/BybitOrderStreamHandler.hpp"
+#include "Handlers/Websocket/BybitExecutionStreamHandler.hpp"
+#include "Handlers/Websocket/BybitPositionStreamHandler.hpp"
 #include <QDateTime>
 
 namespace Core::Markets
 {
 
-    BybitDataStreamer::BybitDataStreamer(QObject* parent)
-        : BaseMarketDataStreamer(std::make_unique<Tools::BybitWebSocket>(Tools::BaseWebSocket::SocketType::Public, parent), parent)
+    BybitPrivateDataStreamer::BybitPrivateDataStreamer(QObject* parent)
+        : BasePrivateMarketDataStreamer(std::make_unique<Tools::BybitWebSocket>(
+                                        Tools::SocketType::Private, Tools::MarketType::Unknown, parent), parent)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        registerHandler<BybitTickerStreamHandler>("tickers.");
-        registerHandler<BybitOrderbookStreamHandler>("orderbook.");
-        registerHandler<BybitKlineStreamHandler>("kline.");
-        registerHandler<BybitPublicTradeStreamHandler>("publicTrade.");
+        registerHandler<BybitWalletStreamHandler>("wallet");
+        registerHandler<BybitOrderStreamHandler>("order");
+        registerHandler<BybitExecutionStreamHandler>("execution");
+        registerHandler<BybitPositionStreamHandler>("position");
     }
 
-    BybitDataStreamer::~BybitDataStreamer()
+    BybitPrivateDataStreamer::~BybitPrivateDataStreamer()
     {
         if (!m_webSocket)
             return;
@@ -28,7 +29,17 @@ namespace Core::Markets
         m_webSocket->close();
     }
 
-    void BybitDataStreamer::sendSubscriptionMessage(const QStringList &streams)
+    QString BybitPrivateDataStreamer::id()
+    {
+        return "private";
+    }
+
+    void BybitPrivateDataStreamer::setApi(const Tools::Api &api)
+    {
+        m_webSocket->init(api);
+    }
+
+    void BybitPrivateDataStreamer::sendSubscriptionMessage(const QStringList &streams)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION)
@@ -52,7 +63,7 @@ namespace Core::Markets
         }
     }
 
-    void BybitDataStreamer::sendUnsubscriptionMessage(const QStringList &streams)
+    void BybitPrivateDataStreamer::sendUnsubscriptionMessage(const QStringList &streams)
     {
         for (int i = 0; i < streams.size(); i += MAX_STREAMS_PER_SUBSCRIPTION)
         {
@@ -73,60 +84,57 @@ namespace Core::Markets
         }
     }
 
-    QString BybitDataStreamer::createTickerStream(const QString &symbol) const
+    QString BybitPrivateDataStreamer::createWalletStream() const
     {
-        return QString("tickers.%1").arg(symbol);
+        return "wallet";
     }
 
-    QString BybitDataStreamer::createOrderbookStream(const QString &symbol) const
+    QString BybitPrivateDataStreamer::createOrderStream() const
     {
-        return QString("orderbook.50.%1").arg(symbol);
+        return "order";
     }
 
-    QString BybitDataStreamer::createKlineStream(const QString &symbol) const
+    QString BybitPrivateDataStreamer::createPositionStream() const
     {
-        return QString("kline.1.%1").arg(symbol);
+        return "position";
     }
 
-    QString BybitDataStreamer::createPublicTradeStream(const QString &symbol) const
+    QString BybitPrivateDataStreamer::createExecutionStream() const
     {
-        return QString("publicTrade.%1").arg(symbol);
+        return "execution";
     }
 
-    void BybitDataStreamer::onStarted()
-    {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (!m_lastPair.isEmpty())
-        {
-            subscribeSymbol(m_lastPair, {
-                                            Markets::WebSocketStreams::Ticker,
-                                            Markets::WebSocketStreams::Orderbook,
-                                            Markets::WebSocketStreams::Kline,
-                                            Markets::WebSocketStreams::PublicTrade
-                                        });
-        }
-        emit started();
-    }
-
-    void BybitDataStreamer::onStopped()
+    void BybitPrivateDataStreamer::onStarted()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        emit stopped();
+        subscribe({
+            Markets::PrivateStreams::Order,
+            Markets::PrivateStreams::Position,
+            Markets::PrivateStreams::Execution,
+            Markets::PrivateStreams::Wallet
+        });
+        emit started(id());
     }
 
-    void BybitDataStreamer::onPingMeasured(qint64 pingMs)
+    void BybitPrivateDataStreamer::onStopped()
+    {
+        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
+        emit stopped(id());
+    }
+
+    void BybitPrivateDataStreamer::onPingMeasured(qint64 pingMs)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         emit pingMeasured(pingMs);
     }
 
-    void BybitDataStreamer::onErrorOccurred(const QString &error)
+    void BybitPrivateDataStreamer::onErrorOccurred(const QString &error)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        emit errorOccurred(error);
+        emit errorOccurred(id(), error);
     }
 
-    void BybitDataStreamer::onMessageReceived(const QJsonObject &message)
+    void BybitPrivateDataStreamer::onMessageReceived(const QJsonObject &message)
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         if (!message.contains("topic"))
@@ -143,24 +151,14 @@ namespace Core::Markets
         }
     }
 
-    bool BybitDataStreamer::hasRunned()
+    bool BybitPrivateDataStreamer::isRunning()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
         return m_webSocket && m_webSocket->isOpen();
     }
 
-    void BybitDataStreamer::setApi(const Tools::Api& api)
-    {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-
-        if (!m_webSocket)
-            return;
-
-        m_webSocket->initApi(api);
-    }
-
-    void BybitDataStreamer::start()
+    void BybitPrivateDataStreamer::start()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
@@ -170,7 +168,7 @@ namespace Core::Markets
         m_webSocket->open();
     }
 
-    void BybitDataStreamer::stop()
+    void BybitPrivateDataStreamer::stop()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
@@ -183,7 +181,7 @@ namespace Core::Markets
         m_webSocket->close();
     }
 
-    void BybitDataStreamer::restart()
+    void BybitPrivateDataStreamer::restart()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 

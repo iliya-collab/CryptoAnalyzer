@@ -2,39 +2,47 @@
 
 namespace Core::Tools {
 
-    int TradePairsModel::rowCount(const QModelIndex &parent) const {
+    int TradePairsModel::rowCount(const QModelIndex &parent) const
+    {
         return m_pairs.size();
     }
 
-    QVariant TradePairsModel::data(const QModelIndex &index, int role) const {
+    QVariant TradePairsModel::data(const QModelIndex &index, int role) const
+    {
 
         if (!index.isValid() || index.row() >= m_pairs.size())
             return QVariant();
 
         const auto& trade = m_pairs.at(index.row());
 
-        switch (role) {
+        switch (role)
+        {
         case SymbolRole:
-            return trade.symbol;
+            return trade.m_symbol;
         case QuoteRole:
-            return trade.quote_coin;
+            return trade.m_quoteCoin;
         case BaseRole:
-            return trade.base_coin;
+            return trade.m_baseCoin;
+        case CategoryRole:
+            return QVariant::fromValue(trade.m_category);
         default:
             return QVariant();
         };
 
     }
 
-    QHash<int, QByteArray> TradePairsModel::roleNames() const {
+    QHash<int, QByteArray> TradePairsModel::roleNames() const
+    {
         return {
             {SymbolRole, "symbol"},
             {QuoteRole, "quote"},
-            {BaseRole, "base"}
+            {BaseRole, "base"},
+            {CategoryRole, "category"}
         };
     }
 
-    void TradePairsModel::updateTradePairs(const QList<TradeInfo>& pairs) {
+    void TradePairsModel::updateTradePairs(const QList<TradeInfo>& pairs)
+    {
         beginResetModel();
         m_pairs = pairs;
         endResetModel();

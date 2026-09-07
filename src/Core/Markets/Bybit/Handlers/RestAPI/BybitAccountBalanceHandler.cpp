@@ -3,7 +3,7 @@
 namespace Core::Markets
 {
 
-    void BybitAccountBalanceHandler::handle(const QJsonObject &data, IMarketService* service)
+    void BybitAccountBalanceHandler::handle(const QJsonObject &data, IMarketDataService* service)
     {
         //qDebug() << QJsonDocument(data).toJson(QJsonDocument::Compact);
 

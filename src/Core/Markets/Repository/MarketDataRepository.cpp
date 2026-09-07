@@ -25,10 +25,11 @@ namespace Core::Markets {
         }
     }
 
-    QList<Tools::TradeInfo> MarketDataRepository::loadAllFromCryptoRepository() {
+    QList<Tools::TradeInfo> MarketDataRepository::loadAllFromCryptoRepository(Tools::MarketType type)
+    {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         QMutexLocker locker(&m_mutex);
-        if (!m_cryptoRep->selectTrades()) {
+        if (!m_cryptoRep->selectTrades(type)) {
             emit errorOccurred(m_cryptoRep->error());
             return QList<Tools::TradeInfo>();
         }

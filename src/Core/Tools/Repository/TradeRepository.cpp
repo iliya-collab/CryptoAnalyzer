@@ -10,6 +10,7 @@ namespace Core::Tools {
         QString query = R"(
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY,
+                category TEXT NOT NULL,
                 symbol TEXT NOT NULL,
                 side TEXT NOT NULL,
                 price REAL,

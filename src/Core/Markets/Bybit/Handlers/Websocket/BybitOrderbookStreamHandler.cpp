@@ -1,6 +1,6 @@
 #include "BybitOrderbookStreamHandler.hpp"
 
-void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
+void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
 {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
@@ -32,6 +32,8 @@ void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, 
         double size = ask[1].toString().toDouble();
         orderbook.m_asks.insert(price, size);
     }
+
+    m_savedOrderbook.m_category = Tools::stringToMarketType(streamer->id());
 
     if (type == "snapshot")
         snapshotOrderbook(m_savedOrderbook, orderbook);

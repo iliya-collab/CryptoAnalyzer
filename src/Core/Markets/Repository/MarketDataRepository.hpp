@@ -23,7 +23,7 @@ namespace Core::Markets {
         explicit MarketDataRepository(QObject* parent = nullptr);
 
         // Загрузка всех данных из крипторепозитория
-        QList<Tools::TradeInfo> loadAllFromCryptoRepository();
+        QList<Tools::TradeInfo> loadAllFromCryptoRepository(Tools::MarketType type);
         void clearCryptoRepository();
 
         // Сохранение данных в крипторепозитории

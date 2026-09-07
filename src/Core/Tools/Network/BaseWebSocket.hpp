@@ -1,4 +1,5 @@
 #pragma once
+#include "SocketType.hpp"
 #include "Tools/StdTypes.hpp"
 #include <QObject>
 #include <QWebSocket>
@@ -6,21 +7,21 @@
 namespace Core::Tools
 {
 
+    // Разделить на Private и Public
     class BaseWebSocket : public QObject
     {
         Q_OBJECT
     public:
 
-        // Тип сокета: публичный (рыночные данные) или приватный (данные аккаунта)
-        enum class SocketType {
-            Public,
-            Private
-        };
-
-        explicit BaseWebSocket(SocketType type = SocketType::Public, QObject* parent = nullptr);
+        explicit BaseWebSocket(SocketType socketType = SocketType::Public, QObject* parent = nullptr);
         virtual ~BaseWebSocket();
 
-        virtual void initApi(const Api& api) = 0;
+        void setApi(const Api& api = Api()) { m_api = api; }
+        void setUrl(const QString& url) { m_connectUrl = url; }
+        void setId(const QString& str) { m_id = str; }
+        QString getId() { return m_id; }
+
+        virtual void init(const Api& api = Api()) = 0;
 
         // Открыть websocket
         void open();
@@ -41,13 +42,15 @@ namespace Core::Tools
         virtual void sendAuthMessage() = 0; // Отправка сообщения об авторизации
         virtual void sendPingMessage() = 0; // Отправка сообщения о пинге
 
-        SocketType m_type;                          // Тип сокета
+        QString m_id = "";
+        SocketType m_socketType;                    // Тип сокета
         std::unique_ptr<QWebSocket> m_webSocket;    // Веб-сокет
         std::unique_ptr<QTimer> m_pingTimer;        // Таймер для отправки ping сообщений
         std::unique_ptr<QTimer> m_reconnectTimer;   // Таймер для повторных попыток
         bool m_isManualClose = false;               // Закрыли мы сокет сами или произошел сбой
         int m_reconnectDelay = 1000;                // Задержка между попытками (мс)
         QString m_connectUrl = "";
+        Api m_api{};
 
     signals:
 

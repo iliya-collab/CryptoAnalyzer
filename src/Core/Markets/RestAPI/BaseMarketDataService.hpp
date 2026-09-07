@@ -7,12 +7,12 @@
 namespace Core::Markets
 {
 
-    class BaseMarketApiService : public IMarketService
+    class BaseMarketDataService : public IMarketDataService
     {
         Q_OBJECT
 \
     private:
-        std::map<QString, std::unique_ptr<IResponseHandler>> m_handlers;
+        std::map<QString, std::unique_ptr<IMarketDataResponseHandler>> m_handlers;
 
     protected:
 
@@ -24,7 +24,7 @@ namespace Core::Markets
             requires HasEndpoint<IHandler>
         void registerHandler()
         {
-            static_assert(std::is_base_of<IResponseHandler, IHandler>::value, "IHandler must inherit from IResponseHandler!");
+            static_assert(std::is_base_of<IMarketDataResponseHandler, IHandler>::value, "IHandler must inherit from IMarketDataResponseHandler!");
 
             auto response = std::make_unique<IHandler>();
 
@@ -48,15 +48,15 @@ namespace Core::Markets
 
     public:
 
-        explicit BaseMarketApiService(std::unique_ptr<Tools::BaseRestAPI> api, QObject* parent = nullptr)
-            : IMarketService(parent), m_currentApi(std::move(api))
+        explicit BaseMarketDataService(std::unique_ptr<Tools::BaseRestAPI> api, QObject* parent = nullptr)
+            : IMarketDataService(parent), m_currentApi(std::move(api))
         {
-            connect(m_currentApi.get(), &Tools::BaseRestAPI::downloadProgress, this, &BaseMarketApiService::downloadProgress, Qt::UniqueConnection);
-            connect(m_currentApi.get(), &Tools::BaseRestAPI::errorOccurred, this, &BaseMarketApiService::errorOccurred, Qt::UniqueConnection);
-            connect(m_currentApi.get(), &Tools::BaseRestAPI::dataReceived, this, &BaseMarketApiService::onDataReceived, Qt::UniqueConnection);
+            connect(m_currentApi.get(), &Tools::BaseRestAPI::downloadProgress, this, &BaseMarketDataService::downloadProgress, Qt::UniqueConnection);
+            connect(m_currentApi.get(), &Tools::BaseRestAPI::errorOccurred, this, &BaseMarketDataService::errorOccurred, Qt::UniqueConnection);
+            connect(m_currentApi.get(), &Tools::BaseRestAPI::dataReceived, this, &BaseMarketDataService::onDataReceived, Qt::UniqueConnection);
         }
 
-        virtual ~BaseMarketApiService() {}
+        virtual ~BaseMarketDataService() {}
 
     protected slots:
 

@@ -11,6 +11,9 @@ namespace Core {
         m_bids = std::make_shared<Tools::OrderbookSideModel>(Core::Tools::OrderbookSideModel::Side::Bid);
         m_trades = std::make_shared<Tools::TradeModel>();
         m_assets = std::make_shared<Tools::AssetModel>();
+        m_orders = std::make_shared<Tools::OrderModel>();
+        m_executions = std::make_shared<Tools::ExecutionModel>();
+        m_positions = std::make_shared<Tools::PositionModel>();
     }
 
     void MarketDataState::updateTradePairs(const QList<Tools::TradeInfo>& pairs)
@@ -50,7 +53,6 @@ namespace Core {
 
     void MarketDataState::updateOrderbook(const Tools::Orderbook& orderbook)
     {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_asks->update(orderbook.m_asks);
         m_bids->update(orderbook.m_bids);
         emit asksChanged();
@@ -65,7 +67,6 @@ namespace Core {
 
     void MarketDataState::updatePingMs(qint64 pingMs)
     {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         m_pingMs = pingMs;
         emit pingMsChanged();
     }
@@ -83,6 +84,24 @@ namespace Core {
 
         emit overallAssetsBalanceChanged();
         emit assetsChanged();
+    }
+
+    void MarketDataState::updateOrder(const Tools::OrderInfo &order)
+    {
+        m_orders->upsertOrder(order);
+        emit ordersChanged();
+    }
+
+    void MarketDataState::updateExecution(const Tools::ExecutionInfo &execution)
+    {
+        m_executions->addExecution(execution);
+        emit executionsChanged();
+    }
+
+    void MarketDataState::updatePosition(const Tools::PositionInfo &position)
+    {
+        m_positions->upsertPosition(position);
+        emit positionsChanged();
     }
 
 }

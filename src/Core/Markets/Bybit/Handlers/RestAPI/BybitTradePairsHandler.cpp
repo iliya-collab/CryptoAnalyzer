@@ -9,18 +9,19 @@ namespace Core::Markets
         QString category = result["category"].toString();
         QJsonArray list = result["list"].toArray();
 
-        for (const auto& obj : list)
+        for (const auto& obj : std::as_const(list))
         {
             QJsonObject item = obj.toObject();
             Tools::TradeInfo info;
-            info.symbol = item["symbol"].toString();
-            info.base_coin = item["baseCoin"].toString();
-            info.quote_coin = item["quoteCoin"].toString();
+            info.m_category = Tools::stringToMarketType(category);
+            info.m_symbol = item["symbol"].toString();
+            info.m_baseCoin = item["baseCoin"].toString();
+            info.m_quoteCoin = item["quoteCoin"].toString();
             pairs.append(info);
         }
     }
 
-    void BybitTradePairsHandler::handle(const QJsonObject &data, IMarketService *service)
+    void BybitTradePairsHandler::handle(const QJsonObject &data, IMarketDataService *service)
     {
         if (!data.contains("retMsg") || data["retMsg"].toString() != "OK")
         {

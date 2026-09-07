@@ -11,6 +11,7 @@ namespace Core::Tools {
         queries << R"(
             CREATE TABLE IF NOT EXISTS candles (
                 id INTEGER PRIMARY KEY,
+                category TEXT NOT NULL,
                 symbol TEXT NOT NULL,
                 interval TEXT NOT NULL,
                 start INTEGER NOT NULL,
@@ -21,14 +22,13 @@ namespace Core::Tools {
                 low REAL,
                 volume REAL,
                 turnover REAL,
-                UNIQUE(symbol, interval, start, end)
+                UNIQUE(category, symbol, interval, start, end)
             )
         )";
 
         queries << "CREATE INDEX IF NOT EXISTS idx_candles_start ON candles(start)";
         queries << "CREATE INDEX IF NOT EXISTS idx_candles_end ON candles(end)";
         queries << "CREATE INDEX IF NOT EXISTS idx_candles_interval ON candles(interval)";
-
 
         return m_dbManager.executeTransaction(m_dbPath, queries);
     }
@@ -72,9 +72,9 @@ namespace Core::Tools {
         for (const auto& item : newKlines)
             if (!m_dbManager.executePrepared(m_dbPath,
                 R"(
-                    INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(symbol, interval, start, end)
+                    INSERT INTO candles (category, symbol, interval, start, end, open, close, high, low, volume, turnover)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(category, symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
@@ -83,7 +83,8 @@ namespace Core::Tools {
                         volume = EXCLUDED.volume,
                         turnover = EXCLUDED.turnover;
                 )",
-                { item.m_symbol, item.m_interval, item.m_start,
+                { Tools::marketTypeToString(item.m_category),
+                    item.m_symbol, item.m_interval, item.m_start,
                     item.m_end, item.m_open, item.m_close,
                     item.m_high, item.m_low, item.m_volume, item.m_turnover }))
             {
@@ -97,9 +98,9 @@ namespace Core::Tools {
     bool KlineRepository::insertKline(const Kline& newKline) {
         return m_dbManager.executePrepared(m_dbPath,
             R"(
-                INSERT INTO candles (symbol, interval, start, end, open, close, high, low, volume, turnover)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(symbol, interval, start, end)
+                INSERT INTO candles (category, symbol, interval, start, end, open, close, high, low, volume, turnover)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(category, symbol, interval, start, end)
                     DO UPDATE SET
                         open = EXCLUDED.open,
                         close = EXCLUDED.close,
@@ -108,7 +109,8 @@ namespace Core::Tools {
                         volume = EXCLUDED.volume,
                         turnover = EXCLUDED.turnover;
             )",
-            { newKline.m_symbol, newKline.m_interval, newKline.m_start,
+            { Tools::marketTypeToString(newKline.m_category),
+                newKline.m_symbol, newKline.m_interval, newKline.m_start,
                 newKline.m_end, newKline.m_open, newKline.m_close,
                 newKline.m_high, newKline.m_low, newKline.m_volume, newKline.m_turnover });
     }

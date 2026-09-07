@@ -1,4 +1,5 @@
 #include "BybitWebSocket.hpp"
+#include "BybitEndpointProvider.hpp"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -7,32 +8,19 @@
 
 namespace Core::Tools {
 
-    BybitWebSocket::BybitWebSocket(SocketType type, QObject* parent) : BaseWebSocket(type, parent) {}
+    BybitWebSocket::BybitWebSocket(SocketType socketType, MarketType marketType, QObject* parent) : BaseWebSocket(socketType, parent) {}
 
-    void BybitWebSocket::initApi(const Api& api)
+    void BybitWebSocket::init(const Api &api)
     {
-        m_api = api;
-        switch (m_type)
-        {
-        case SocketType::Public: // Публичное соединение (без аутентификации)
-            m_connectUrl = m_api.m_isTestnet ?
-                      "wss://stream-testnet.bybit.com/v5/public/spot" :
-                      "wss://stream.bybit.com/v5/public/spot";
-            break;
-
-        case SocketType::Private: // Приватное соединение (с аутентификацией)
-            m_connectUrl = m_api.m_isTestnet ?
-                      "wss://stream-testnet.bybit.com/v5/private" :
-                      "wss://stream.bybit.com/v5/private";
-            break;
-        }
+        setApi(api);
+        setUrl(BybitEndpointProvider::webSocketUrl(m_socketType, m_marketType, api.m_isTestnet));
     }
 
     void BybitWebSocket::onConnected()
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        if (m_type == SocketType::Private)
+        if (m_socketType == SocketType::Private)
             sendAuthMessage();
 
         sendPingMessage();
@@ -168,7 +156,7 @@ namespace Core::Tools {
 
     void BybitWebSocket::processMessage(const QJsonObject &obj)
     {
-        QJsonDocument doc(obj);
+        //QJsonDocument doc(obj);
         //qDebug() << doc.toJson(QJsonDocument::Compact);
 
         // Обработа ping

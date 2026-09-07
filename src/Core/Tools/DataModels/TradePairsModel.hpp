@@ -13,7 +13,8 @@ namespace Core::Tools {
         enum Roles {
             SymbolRole = Qt::UserRole + 1,
             QuoteRole,
-            BaseRole
+            BaseRole,
+            CategoryRole
         };
 
         explicit TradePairsModel(QObject* parent = nullptr) : QAbstractListModel(parent) {}

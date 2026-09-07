@@ -13,10 +13,13 @@ namespace Core::Tools {
 
     public:
 
-        explicit BybitWebSocket(SocketType type, QObject* parent = nullptr);
+        explicit BybitWebSocket(SocketType socketType, MarketType marketType = MarketType::Spot, QObject* parent = nullptr);
         ~BybitWebSocket() = default;
 
-        void initApi(const Api& api) override;
+        void setMarketType(MarketType type) { m_marketType = type; }
+        QString getMarketType() const { return marketTypeToString(m_marketType); }
+
+        void init(const Api& api = Api()) override;
 
     private slots:
 
@@ -42,10 +45,9 @@ namespace Core::Tools {
         // Криптография для приватного канала
         QString generateSignature(const QString& apiKey, const QString& apiSecret, const QString& expires);
 
+        MarketType m_marketType;                    // Тип рынка
         QMap<QString, qint64> m_pingTimestamps; // req_id -> timestamp отправки
         double m_pingMs = 0;
-
-        Api m_api;
         const int ACTIVE_PING_INTERVAL = 20000;
 
     };
