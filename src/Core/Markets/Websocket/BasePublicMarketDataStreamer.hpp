@@ -2,6 +2,7 @@
 #include "Tools/Network/BaseWebSocket.hpp"
 #include "IStreamHandler.hpp"
 #include "IPublicMarketDataStreamer.hpp"
+#include "StreamerConcepts.hpp"
 
 namespace Core::Markets
 {
@@ -25,12 +26,33 @@ namespace Core::Markets
         virtual void onStopped() = 0;
         virtual void onPingMeasured(qint64 pingMs) = 0;
         virtual void onErrorOccurred(const QString& error) = 0;
-        virtual void onMessageReceived(const QJsonObject& message) = 0;
+        virtual void onMessageReceived(const QJsonObject& message)
+        {
+            if (!message.contains("topic"))
+                return;
+
+            QString topic = message["topic"].toString();
+            bool success = false;
+
+            for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
+            {
+                if (topic.startsWith(it->first))
+                {
+                    it->second->handle(message, this);
+                    success = true;
+                    break;
+                }
+            }
+
+            if (!success)
+                emit errorOccurred(id(), "Unknown topic: " + topic);
+        }
 
     protected:
 
         template<typename IHandler>
-        void registerHandler(const QString& topic)
+            requires HasTopic<IHandler>
+        void registerHandler()
         {
             static_assert(std::is_base_of<IPublicStreamHandler, IHandler>::value, "IHandler must inherit from IPublicStreamHandler!");
 
@@ -39,6 +61,7 @@ namespace Core::Markets
             if (!responseToTopic)
                 return;
 
+            QString topic = IHandler::topic();
             m_handlers[topic] = std::move(responseToTopic);
         }
 

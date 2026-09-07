@@ -8,6 +8,8 @@ namespace Core::Markets
     {
     public:
 
+        static QString topic() { return "tickers"; }
+
         void handle(const QJsonObject& obj, IPublicMarketDataStreamer* streamer) override;
 
     };

@@ -13,7 +13,6 @@ namespace Core::Markets
         void onStopped() override;
         void onPingMeasured(qint64 pingMs) override;
         void onErrorOccurred(const QString& error) override;
-        void onMessageReceived(const QJsonObject& message) override;
 
     public:
 

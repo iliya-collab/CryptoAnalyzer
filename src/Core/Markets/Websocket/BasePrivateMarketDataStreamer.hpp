@@ -2,6 +2,7 @@
 #include "Tools/Network/BaseWebSocket.hpp"
 #include "IStreamHandler.hpp"
 #include "IPrivateMarketDataStreamer.hpp"
+#include "StreamerConcepts.hpp"
 
 namespace Core::Markets
 {
@@ -26,12 +27,24 @@ namespace Core::Markets
         virtual void onStopped() = 0;
         virtual void onPingMeasured(qint64 pingMs) = 0;
         virtual void onErrorOccurred(const QString& error) = 0;
-        virtual void onMessageReceived(const QJsonObject& message) = 0;
+        virtual void onMessageReceived(const QJsonObject& message)
+        {
+            if (!message.contains("topic"))
+                return;
+
+            QString receivedTopic = message["topic"].toString();
+
+            if (m_handlers.contains(receivedTopic))
+                m_handlers[receivedTopic]->handle(message, this);
+            else
+                emit errorOccurred(id(), "Unknown topic: " + receivedTopic);
+        }
 
     protected:
 
         template<typename IHandler>
-        void registerHandler(const QString& topic)
+            requires HasTopic<IHandler>
+        void registerHandler()
         {
             static_assert(std::is_base_of<IPrivateStreamHandler, IHandler>::value, "IHandler must inherit from IPrivateStreamHandler!");
 
@@ -40,6 +53,7 @@ namespace Core::Markets
             if (!responseToTopic)
                 return;
 
+            QString topic = IHandler::topic();
             m_handlers[topic] = std::move(responseToTopic);
         }
 

@@ -15,10 +15,10 @@ namespace Core::Markets
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
-        registerHandler<BybitWalletStreamHandler>("wallet");
-        registerHandler<BybitOrderStreamHandler>("order");
-        registerHandler<BybitExecutionStreamHandler>("execution");
-        registerHandler<BybitPositionStreamHandler>("position");
+        registerHandler<BybitWalletStreamHandler>();
+        registerHandler<BybitOrderStreamHandler>();
+        registerHandler<BybitExecutionStreamHandler>();
+        registerHandler<BybitPositionStreamHandler>();
     }
 
     BybitPrivateDataStreamer::~BybitPrivateDataStreamer()
@@ -132,23 +132,6 @@ namespace Core::Markets
     {
         qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
         emit errorOccurred(id(), error);
-    }
-
-    void BybitPrivateDataStreamer::onMessageReceived(const QJsonObject &message)
-    {
-        qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
-        if (!message.contains("topic"))
-            return;
-
-        QString topic = message["topic"].toString();
-        for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
-        {
-            if (topic.startsWith(it->first))
-            {
-                it->second->handle(message, this);
-                break;
-            }
-        }
     }
 
     bool BybitPrivateDataStreamer::isRunning()

@@ -8,6 +8,8 @@ namespace Core::Markets
     {
     public:
 
+        static QString topic() { return "wallet"; }
+
         void handle(const QJsonObject& data, IPrivateMarketDataStreamer* streamer) override;
 
     };

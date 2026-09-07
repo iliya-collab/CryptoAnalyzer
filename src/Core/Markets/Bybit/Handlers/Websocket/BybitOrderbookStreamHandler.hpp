@@ -15,6 +15,8 @@ namespace Core::Markets
 
     public:
 
+        static QString topic() { return "orderbook"; }
+
         void handle(const QJsonObject& obj, IPublicMarketDataStreamer* streamer) override;
 
     };

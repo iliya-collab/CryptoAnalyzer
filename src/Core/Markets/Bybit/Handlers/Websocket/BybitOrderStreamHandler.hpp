@@ -7,6 +7,9 @@ namespace Core::Markets
     class BybitOrderStreamHandler : public IPrivateStreamHandler
     {
     public:
+
+        static QString topic() { return "order"; }
+
         void handle(const QJsonObject& data, IPrivateMarketDataStreamer* streamer) override;
     };
 
