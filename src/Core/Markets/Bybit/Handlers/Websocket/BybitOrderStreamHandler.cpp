@@ -1,10 +1,10 @@
 #include "BybitOrderStreamHandler.hpp"
 
-void Core::Markets::BybitOrderStreamHandler::handle(const QJsonObject &data, IPrivateMarketDataStreamer *streamer)
+void Core::Markets::BybitOrderStreamHandler::handle(const QJsonObject &data, IPrivateStreamer *streamer)
 {
     if (!data.contains("data") || !data["data"].isArray())
     {
-        emit streamer->errorOccurred(streamer->id(), "[Order] Invalid response structure!");
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
     }
 

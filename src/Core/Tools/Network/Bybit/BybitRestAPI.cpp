@@ -45,42 +45,19 @@ namespace Core::Tools {
         reply->deleteLater();
     }
 
-    BybitRestAPI::APIHeaders BybitRestAPI::initAPIHeaders(const QString& queryString)
+    QUrl BybitRestAPI::requestEndpointGet(const QString& endpoint, const QUrlQuery& params, int timeout)
     {
-        APIHeaders headers;
-        headers.X_BAPI_API_KEY = m_api.m_apiKey;
-        headers.X_BAPI_TIMESTAMP = QString::number(QDateTime::currentMSecsSinceEpoch());
-        headers.X_BAPI_RECV_WINDOW = "5000";
-        headers.X_BAPI_SIGN = generateSignature(headers.X_BAPI_TIMESTAMP, headers.X_BAPI_RECV_WINDOW, queryString);
-        return headers;
-    }
-
-    void BybitRestAPI::addAPIHeaders(const QUrl& url, QNetworkRequest& request)
-    {
-        QUrlQuery sortedQuery(url);
-        sortedQuery.setQueryItems(sortedQuery.queryItems());
-        QString queryString = sortedQuery.toString(QUrl::FullyEncoded);
-
-        APIHeaders headers = initAPIHeaders(queryString);
-        request.setRawHeader("X-BAPI-SIGN", headers.X_BAPI_SIGN.toUtf8());
-        request.setRawHeader("X-BAPI-API-KEY", headers.X_BAPI_API_KEY.toUtf8());
-        request.setRawHeader("X-BAPI-TIMESTAMP", headers.X_BAPI_TIMESTAMP.toUtf8());
-        request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
-    }
-
-    QUrl BybitRestAPI::requestEndpoint(const QString& endpoint, const QUrlQuery& params, int timeout)
-    {
-        QString urlString = m_baseEndpoint + endpoint;
-        QUrl url(urlString);
-
+        QUrl url(m_baseEndpoint + endpoint);
         if (!params.isEmpty())
             url.setQuery(params);
 
         //qInfo() << "Request URL:" << url.toString(QUrl::FullyEncoded);
 
-        QNetworkRequest request(url);
+        QString queryString = QUrlQuery(url).toString(QUrl::FullyEncoded);
+        ApiHeaders headers = initApiHeaders(queryString);
 
-        addAPIHeaders(url, request);
+        QNetworkRequest request(url);
+        applyHeaders(request, headers);
 
         request.setRawHeader("Connection", "keep-alive");
         request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
@@ -96,6 +73,52 @@ namespace Core::Tools {
         connect(reply, &QNetworkReply::downloadProgress, this, &BybitRestAPI::downloadProgress, Qt::UniqueConnection);
 
         return request.url();
+    }
+
+    QUrl BybitRestAPI::requestEndpointPost(const QString &endpoint, const QByteArray &jsonBody, int timeout)
+    {
+        QUrl url(m_baseEndpoint + endpoint);
+
+        //qInfo() << "Request URL:" << url.toString(QUrl::FullyEncoded);
+
+        QString bodyString = QString::fromUtf8(jsonBody);
+        ApiHeaders headers = initApiHeaders(bodyString);
+
+        QNetworkRequest request(url);
+        applyHeaders(request, headers);
+
+        request.setRawHeader("Connection", "keep-alive");
+        request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+        request.setHeader(QNetworkRequest::UserAgentHeader, "Mozilla/5.0");
+
+        if (timeout > 0)
+            request.setTransferTimeout(timeout);
+
+        QNetworkReply* reply = m_manager->get(request);
+
+        connect(reply, &QNetworkReply::finished, this, &BybitRestAPI::onHandleResponse, Qt::UniqueConnection);
+        connect(reply, &QNetworkReply::downloadProgress, this, &BybitRestAPI::downloadProgress, Qt::UniqueConnection);
+
+        return request.url();
+    }
+
+    BybitRestAPI::ApiHeaders BybitRestAPI::initApiHeaders(const QString& queryString)
+    {
+        ApiHeaders headers;
+        headers.X_BAPI_API_KEY = m_api.m_apiKey;
+        headers.X_BAPI_TIMESTAMP = QString::number(QDateTime::currentMSecsSinceEpoch());
+        headers.X_BAPI_RECV_WINDOW = "5000";
+        headers.X_BAPI_SIGN = generateSignature(headers.X_BAPI_TIMESTAMP, headers.X_BAPI_RECV_WINDOW, queryString);
+        return headers;
+    }
+
+    void BybitRestAPI::applyHeaders(QNetworkRequest& request, const ApiHeaders& headers)
+    {
+        request.setRawHeader("X-BAPI-SIGN", headers.X_BAPI_SIGN.toUtf8());
+        request.setRawHeader("X-BAPI-API-KEY", headers.X_BAPI_API_KEY.toUtf8());
+        request.setRawHeader("X-BAPI-TIMESTAMP", headers.X_BAPI_TIMESTAMP.toUtf8());
+        request.setRawHeader("X-BAPI-RECV-WINDOW", headers.X_BAPI_RECV_WINDOW.toUtf8());
     }
 
     QString BybitRestAPI::generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString)

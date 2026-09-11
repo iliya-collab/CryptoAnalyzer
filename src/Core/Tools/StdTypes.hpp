@@ -556,8 +556,8 @@ struct OrderRequest
     OrderSide m_side = OrderSide::Unknown; // Обязательно: Buy или Sell
     OrderType m_orderType = OrderType::Unknown; // Обязательно: Limit или Market
     QString m_qty; // Обязательно: объем ордера (строкой, как того требует API)
-    QString m_price; // Обязателен для Limit; для Market обычно не передается
 
+    std::optional<QString> m_price; // Обязателен для Limit; для Market обычно не передается
     std::optional<QString> m_orderLinkId; // Опционально: клиентский ID для локального трекинга
     std::optional<TimeInForce> m_timeInForce = TimeInForce::GTC; // Опционально: GTC (по умолчанию), IOC, FOK, PostOnly
     std::optional<QString> m_takeProfit; // Опционально: цена тейк-профита
@@ -571,9 +571,9 @@ struct OrderAmendRequest
 {
     MarketType m_category = MarketType::Unknown; // Обязательно
     QString m_symbol; // Обязательно
-
-    std::optional<QString> m_orderId; // orderId ИЛИ orderLinkId — нужен хотя бы один
+    std::optional<QString> m_orderId; // Обязательно: orderId ИЛИ orderLinkId — нужен хотя бы один
     std::optional<QString> m_orderLinkId;
+
     std::optional<QString> m_qty; // Новое количество (опционально)
     std::optional<QString> m_price; // Новая цена (опционально)
     std::optional<QString> m_triggerPrice; // Новая триггерная цена для стоп-ордеров (опционально)
@@ -586,8 +586,7 @@ struct OrderCancelRequest
 {
     MarketType m_category = MarketType::Unknown; // Обязательно
     QString m_symbol; // Обязательно
-
-    std::optional<QString> m_orderId; // orderId ИЛИ orderLinkId — нужен хотя бы один
+    std::optional<QString> m_orderId; // Обязательно: orderId ИЛИ orderLinkId — нужен хотя бы один
     std::optional<QString> m_orderLinkId;
 };
 
@@ -610,7 +609,7 @@ struct OpenOrdersRequest
     std::optional<QString> m_symbol; // Опционально: фильтр по паре
     std::optional<QString> m_orderId; // Опционально: поиск конкретного ордера
     std::optional<QString> m_orderLinkId;
-    bool m_openOnly = false; // false (0) — только открытые (по умолчанию); true (1) — из последних 500 в финальном статусе
+    std::optional<bool> m_openOnly = false; // false (0) — только открытые (по умолчанию); true (1) — из последних 500 в финальном статусе
 };
 
 // Запрос истории закрытых/отмененных/исполненных ордеров (архив до 2 лет).

@@ -50,7 +50,7 @@ QVariant Core::Tools::ExecutionModel::data(const QModelIndex &index, int role) c
 
 QHash<int, QByteArray> Core::Tools::ExecutionModel::roleNames() const
 {
-    return {
+    static const QHash<int, QByteArray> roles = {
         { CategoryRole,    "category" },
         { SymbolRole,      "symbol" },
         { ExecIdRole,      "execId" },
@@ -67,6 +67,8 @@ QHash<int, QByteArray> Core::Tools::ExecutionModel::roleNames() const
         { ExecTimeRole,    "execTime" },
     };
 
+    return roles;
+
 }
 
 void Core::Tools::ExecutionModel::addExecution(const ExecutionInfo &execution)
@@ -74,6 +76,13 @@ void Core::Tools::ExecutionModel::addExecution(const ExecutionInfo &execution)
     beginInsertRows(QModelIndex(), 0, 0);
     m_executions.prepend(execution);
     endInsertRows();
+
+    if (m_executions.size() > m_maxItem)
+    {
+        beginRemoveRows(QModelIndex(), m_executions.size() - 1, m_executions.size() - 1);
+        m_executions.removeLast();
+        endRemoveRows();
+    }
 }
 
 void Core::Tools::ExecutionModel::addExecutionBatch(const QList<ExecutionInfo> &executions)
@@ -100,9 +109,13 @@ QList<Core::Tools::ExecutionInfo> Core::Tools::ExecutionModel::executionsForOrde
 
 void Core::Tools::ExecutionModel::setMaxItem(int max)
 {
+    max = std::max(1, max);
+
     if (m_maxItem == max)
         return;
+
     m_maxItem = max;
+
     emit maxItemChanged();
     trimIfNeeded();
 }

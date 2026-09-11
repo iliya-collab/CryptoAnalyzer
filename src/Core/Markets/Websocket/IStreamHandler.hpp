@@ -1,6 +1,6 @@
 #pragma once
-#include "IPublicMarketDataStreamer.hpp"
-#include "IPrivateMarketDataStreamer.hpp"
+#include "IMarketDataStreamer.hpp"
+#include "IPrivateStreamer.hpp"
 #include <QJsonObject>
 
 namespace Core::Markets
@@ -14,6 +14,6 @@ namespace Core::Markets
         virtual void handle(const QJsonObject& data, TStreamer* streamer) = 0;
     };
 
-    using IPublicStreamHandler = IStreamHandler<IPublicMarketDataStreamer>;
-    using IPrivateStreamHandler = IStreamHandler<IPrivateMarketDataStreamer>;
+    using IMarketDataStreamHandler = IStreamHandler<IMarketDataStreamer>;
+    using IPrivateStreamHandler = IStreamHandler<IPrivateStreamer>;
 }

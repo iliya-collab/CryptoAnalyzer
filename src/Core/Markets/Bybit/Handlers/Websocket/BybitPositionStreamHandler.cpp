@@ -1,10 +1,10 @@
 #include "BybitPositionStreamHandler.hpp"
 
-void Core::Markets::BybitPositionStreamHandler::handle(const QJsonObject &data, IPrivateMarketDataStreamer *streamer)
+void Core::Markets::BybitPositionStreamHandler::handle(const QJsonObject &data, IPrivateStreamer *streamer)
 {
     if (!data.contains("data") || !data["data"].isArray())
     {
-        emit streamer->errorOccurred(streamer->id(), "[Position] Invalid response structure!");
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
     }
 

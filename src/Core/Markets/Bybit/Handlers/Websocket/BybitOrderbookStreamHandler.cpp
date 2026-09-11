@@ -1,11 +1,14 @@
 #include "BybitOrderbookStreamHandler.hpp"
 
-void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
+void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
 {
     qDebug() << Q_FUNC_INFO << "called from:" << QThread::currentThread();
 
     if (!obj.contains("data") || !obj["data"].isObject())
+    {
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
+    }
 
     QJsonObject data = obj["data"].toObject();
     QString symbol = data["s"].toString();
@@ -16,7 +19,7 @@ void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, 
     orderbook.m_symbol = symbol;
 
     QJsonArray bidsArray = data.value("b").toArray();
-    for (const auto& bidVal : bidsArray)
+    for (const auto& bidVal : std::as_const(bidsArray))
     {
         QJsonArray bid = bidVal.toArray();
         double price = bid[0].toString().toDouble();
@@ -25,7 +28,7 @@ void Core::Markets::BybitOrderbookStreamHandler::handle(const QJsonObject &obj, 
     }
 
     QJsonArray asksArray = data.value("a").toArray();
-    for (const auto& askVal : asksArray)
+    for (const auto& askVal : std::as_const(asksArray))
     {
         QJsonArray ask = askVal.toArray();
         double price = ask[0].toString().toDouble();

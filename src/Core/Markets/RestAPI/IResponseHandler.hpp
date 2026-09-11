@@ -1,6 +1,6 @@
 #pragma once
 #include "IMarketDataService.hpp"
-#include "IOrderService.hpp"
+#include "IPrivateService.hpp"
 
 namespace Core::Markets
 {
@@ -15,6 +15,6 @@ public:
 };
 
 using IMarketDataResponseHandler = IResponseHandler<IMarketDataService>;
-using IOrderResponseHandler = IResponseHandler<IOrderService>;
+using IPrivateResponseHandler = IResponseHandler<IPrivateService>;
 
 }

@@ -4,13 +4,13 @@
 namespace Core::Markets
 {
 
-    class BybitTickerStreamHandler : public IPublicStreamHandler
+    class BybitTickerStreamHandler : public IMarketDataStreamHandler
     {
     public:
 
         static QString topic() { return "tickers"; }
 
-        void handle(const QJsonObject& obj, IPublicMarketDataStreamer* streamer) override;
+        void handle(const QJsonObject& obj, IMarketDataStreamer* streamer) override;
 
     };
 

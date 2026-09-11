@@ -1,9 +1,12 @@
 #include "BybitKlineStreamHandler.hpp"
 
-void Core::Markets::BybitKlineStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
+void Core::Markets::BybitKlineStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
 {
     if (!obj.contains("data") || !obj["data"].isArray())
+    {
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
+    }
 
     QJsonArray arrData = obj["data"].toArray();
     QString symbol = obj["topic"].toString().section('.', -1);

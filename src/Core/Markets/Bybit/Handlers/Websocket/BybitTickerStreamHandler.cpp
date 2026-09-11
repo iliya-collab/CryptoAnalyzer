@@ -1,9 +1,12 @@
 #include "BybitTickerStreamHandler.hpp"
 
-void Core::Markets::BybitTickerStreamHandler::handle(const QJsonObject &obj, IPublicMarketDataStreamer *streamer)
+void Core::Markets::BybitTickerStreamHandler::handle(const QJsonObject &obj, IMarketDataStreamer *streamer)
 {
     if (!obj.contains("data") || !obj["data"].isObject())
+    {
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
+    }
 
     QJsonObject data = obj["data"].toObject();
     QString symbol = data["symbol"].toString();

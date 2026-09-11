@@ -10,7 +10,7 @@ namespace Core::Markets
 
         static QString topic() { return "position"; }
 
-        void handle(const QJsonObject& data, IPrivateMarketDataStreamer* streamer) override;
+        void handle(const QJsonObject& data, IPrivateStreamer* streamer) override;
     };
 
 }

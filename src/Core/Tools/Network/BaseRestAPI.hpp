@@ -19,10 +19,10 @@ namespace Core::Tools
 
         virtual void init(const Api& api = Api()) = 0;
 
-        // Формирование запроса
-        virtual QUrl requestEndpoint(const QString& endpoint,
-                                     const QUrlQuery& params = QUrlQuery(),
-                                     int timeout = -1) = 0;
+        // Формирование GET запроса
+        virtual QUrl requestEndpointGet(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) = 0;
+        // Формирование POST запроса
+        virtual QUrl requestEndpointPost(const QString& endpoint, const QByteArray& jsonBody = QByteArray(), int timeout = -1) = 0;
 
     protected:
 

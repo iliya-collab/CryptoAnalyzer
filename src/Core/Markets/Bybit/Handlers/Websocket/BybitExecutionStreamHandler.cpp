@@ -1,10 +1,10 @@
 #include "BybitExecutionStreamHandler.hpp"
 
-void Core::Markets::BybitExecutionStreamHandler::handle(const QJsonObject &data, IPrivateMarketDataStreamer *streamer)
+void Core::Markets::BybitExecutionStreamHandler::handle(const QJsonObject &data, IPrivateStreamer *streamer)
 {
     if (!data.contains("data") || !data["data"].isArray())
     {
-        emit streamer->errorOccurred(streamer->id(), "[Execution] Invalid response structure!");
+        emit streamer->errorOccurred(streamer->id(), "[" + topic() + "] Invalid response structure!");
         return;
     }
 

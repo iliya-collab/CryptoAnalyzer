@@ -19,7 +19,7 @@ namespace Core::Tools
         QNetworkAccessManager* m_manager;
 
         // Структура API заголовка
-        struct APIHeaders {
+        struct ApiHeaders {
             QString X_BAPI_API_KEY;
             QString X_BAPI_TIMESTAMP; 
             QString X_BAPI_SIGN;
@@ -29,9 +29,9 @@ namespace Core::Tools
         // Генерирует сигнатуру для поля X_BAPI_SIGN
         QString generateSignature(const QString& timesTamp, const QString& recvWindow, const QString& queryString = "");
         // Инициализирует API заголовок учитывая параметры запроса
-        APIHeaders initAPIHeaders(const QString& queryString = "");
+        ApiHeaders initApiHeaders(const QString& queryString = "");
         // Добавляет API заголовок к запросу
-        void addAPIHeaders(const QUrl& url, QNetworkRequest& request);
+        void applyHeaders(QNetworkRequest& request, const ApiHeaders& headers);
 
     private slots:
 
@@ -44,7 +44,8 @@ namespace Core::Tools
 
         void init(const Api& api = Api()) override;
 
-        QUrl requestEndpoint(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) override;
+        QUrl requestEndpointGet(const QString& endpoint, const QUrlQuery& params = QUrlQuery(), int timeout = -1) override;
+        QUrl requestEndpointPost(const QString& endpoint, const QByteArray& jsonBody = QByteArray(), int timeout = -1) override;
 
     };
     

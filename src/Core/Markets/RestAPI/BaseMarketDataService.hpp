@@ -37,13 +37,13 @@ namespace Core::Markets
 
         // Метод для запроса
         template<typename IHandler, typename... Args>
-            requires HasEndpoint<IHandler> && HasBuildRequest<IHandler, Args...>
-        void requestImpl(Args&&... args)
+            requires HasEndpoint<IHandler> && IsGetRequest<IHandler, Args...>
+        void requestGetImpl(Args&&... args)
         {
             if (!m_currentApi)
                 return;
             auto params = IHandler::buildRequest(std::forward<Args>(args)...);
-            m_currentApi->requestEndpoint(IHandler::endpoint(), params, LOADING_TIMEOUT);
+            m_currentApi->requestEndpointGet(IHandler::endpoint(), params, LOADING_TIMEOUT);
         }
 
     public:
